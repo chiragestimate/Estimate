@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <style id="anti-fouc">
+    /* Anti-FOUC: hide body until local CSS fully paints */
+    html { visibility: hidden; }
+    html.css-ready { visibility: visible; }
+    /* Safety fallback: always show after 600ms no matter what */
+  </style>
+  <script>
+    (function(){
+      /* Reveal as soon as all local stylesheets are done loading */
+      function reveal(){ document.documentElement.classList.add('css-ready'); }
+      /* Wait for every local link[rel=stylesheet] in this document */
+      window.addEventListener('load', reveal);
+      /* Fallback: 700ms hard cap so network issues don't freeze the screen */
+      setTimeout(reveal, 700);
+    })();
+  </script>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Anjani Agri Care ERP - Profile</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="manifest" href="../manifest.json">
+  <meta name="theme-color" content="#0C3925">
+  <link rel="manifest" href="../manifest.json">
+  <meta name="theme-color" content="#0C3925">
+  <link rel="stylesheet" href="../assets/css/style.css?v=1792044203582">
+  <link rel="stylesheet" href="../assets/css/forms.css?v=1792044203582">
+  <link rel="stylesheet" href="../assets/css/tables.css?v=1792044203582">
+  <link rel="stylesheet" href="../assets/css/responsive.css?v=1792044203582">
+  <link rel="stylesheet" href="../assets/css/components/search-select.css?v=1792044203582">
+  <link rel="stylesheet" href="../assets/css/dashboard.css?v=1792044203582">
+    <link rel="icon" type="image/png" href="../assets/images/logo.png">
+  <link rel="apple-touch-icon" href="../assets/images/logo.png">
+</head>
+<body>
+<div class="app-layout" id="app-layout">
+  <script src="../assets/js/tenant-context.js?v=1792044203582"></script>
+  <script src="../assets/js/rbac-context.js?v=1792044203582"></script>
+  <script src="../assets/js/shared-layout.js?v=1792044203582"></script>
+  <script>document.addEventListener('DOMContentLoaded',()=>LAYOUT.injectLayout('Profile','Account / Profile'))</script>
+
+  <main class="main-content" id="main-content">
+    <div class="page-body">
+      <div class="page-header">
+        <div class="page-header-left">
+          <h2>Profile</h2>
+          <p>Account details and workspace access</p>
+        </div>
+        <div class="page-header-right">
+          <button type="button" class="btn btn-secondary" onclick="window.location.href='dashboard.html'">Back to Dashboard</button>
+        </div>
+      </div>
+
+      <div class="grid grid-2" style="gap:20px; align-items:stretch;">
+        <div class="card" style="padding:24px;">
+          <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px;flex-wrap:wrap;">
+            <div class="user-avatar" style="width:64px;height:64px;font-size:22px;">AP</div>
+            <div>
+              <div style="font-size:20px;font-weight:800;color:var(--text-primary);">Admin</div>
+              <div style="font-size:13px;color:var(--text-secondary);">System administrator</div>
+            </div>
+          </div>
+          <div style="display:grid;gap:12px;">
+            <div style="padding:14px 16px;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg);">
+              <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted);margin-bottom:4px;">Workspace</div>
+              <div style="font-size:14px;font-weight:700;color:#0C3925;">Anjani Agri Care</div>
+            </div>
+            <div style="padding:14px 16px;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg);">
+              <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted);margin-bottom:4px;">Registered & Factory Address</div>
+              <div style="font-size:13px;font-weight:500;color:var(--text-primary);line-height:1.45;">Sr. No. 67 and 68, Plot No. 33, Siddhi Vinayak Industrial Zone, At: Virva, Tal: Lodhika, Dist: Rajkot, Gujarat.</div>
+            </div>
+            <div style="padding:14px 16px;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg);">
+              <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted);margin-bottom:4px;">Role</div>
+              <div style="font-size:14px;font-weight:600;color:var(--text-primary);">Full administrative access</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="padding:24px;">
+          <div class="card-header" style="padding:0 0 16px;">
+            <div>
+              <div class="card-title">Quick Info</div>
+              <div class="card-subtitle">Visible on mobile and laptop layouts</div>
+            </div>
+          </div>
+          <div style="display:grid;gap:12px;">
+            <div style="padding:14px 16px;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg);">
+              <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted);margin-bottom:4px;">Access</div>
+              <div style="font-size:14px;font-weight:600;color:var(--text-primary);">All business modules enabled</div>
+            </div>
+            <div style="padding:14px 16px;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg);">
+              <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted);margin-bottom:4px;">Entry Point</div>
+              <div style="font-size:14px;font-weight:600;color:var(--text-primary);">Opened from the user menu</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="../assets/js/database.js?v=1792044203582"></script><script src="../assets/js/utils.js?v=1792044203582"></script><script src="../assets/js/app.js?v=1792044203582"></script>
+</body></html>
+

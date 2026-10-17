@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <style id="anti-fouc">
+    /* Anti-FOUC: hide body until local CSS fully paints */
+    html { visibility: hidden; }
+    html.css-ready { visibility: visible; }
+    /* Safety fallback: always show after 600ms no matter what */
+  </style>
+  <script>
+    (function(){
+      /* Reveal as soon as all local stylesheets are done loading */
+      function reveal(){ document.documentElement.classList.add('css-ready'); }
+      /* Wait for every local link[rel=stylesheet] in this document */
+      window.addEventListener('load', reveal);
+      /* Fallback: 700ms hard cap so network issues don't freeze the screen */
+      setTimeout(reveal, 700);
+    })();
+  </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Anjani Agri Care ERP - Calculator</title>
+  <meta http-equiv="refresh" content="0; url=batch-calculator.html">
+  <script>
+    window.location.replace('batch-calculator.html');
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="manifest" href="../manifest.json">
+  <meta name="theme-color" content="#0C3925">
+  <link rel="manifest" href="../manifest.json">
+  <meta name="theme-color" content="#0C3925">
+      <link rel="icon" type="image/png" href="../assets/images/logo.png">
+  <link rel="apple-touch-icon" href="../assets/images/logo.png">
+</head>
+<body>
+  <p>Redirecting to the batch calculator...</p>
+</body>
+</html>
+

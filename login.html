@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Anjani Agri Care ERP - Admin Login</title>
+  <style id="anti-fouc">
+    html { visibility: hidden; }
+    html.css-ready { visibility: visible; }
+  </style>
+  <script>
+    (function(){
+      function reveal(){ document.documentElement.classList.add('css-ready'); }
+      window.addEventListener('load', reveal);
+      setTimeout(reveal, 700);
+    })();
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+  <link rel="stylesheet" href="assets/css/style.css?v=1792044203582">
+  <script>
+    (function() {
+      const storedTheme = localStorage.getItem('theme');
+      const initialTheme = storedTheme === 'dark' ? 'dark' : 'light';
+      document.documentElement.setAttribute('data-theme', initialTheme);
+    })();
+  </script>
+  <style>
+    body {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      min-height: 100dvh;
+      background: var(--surface-gradient);
+      font-family: 'Space Grotesk', sans-serif;
+      transition: background 0.3s ease;
+      margin: 0;
+      padding: 24px 16px;
+      position: relative;
+      overflow-x: hidden;
+      overflow-y: auto;
+      box-sizing: border-box;
+    }
+
+    @media (max-width: 640px) {
+      body {
+        align-items: flex-start;
+        padding-top: clamp(20px, 5vh, 40px);
+        padding-bottom: 24px;
+      }
+    }
+
+    /* Subtle background animations/decorations */
+    .bg-decorator {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(120px);
+      opacity: 0.15;
+      z-index: -1;
+      pointer-events: none;
+    }
+    .bg-decorator-1 {
+      width: 300px;
+      height: 300px;
+      background: var(--accent);
+      top: -50px;
+      left: -50px;
+    }
+    .bg-decorator-2 {
+      width: 400px;
+      height: 400px;
+      background: var(--success);
+      bottom: -100px;
+      right: -100px;
+    }
+
+    .login-container {
+      width: 100%;
+      max-width: 440px;
+      padding: 24px;
+      z-index: 10;
+      box-sizing: border-box;
+    }
+
+    @media (max-width: 640px) {
+      .login-container {
+        padding: 12px;
+      }
+    }
+
+    .login-card {
+      background: var(--surface-glass);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 40px 36px;
+      box-shadow: var(--shadow-md);
+      transition: var(--transition);
+      box-sizing: border-box;
+    }
+
+    @media (max-width: 640px) {
+      .login-card {
+        padding: 28px 20px;
+      }
+    }
+
+    .login-header {
+      text-align: center;
+      margin-bottom: 28px;
+    }
+
+    @media (max-width: 640px) {
+      .login-header {
+        margin-bottom: 20px;
+      }
+      .login-logo {
+        width: 50px;
+        height: 50px;
+        margin-bottom: 14px;
+      }
+      .login-title {
+        font-size: 24px;
+      }
+    }
+
+    .login-logo {
+      width: 56px;
+      height: 56px;
+      background: var(--accent-light);
+      border-radius: var(--radius);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 18px;
+      color: var(--accent);
+      transition: var(--transition);
+    }
+
+    .login-logo svg {
+      width: 26px;
+      height: 26px;
+    }
+
+    .login-title {
+      font-size: 26px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 8px;
+      letter-spacing: -0.02em;
+    }
+
+    .login-subtitle {
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-secondary);
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .form-input {
+      width: 100%;
+      padding: 13px 16px;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: var(--bg-input);
+      color: var(--text-primary);
+      font-size: 14px;
+      font-family: inherit;
+      outline: none;
+      transition: var(--transition);
+    }
+
+    .form-input:focus {
+      border-color: var(--accent);
+      background: var(--surface);
+      box-shadow: 0 0 0 3px var(--accent-light);
+    }
+
+    .login-btn {
+      width: 100%;
+      padding: 13px 18px;
+      background: var(--accent);
+      color: #ffffff !important;
+      border: none;
+      border-radius: var(--radius-sm);
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: var(--transition);
+      margin-top: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .login-btn:hover {
+      background: var(--accent-hover);
+      transform: translateY(-1px);
+      box-shadow: var(--shadow-accent);
+    }
+
+    .login-btn:active {
+      transform: translateY(0);
+    }
+
+    .login-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .error-message {
+      background: rgba(220, 38, 38, 0.08);
+      border: 1px solid var(--danger);
+      color: var(--danger);
+      padding: 12px 16px;
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      margin-bottom: 20px;
+      display: none;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .error-message.show {
+      display: flex;
+    }
+
+    .spinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin-right: 10px;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .security-note {
+      background: rgba(0, 0, 0, 0.03);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 14px 16px;
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 24px;
+      line-height: 1.5;
+    }
+    
+    [data-theme="dark"] .security-note {
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="manifest" href="./manifest.json">
+  <meta name="theme-color" content="#0C3925">
+    <link rel="icon" type="image/png" href="./assets/images/logo.png">
+  <link rel="apple-touch-icon" href="./assets/images/logo.png">
+</head>
+<body>
+
+<!-- Theme decoration blobs -->
+<div class="bg-decorator bg-decorator-1"></div>
+<div class="bg-decorator bg-decorator-2"></div>
+
+<div class="login-container">
+  <div class="login-card">
+    <div class="login-header">
+      <div class="login-logo">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+      </div>
+      <h1 class="login-title">Admin Login</h1>
+      <p class="login-subtitle"><span style="color: #0C3925; font-weight: 700;">Anjani Agri Care</span> ERP System</p>
+    </div>
+
+    <div id="error-message" class="error-message">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;flex-shrink:0"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      <span id="error-text"></span>
+    </div>
+
+    <form id="login-form" onsubmit="handleLogin(event)">
+      <div class="form-group">
+        <label class="form-label" for="username">Username</label>
+        <input class="form-input" type="text" id="username" placeholder="Enter username" required autocomplete="username">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="password">Password</label>
+        <input class="form-input" type="password" id="password" placeholder="Enter password" required autocomplete="current-password">
+      </div>
+
+      <button type="submit" class="login-btn" id="login-btn" style="color: #ffffff !important;">
+        <span id="btn-text" style="color: #ffffff !important;">Login to ERP</span>
+      </button>
+    </form>
+
+    <div class="security-note">
+      <strong>Restricted Access:</strong> This system is restricted to authorized personnel only. Login sessions are monitored and recorded.
+    </div>
+  </div>
+</div>
+
+<script src="assets/js/database.js?v=1792044203582"></script>
+<script>
+async function handleLogin(e) {
+  e.preventDefault();
+  
+  const emailInput = document.getElementById('username').value.trim();
+  const password = document.getElementById('password').value.trim();
+  const btn = document.getElementById('login-btn');
+  const btnText = document.getElementById('btn-text');
+  const errorDiv = document.getElementById('error-message');
+  const errorText = document.getElementById('error-text');
+
+  btn.disabled = true;
+  btnText.innerHTML = '<span class="spinner"></span>Verifying Credentials...';
+  errorDiv.classList.remove('show');
+
+  try {
+    if (!window.dbClient || !window.dbClient.auth) {
+      throw new Error('Database client not initialized. Please refresh the page.');
+    }
+
+    const email = emailInput.includes('@') ? emailInput : `${emailInput}@agro.local`;
+
+    const { data, error } = await window.dbClient.auth.signInWithPassword({
+      email: email,
+      password: password
+    });
+
+    if (error) {
+      let msg = error.message || 'Authentication failed.';
+      if (msg.toLowerCase().includes('invalid login credentials')) {
+        msg = 'Invalid username/email or password.';
+      } else if (msg.toLowerCase().includes('email not confirmed')) {
+        msg = 'User email is not confirmed in Supabase.';
+      }
+      throw new Error(msg);
+    }
+
+    if (!data?.session) {
+      throw new Error('No active session received from authentication server.');
+    }
+
+    localStorage.setItem('admin_user', data.user?.email || email);
+    window.location.replace('./pages/dashboard.html');
+  } catch (err) {
+    console.error('Login error:', err);
+    errorText.textContent = err.message || 'Connection error. Please try again.';
+    errorDiv.classList.add('show');
+    btn.disabled = false;
+    btnText.textContent = 'Login to ERP';
+  }
+}
+
+// Check if already authenticated with a valid Supabase session
+(async function checkExistingSession() {
+  localStorage.removeItem('admin_logged_in');
+  if (window.dbClient && window.dbClient.auth) {
+    try {
+      const { data: { session } } = await window.dbClient.auth.getSession();
+      if (session) {
+        window.location.replace('./pages/dashboard.html');
+      }
+    } catch (_) {}
+  }
+})();
+</script>
+</body>
+</html>

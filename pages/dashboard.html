@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <style id="anti-fouc">
+    /* Anti-FOUC: hide body until local CSS fully paints */
+    html { visibility: hidden; }
+    html.css-ready { visibility: visible; }
+    /* Safety fallback: always show after 600ms no matter what */
+  </style>
+  <script>
+    (function(){
+      /* Reveal as soon as all local stylesheets are done loading */
+      function reveal(){ document.documentElement.classList.add('css-ready'); }
+      /* Wait for every local link[rel=stylesheet] in this document */
+      window.addEventListener('load', reveal);
+      /* Fallback: 700ms hard cap so network issues don't freeze the screen */
+      setTimeout(reveal, 700);
+    })();
+  </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Anjani Agri Care ERP - Dashboard</title>
+  <meta name="description" content="Anjani Agri Care ERP: Modern manufacturing, inventory, and operations management.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js?v=1792044203582" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="manifest" href="../manifest.json">
+  <meta name="theme-color" content="#0C3925">
+  <link rel="stylesheet" href="../assets/css/style.css?v=1792044203582">
+  <link rel="stylesheet" href="../assets/css/dashboard.css?v=1792044203582">
+  <link rel="stylesheet" href="../assets/css/forms.css?v=1792044203582">
+  <link rel="stylesheet" href="../assets/css/tables.css?v=1792044203582">
+  <link rel="stylesheet" href="../assets/css/responsive.css?v=1792044203582">
+  <link rel="stylesheet" href="../assets/css/components/search-select.css?v=1792044203582">
+  <style>
+    /* Strictly suppress any legacy CSS ::after pseudo-element arrows */
+    .quick-action-card::after {
+      content: none !important;
+      display: none !important;
+    }
+  </style>
+  <link rel="icon" type="image/png" href="../assets/images/logo.png">
+  <link rel="apple-touch-icon" href="../assets/images/logo.png">
+</head>
+<body>
+<div class="app-layout" id="app-layout">
+  <script src="../assets/js/tenant-context.js?v=1792044203582"></script>
+  <script src="../assets/js/rbac-context.js?v=1792044203582"></script>
+  <script src="../assets/js/shared-layout.js?v=1792044203582"></script>
+  <script>document.addEventListener('DOMContentLoaded',()=>LAYOUT.injectLayout('Dashboard','Dashboard'))</script>
+
+  <main class="main-content" id="main-content">
+    <div class="page-body">
+      
+      <!-- Quick Action Chips -->
+      <div class="quick-actions">
+        <a href="orders.html" class="quick-action-card">
+          <div class="quick-action-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg></div>
+          <span class="quick-action-label">New Order</span>
+          <svg class="quick-action-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </a>
+        <a href="purchases.html" class="quick-action-card">
+          <div class="quick-action-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/></svg></div>
+          <span class="quick-action-label">New Purchase</span>
+          <svg class="quick-action-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </a>
+        <a href="clients.html" class="quick-action-card">
+          <div class="quick-action-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="23" y1="11" x2="17" y2="11"/><line x1="20" y1="8" x2="20" y2="14"/></svg></div>
+          <span class="quick-action-label">Add Client</span>
+          <svg class="quick-action-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </a>
+        <a href="products.html" class="quick-action-card">
+          <div class="quick-action-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg></div>
+          <span class="quick-action-label">Add Product</span>
+          <svg class="quick-action-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </a>
+        <a href="expenses.html" class="quick-action-card">
+          <div class="quick-action-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/></svg></div>
+          <span class="quick-action-label">Add Expense</span>
+          <svg class="quick-action-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </a>
+      </div>
+
+      <!-- Executive KPI Cards Strip (4 Columns) -->
+      <div class="kpi-grid" style="margin-bottom: 20px;">
+        <a href="reports.html" class="stat-card" style="text-decoration: none; color: inherit; display: flex;">
+          <div class="stat-icon purple"><span aria-hidden="true" style="font-size:20px;font-weight:800;line-height:1">₹</span></div>
+          <div class="stat-label">Total Revenue</div>
+          <div class="stat-value" id="kpi-revenue">Loading...</div>
+          <div class="stat-trend up" id="kpi-revenue-trend">Delivered sales orders</div>
+          <span style="display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;color:var(--accent);margin-top:6px;">View Report <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="width:13px;height:13px;flex-shrink:0;"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></span>
+        </a>
+
+        <a href="orders.html" class="stat-card" style="text-decoration: none; color: inherit; display: flex;">
+          <div class="stat-icon green"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg></div>
+          <div class="stat-label">Active Orders</div>
+          <div class="stat-value" id="kpi-orders">…</div>
+          <div class="stat-trend up">Pending / Processing</div>
+          <span style="display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;color:var(--accent);margin-top:6px;">Manage Orders <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="width:13px;height:13px;flex-shrink:0;"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></span>
+        </a>
+
+        <a href="purchases.html" class="stat-card" style="text-decoration: none; color: inherit; display: flex;">
+          <div class="stat-icon yellow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/></svg></div>
+          <div class="stat-label">Total Purchases</div>
+          <div class="stat-value" id="kpi-purchases">…</div>
+          <div class="stat-trend down">Raw Material Spend</div>
+          <span style="display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;color:var(--accent);margin-top:6px;">View Purchases <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="width:13px;height:13px;flex-shrink:0;"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></span>
+        </a>
+
+        <a href="expenses.html" class="stat-card" style="text-decoration: none; color: inherit; display: flex;">
+          <div class="stat-icon red"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/></svg></div>
+          <div class="stat-label">Total Expenses</div>
+          <div class="stat-value" id="kpi-expenses">…</div>
+          <div class="stat-trend down">Operational Costs</div>
+          <span style="display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;color:var(--accent);margin-top:6px;">View Expenses <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="width:13px;height:13px;flex-shrink:0;"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></span>
+        </a>
+      </div>
+      
+      <!-- Middle Analytics & Assets Grid -->
+      <div class="chart-row" style="margin-bottom: 20px;">
+        <!-- Monthly Sales Trend Chart -->
+        <div class="chart-card">
+          <div class="chart-card-header">
+            <div>
+              <div class="chart-card-title">Sales Revenue Performance</div>
+              <div class="chart-card-subtitle">Monthly sales volume distribution</div>
+            </div>
+            <a href="reports.html" class="btn btn-ghost btn-sm" style="font-size:12px;"><span>Full Analytics</span> <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="width:13px;height:13px;flex-shrink:0;"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
+          </div>
+          <div class="chart-container" style="position:relative; min-height: 220px; padding: 12px 20px 16px;">
+            <canvas id="revenue-chart"></canvas>
+          </div>
+        </div>
+
+        <!-- Inventory Valuation Widget -->
+        <div class="chart-card">
+          <div class="chart-card-header">
+            <div>
+              <div class="chart-card-title">Inventory Valuation</div>
+              <div class="chart-card-subtitle">Total stock asset worth</div>
+            </div>
+            <select id="dashboard-inventory-filter" class="form-select" style="min-width: 130px; padding: 4px 8px; font-size: 12px;">
+              <option value="All">All Inventory</option>
+              <option value="Technical">Technical</option>
+              <option value="Bottles">Bottles</option>
+              <option value="Boxes">Boxes</option>
+              <option value="Labels">Labels</option>
+              <option value="Others">Others</option>
+            </select>
+          </div>
+          <div style="padding: 16px 20px; display: flex; flex-direction: column; justify-content: space-between; height: 100%;">
+            <div>
+              <div class="stat-label" id="dashboard-inventory-selected-type" style="font-size: 11px; margin-bottom: 4px;">SELECTED TYPE: ALL INVENTORY</div>
+              <div class="stat-value" id="dashboard-inventory-total-value" style="font-size: 24px; color: var(--primary);">Loading...</div>
+            </div>
+            <div style="margin-top: 14px; padding: 10px 14px; background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 12px; color: var(--text-secondary);">
+              <span>Direct access to physical batch tracking & reorder thresholds in the </span>
+              <a href="inventory.html" style="color: var(--accent); font-weight: 600; text-decoration: underline;">Inventory Manager</a>.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Live Operations & Alerts Row -->
+      <div class="activity-row">
+        <!-- Recent Orders Feed -->
+        <div class="card">
+          <div class="card-header" style="display:flex; justify-content:space-between; align-items:center;">
+            <div>
+              <div class="card-title">Recent Orders</div>
+              <div class="card-subtitle">Latest sales transaction flow</div>
+            </div>
+            <a href="orders.html" class="btn btn-ghost btn-sm" style="font-size:12px;">View All</a>
+          </div>
+          <div class="card-body" id="recent-orders-list" style="padding: 10px 20px;"><p class="text-muted text-sm">Loading...</p></div>
+        </div>
+
+        <!-- Low Stock Alerts Feed -->
+        <div class="card">
+          <div class="card-header" style="display:flex; justify-content:space-between; align-items:center;">
+            <div>
+              <div class="card-title">Low Stock Alerts</div>
+              <div class="card-subtitle">Items requiring replenishment</div>
+            </div>
+            <a href="inventory.html" class="btn btn-ghost btn-sm" style="font-size:12px;">Manage</a>
+          </div>
+          <div class="card-body" id="stock-alerts-list" style="padding: 10px 20px;"><p class="text-muted text-sm">Loading...</p></div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<script src="../assets/js/database.js?v=1792044203582"></script>
+<script src="../assets/js/inventory-core.js?v=1792044203582"></script>
+<script src="../assets/js/utils.js?v=1792044203582"></script>
+<script src="../assets/js/components/search-select.js?v=1792044203582"></script>
+<script src="../assets/js/app.js?v=1792044203582"></script>
+<script src="../assets/js/dashboard.js?v=1792044203582"></script>
+</body>
+</html>
+

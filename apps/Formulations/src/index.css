@@ -1,0 +1,189 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  background-color: #0a0d12;
+  color: #e5e7eb;
+  line-height: 1.6;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #14171d;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #1f2937;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #374151;
+}
+
+/* Focus styles */
+input:focus,
+select:focus,
+textarea:focus,
+button:focus {
+  outline: none;
+  border-color: #0C3925 !important;
+  box-shadow: 0 0 0 2px rgba(12, 57, 37, 0.25) !important;
+}
+
+.form-input:focus,
+.form-select:focus,
+.form-textarea:focus {
+  border-color: #0C3925 !important;
+  box-shadow: 0 0 0 2px rgba(12, 57, 37, 0.25) !important;
+}
+
+/* Ensure inline unit selects and flex inputs retain proportions */
+select[data-native="true"] {
+  display: inline-block !important;
+  appearance: menulist !important;
+  -webkit-appearance: menulist !important;
+  box-sizing: border-box !important;
+}
+
+/* Cyber panel glow effect */
+.cyber-panel {
+  background: #14171d;
+  border: 1px solid #1f2937;
+  transition: border-color 0.3s ease;
+}
+
+.cyber-panel:hover {
+  border-color: #374151;
+}
+
+/* Lime accent button */
+.btn-lime {
+  background: #ccff00;
+  color: #0a0d12;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.btn-lime:hover {
+  box-shadow: 0 0 20px rgba(204, 255, 0, 0.4);
+  transform: translateY(-1px);
+}
+
+/* Emerald accent button */
+.btn-emerald {
+  background: #0C3925;
+  color: white;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.btn-emerald:hover {
+  box-shadow: 0 0 20px rgba(16, 185, 129, 0.4);
+  transform: translateY(-1px);
+}
+
+/* Progress ring animation */
+@keyframes rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.progress-ring {
+  transition: stroke-dashoffset 0.5s ease;
+}
+
+/* Formulation Ingredients Table Styles */
+.formulation-ingredients-table {
+  width: 100%;
+  table-layout: auto !important;
+}
+
+@media (min-width: 769px) {
+  .formulation-ingredients-table {
+    min-width: 720px !important;
+  }
+  .formulation-ingredients-table th:first-child,
+  .formulation-ingredients-table td:first-child {
+    min-width: 300px !important;
+    width: 45% !important;
+  }
+  .ingredient-dropdown-menu {
+    min-width: 320px !important;
+    max-width: 480px !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .formulation-ingredients-table {
+    min-width: 0 !important;
+    width: 100% !important;
+  }
+  .formulation-ingredients-table thead {
+    display: none !important;
+  }
+  .formulation-ingredients-table tbody,
+  .formulation-ingredients-table tr {
+    display: block !important;
+    width: 100% !important;
+  }
+  .formulation-ingredients-table tbody tr {
+    border: 1.5px solid var(--border, #e2e8f0);
+    border-radius: 12px;
+    padding: 14px;
+    margin-bottom: 16px;
+    background: #ffffff;
+    box-sizing: border-box;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+  .formulation-ingredients-table td {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    padding: 10px 0 !important;
+    border: none !important;
+    border-bottom: 1px solid #f1f5f9 !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+  }
+  .formulation-ingredients-table td:last-child {
+    border-bottom: none !important;
+    align-items: center !important;
+    padding-top: 14px !important;
+  }
+  .formulation-ingredients-table td > div {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+  .ingredient-dropdown-menu {
+    position: absolute !important;
+    left: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+}
+

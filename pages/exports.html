@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <style id="anti-fouc">
+    html { visibility: hidden; }
+    html.css-ready { visibility: visible; }
+  </style>
+  <script>
+    (function(){
+      function reveal(){ document.documentElement.classList.add('css-ready'); }
+      window.addEventListener('load', reveal);
+      setTimeout(reveal, 700);
+    })();
+  </script>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Anjani Agri Care ERP - Exports</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="manifest" href="../manifest.json">
+  <meta name="theme-color" content="#0C3925">
+  <link rel="stylesheet" href="../assets/css/style.css">
+  <link rel="stylesheet" href="../assets/css/forms.css">
+  <link rel="stylesheet" href="../assets/css/tables.css">
+  <link rel="stylesheet" href="../assets/css/responsive.css">
+  <link rel="stylesheet" href="../assets/css/components/search-select.css">
+  <link rel="icon" type="image/png" href="../assets/images/logo.png">
+  <link rel="apple-touch-icon" href="../assets/images/logo.png">
+</head>
+<body>
+<div class="app-layout" id="app-layout">
+  <script src="../assets/js/tenant-context.js"></script>
+  <script src="../assets/js/rbac-context.js"></script>
+  <script src="../assets/js/shared-layout.js"></script>
+  <script>document.addEventListener('DOMContentLoaded',()=>LAYOUT.injectLayout('Exports','Analytics / Exports'))</script>
+  <main class="main-content" id="main-content">
+    <div class="page-body">
+      <div class="page-header">
+        <div class="page-header-left">
+          <h2>Data Exports & Analytical Registers</h2>
+          <p>Export business registers, customer dispatch ledgers, and filtered modules to Excel or CSV</p>
+        </div>
+        <div class="page-header-right">
+          <button type="button" class="btn btn-primary" onclick="exportFullConsolidatedWorkbook()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Export Master Multi-Sheet Workbook (.xlsx)
+          </button>
+        </div>
+      </div>
+
+      <!-- ANALYTICAL BUSINESS REGISTERS (NEW SECTION) -->
+      <div style="font-size:13px; font-weight:700; text-transform:uppercase; letter-spacing:0.07em; color:var(--accent); margin-bottom:14px; display:flex; align-items:center; gap:8px;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+        Commercial & Customer Sales Registers (Calculated with Exact Display Totals)
+      </div>
+
+      <div class="grid grid-3" style="margin-bottom:32px;">
+        <!-- Customer Sales Register -->
+        <div class="card" style="padding:20px; border-left:4px solid var(--accent);">
+          <div style="font-size:15px; font-weight:700; margin-bottom:4px;">Customer-Wise Annual Sales Register</div>
+          <div style="font-size:12px; color:var(--text-muted); margin-bottom:16px;">Orders, dispatched units, boxes, loose, pending, billed amounts & receivables.</div>
+          <div style="display:flex; gap:8px;">
+            <button class="btn btn-primary btn-sm" onclick="exportAnalyticalReport('customer_sales', 'excel')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Excel
+            </button>
+            <button class="btn btn-secondary btn-sm" onclick="exportAnalyticalReport('customer_sales', 'csv')">CSV</button>
+          </div>
+        </div>
+
+        <!-- Product & SKU Breakdown -->
+        <div class="card" style="padding:20px; border-left:4px solid #3B82F6;">
+          <div style="font-size:15px; font-weight:700; margin-bottom:4px;">Product & SKU Packaging Breakdown</div>
+          <div style="font-size:12px; color:var(--text-muted); margin-bottom:16px;">Packaging sizes (100ml, 500ml, 1L), units per box, cartons dispatched, and chemical volume.</div>
+          <div style="display:flex; gap:8px;">
+            <button class="btn btn-primary btn-sm" onclick="exportAnalyticalReport('product_skus', 'excel')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Excel
+            </button>
+            <button class="btn btn-secondary btn-sm" onclick="exportAnalyticalReport('product_skus', 'csv')">CSV</button>
+          </div>
+        </div>
+
+        <!-- Monthly Trends & Ledger -->
+        <div class="card" style="padding:20px; border-left:4px solid #F59E0B;">
+          <div style="font-size:15px; font-weight:700; margin-bottom:4px;">Monthly Commercial Sales Trends</div>
+          <div style="font-size:12px; color:var(--text-muted); margin-bottom:16px;">Month-by-month order count, units supplied, master carton counts, and net collections.</div>
+          <div style="display:flex; gap:8px;">
+            <button class="btn btn-primary btn-sm" onclick="exportAnalyticalReport('monthly_trends', 'excel')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Excel
+            </button>
+            <button class="btn btn-secondary btn-sm" onclick="exportAnalyticalReport('monthly_trends', 'csv')">CSV</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- SMART DATE & MULTI-FILTER BULK EXPORTER -->
+      <div class="card" style="padding:28px; margin-bottom:32px; border:1px solid rgba(137,233,0,0.15); background:radial-gradient(circle at top right, rgba(137,233,0,0.03), transparent 70%);">
+        <div style="font-size:16px; font-weight:700; color:var(--text-primary); margin-bottom:6px; display:flex; align-items:center; gap:8px;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" style="width:20px; height:20px;"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          Smart Filtered Bulk Exporter
+        </div>
+        <p style="font-size:13px; color:var(--text-secondary); margin-bottom:20px;">Download specific date-filtered and multi-criteria reports for operational modules in one click.</p>
+        
+        <!-- Controls Grid -->
+        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:16px; margin-bottom:20px;">
+          <div>
+            <label style="display:block; font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase; margin-bottom:6px;">Date From</label>
+            <input type="date" id="export-date-from" class="form-input" style="width:100%;">
+          </div>
+          <div>
+            <label style="display:block; font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase; margin-bottom:6px;">Date To</label>
+            <input type="date" id="export-date-to" class="form-input" style="width:100%;">
+          </div>
+          <div>
+            <label style="display:block; font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase; margin-bottom:6px;">Presets</label>
+            <div style="display:flex; gap:6px; flex-wrap:wrap;">
+              <button class="btn btn-ghost btn-sm" onclick="setExportPreset('today')" style="padding:5px 8px; font-size:11px;">Today</button>
+              <button class="btn btn-ghost btn-sm" onclick="setExportPreset('week')" style="padding:5px 8px; font-size:11px;">Week</button>
+              <button class="btn btn-ghost btn-sm" onclick="setExportPreset('month')" style="padding:5px 8px; font-size:11px;">Month</button>
+              <button class="btn btn-ghost btn-sm" onclick="setExportPreset('quarter')" style="padding:5px 8px; font-size:11px;">Quarter</button>
+              <button class="btn btn-ghost btn-sm" onclick="setExportPreset('fy')" style="padding:5px 8px; font-size:11px;">FY</button>
+              <button class="btn btn-ghost btn-sm" onclick="setExportPreset('year')" style="padding:5px 8px; font-size:11px;">Year</button>
+              <button class="btn btn-ghost btn-sm" onclick="setExportPreset('all')" style="padding:5px 8px; font-size:11px;">All</button>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Checkbox grid -->
+        <label style="display:block; font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase; margin-bottom:10px;">Select Modules to Include in Bulk Export</label>
+        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:12px; margin-bottom:24px;">
+          <label style="display:flex; align-items:center; gap:10px; cursor:pointer; font-size:13px; padding:8px 12px; background:rgba(255,255,255,0.02); border:1px solid var(--border); border-radius:8px;">
+            <input type="checkbox" id="chk-orders" checked style="accent-color:var(--accent);">
+            <span>Sales Orders & Dispatches</span>
+          </label>
+          <label style="display:flex; align-items:center; gap:10px; cursor:pointer; font-size:13px; padding:8px 12px; background:rgba(255,255,255,0.02); border:1px solid var(--border); border-radius:8px;">
+            <input type="checkbox" id="chk-daily_transactions" checked style="accent-color:var(--accent);">
+            <span>Daily Counter Transactions</span>
+          </label>
+          <label style="display:flex; align-items:center; gap:10px; cursor:pointer; font-size:13px; padding:8px 12px; background:rgba(255,255,255,0.02); border:1px solid var(--border); border-radius:8px;">
+            <input type="checkbox" id="chk-purchases" checked style="accent-color:var(--accent);">
+            <span>Purchase Procurement Orders</span>
+          </label>
+          <label style="display:flex; align-items:center; gap:10px; cursor:pointer; font-size:13px; padding:8px 12px; background:rgba(255,255,255,0.02); border:1px solid var(--border); border-radius:8px;">
+            <input type="checkbox" id="chk-transactions" checked style="accent-color:var(--accent);">
+            <span>Accounting Ledger Transactions</span>
+          </label>
+          <label style="display:flex; align-items:center; gap:10px; cursor:pointer; font-size:13px; padding:8px 12px; background:rgba(255,255,255,0.02); border:1px solid var(--border); border-radius:8px;">
+            <input type="checkbox" id="chk-expenses" checked style="accent-color:var(--accent);">
+            <span>Operational Expenses</span>
+          </label>
+          <label style="display:flex; align-items:center; gap:10px; cursor:pointer; font-size:13px; padding:8px 12px; background:rgba(255,255,255,0.02); border:1px solid var(--border); border-radius:8px;">
+            <input type="checkbox" id="chk-products" checked style="accent-color:var(--accent);">
+            <span>Products & Stock Master</span>
+          </label>
+          <label style="display:flex; align-items:center; gap:10px; cursor:pointer; font-size:13px; padding:8px 12px; background:rgba(255,255,255,0.02); border:1px solid var(--border); border-radius:8px;">
+            <input type="checkbox" id="chk-clients" checked style="accent-color:var(--accent);">
+            <span>Client Registry Master</span>
+          </label>
+          <label style="display:flex; align-items:center; gap:10px; cursor:pointer; font-size:13px; padding:8px 12px; background:rgba(255,255,255,0.02); border:1px solid var(--border); border-radius:8px;">
+            <input type="checkbox" id="chk-suppliers" checked style="accent-color:var(--accent);">
+            <span>Supplier Directory Master</span>
+          </label>
+        </div>
+        
+        <!-- Actions -->
+        <div class="exports-action-row" style="display:flex; gap:12px; flex-wrap:wrap;">
+          <button type="button" class="btn btn-primary" onclick="bulkExportCSV()" style="padding:10px 20px;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px; height:16px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Export Selected to CSV
+          </button>
+          <button type="button" class="btn btn-secondary" onclick="selectAllExportModules(true)" style="padding:10px 14px;">Select All</button>
+          <button type="button" class="btn btn-secondary" onclick="selectAllExportModules(false)" style="padding:10px 14px;">Deselect All</button>
+        </div>
+      </div>
+
+      <!-- MODULE EXPORTS SECTION -->
+      <div style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--accent);margin-bottom:16px">Single Module Tables</div>
+      <div class="grid grid-3" style="margin-bottom:32px">
+        <div class="card" style="padding:20px">
+          <div style="font-size:14px;font-weight:700;margin-bottom:4px">Clients Master</div>
+          <div style="font-size:12px;color:var(--text-muted);margin-bottom:16px">Client accounts, credit limits, balances</div>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-primary btn-sm" onclick="exportTable('clients','Clients')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Excel</button>
+            <button class="btn btn-secondary btn-sm" onclick="exportCSV('clients','Clients')">CSV</button>
+          </div>
+        </div>
+
+        <div class="card" style="padding:20px">
+          <div style="font-size:14px;font-weight:700;margin-bottom:4px">Products & Inventory</div>
+          <div style="font-size:12px;color:var(--text-muted);margin-bottom:16px">Catalog SKUs, prices, stock levels</div>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-primary btn-sm" onclick="exportTable('products','Products')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Excel</button>
+            <button class="btn btn-secondary btn-sm" onclick="exportCSV('products','Products')">CSV</button>
+          </div>
+        </div>
+
+        <div class="card" style="padding:20px">
+          <div style="font-size:14px;font-weight:700;margin-bottom:4px">Sales Orders</div>
+          <div style="font-size:12px;color:var(--text-muted);margin-bottom:16px">Order history, status, dispatch flags</div>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-primary btn-sm" onclick="exportTable('orders','Orders')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Excel</button>
+            <button class="btn btn-secondary btn-sm" onclick="exportCSV('orders','Orders')">CSV</button>
+          </div>
+        </div>
+
+        <div class="card" style="padding:20px">
+          <div style="font-size:14px;font-weight:700;margin-bottom:4px">Daily Transactions</div>
+          <div style="font-size:12px;color:var(--text-muted);margin-bottom:16px">Daily retail counter sales and usage</div>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-primary btn-sm" onclick="exportTable('daily_transactions','Daily_Transactions')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Excel</button>
+            <button class="btn btn-secondary btn-sm" onclick="exportCSV('daily_transactions','Daily_Transactions')">CSV</button>
+          </div>
+        </div>
+
+        <div class="card" style="padding:20px">
+          <div style="font-size:14px;font-weight:700;margin-bottom:4px">Purchase Orders</div>
+          <div style="font-size:12px;color:var(--text-muted);margin-bottom:16px">Procurement and raw material bills</div>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-primary btn-sm" onclick="exportTable('purchases','Purchases')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Excel</button>
+            <button class="btn btn-secondary btn-sm" onclick="exportCSV('purchases','Purchases')">CSV</button>
+          </div>
+        </div>
+
+        <div class="card" style="padding:20px">
+          <div style="font-size:14px;font-weight:700;margin-bottom:4px">Payment Transactions</div>
+          <div style="font-size:12px;color:var(--text-muted);margin-bottom:16px">Receipts, payments, bank records</div>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-primary btn-sm" onclick="exportTable('transactions','Transactions')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Excel</button>
+            <button class="btn btn-secondary btn-sm" onclick="exportCSV('transactions','Transactions')">CSV</button>
+          </div>
+        </div>
+
+        <div class="card" style="padding:20px">
+          <div style="font-size:14px;font-weight:700;margin-bottom:4px">Operational Expenses</div>
+          <div style="font-size:12px;color:var(--text-muted);margin-bottom:16px">Factory and operational costs</div>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-primary btn-sm" onclick="exportTable('expenses','Expenses')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Excel</button>
+            <button class="btn btn-secondary btn-sm" onclick="exportCSV('expenses','Expenses')">CSV</button>
+          </div>
+        </div>
+
+        <div class="card" style="padding:20px">
+          <div style="font-size:14px;font-weight:700;margin-bottom:4px">Suppliers Directory</div>
+          <div style="font-size:12px;color:var(--text-muted);margin-bottom:16px">Vendor registry and balances</div>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-primary btn-sm" onclick="exportTable('suppliers','Suppliers')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Excel</button>
+            <button class="btn btn-secondary btn-sm" onclick="exportCSV('suppliers','Suppliers')">CSV</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<script src="../assets/js/database.js"></script>
+<script src="../assets/js/reports-core.js"></script>
+<script src="../assets/js/utils.js"></script>
+<script src="../assets/js/app.js"></script>
+<script src="../assets/js/exports.js"></script>
+</body></html>

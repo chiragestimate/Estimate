@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Anjani Agri Care ERP - Loading</title>
+  <meta name="description" content="Anjani Agri Care ERP: Internal Inventory & Business Management.">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{font-family:'Inter',sans-serif;background:linear-gradient(180deg,#0a0f0d 0%,#050807 100%);min-height:100vh;display:flex;align-items:center;justify-content:center;overflow:hidden}
+    .wrap{text-align:center;color:#fff;z-index:10;position:relative}
+    .logo{width:88px;height:88px;display:flex;align-items:center;justify-content:center;margin:0 auto 24px;border-radius:22px;overflow:hidden;background:rgba(255,255,255,0.06);padding:4px;box-shadow:0 12px 30px rgba(0,0,0,0.5)}
+    h1{font-size:30px;font-weight:800;margin-bottom:6px;letter-spacing:-0.02em;color:#f8fafc}
+    p{font-size:13.5px;color:rgba(255,255,255,0.6);margin-bottom:32px}
+    .spinner{width:36px;height:36px;border:3px solid rgba(255,255,255,0.1);border-top-color:#0C3925;border-radius:50%;animation:spin 0.7s linear infinite;margin:0 auto 16px;box-shadow: 0 0 15px rgba(12, 57, 37, 0.3)}
+    .status{font-size:13px;color:rgba(255,255,255,0.5);letter-spacing:0.02em;font-weight:500}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    .orbs{position:fixed;inset:0;pointer-events:none;overflow:hidden}
+    .orb{position:absolute;border-radius:50%;filter:blur(100px);opacity:0.12}
+    .orb1{width:400px;height:400px;background:#0C3925;top:-100px;left:-100px}
+    .orb2{width:300px;height:300px;background:#08281a;bottom:-80px;right:-80px}
+  </style>
+  <link rel="manifest" href="./manifest.json">
+  <meta name="theme-color" content="#0C3925">
+      <link rel="icon" type="image/png" href="./assets/images/logo.png">
+  <link rel="apple-touch-icon" href="./assets/images/logo.png">
+</head>
+<body>
+  <div class="orbs"><div class="orb orb1"></div><div class="orb orb2"></div></div>
+  <div class="wrap">
+    <div class="logo">
+      <img src="./assets/images/logo.jpg" alt="Anjani Agri Care" style="width: 100%; height: 100%; object-fit: contain; border-radius: 18px;">
+    </div>
+    <h1>Anjani ERP</h1>
+    <p>Crop Care Manufacturing & Distribution Management</p>
+    <div class="spinner"></div>
+    <div class="status">Loading Anjani ERP...</div>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="./assets/js/database.js?v=1792044203582"></script>
+  <script src="./assets/js/inventory-core.js?v=1792044203582"></script>
+  <script>
+    (async function() {
+      // Fix for GitHub Pages repo subpath resolution:
+      // When opening https://user.github.io/repo without a trailing slash,
+      // resolving './pages/dashboard.html' strips the repo name and produces
+      // https://user.github.io/pages/dashboard.html (404 Error).
+      const path = window.location.pathname;
+      if (!path.endsWith('/') && !path.endsWith('.html')) {
+        window.location.replace(window.location.origin + path + '/' + window.location.search + window.location.hash);
+        return;
+      }
+
+      localStorage.removeItem('admin_logged_in');
+      try {
+        if (window.dbClient && window.dbClient.auth) {
+          const { data: { session } } = await window.dbClient.auth.getSession();
+          if (session) {
+            window.location.replace('./pages/dashboard.html');
+            return;
+          }
+        }
+      } catch (e) {
+        console.warn('Auth check error on landing:', e);
+      }
+      window.location.replace('./login.html');
+    })();
+  </script>
+</body>
+</html>
+

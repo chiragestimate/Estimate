@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <style id="anti-fouc">
+    html { visibility: hidden; }
+    html.css-ready { visibility: visible; }
+  </style>
+  <script>
+    (function(){
+      function reveal(){ document.documentElement.classList.add('css-ready'); }
+      window.addEventListener('load', reveal);
+      setTimeout(reveal, 700);
+    })();
+  </script>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Roles & Access Control - AgroChem ERP</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="manifest" href="../manifest.json">
+  <meta name="theme-color" content="#0C3925">
+  <link rel="stylesheet" href="../assets/css/style.css?v=1792044203582">
+  <link rel="stylesheet" href="../assets/css/forms.css?v=1792044203582">
+  <link rel="stylesheet" href="../assets/css/tables.css?v=1792044203582">
+  <link rel="stylesheet" href="../assets/css/responsive.css?v=1792044203582">
+  <link rel="stylesheet" href="../assets/css/components/search-select.css?v=1792044203582">
+  <link rel="icon" type="image/png" href="../assets/images/logo.png">
+</head>
+<body>
+<div class="app-layout" id="app-layout">
+  <script src="../assets/js/tenant-context.js?v=1792044203582"></script>
+  <script src="../assets/js/rbac-context.js?v=1792044203582"></script>
+  <script src="../assets/js/shared-layout.js?v=1792044203582"></script>
+  <script>document.addEventListener('DOMContentLoaded',()=>LAYOUT.injectLayout('Roles & Access Control','System / User Roles'))</script>
+
+  <main class="main-content" id="main-content">
+    <div class="page-body">
+      <div class="page-header">
+        <div class="page-header-left">
+          <h2>User Roles & Granular Permissions</h2>
+          <p>Configure user memberships, functional permissions, approval rules, and location scopes</p>
+        </div>
+        <div class="page-header-right" style="display:flex;gap:8px;">
+          <button class="btn btn-secondary" onclick="window.location.href='audit-logs.html'">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            Audit Trail
+          </button>
+          <button class="btn btn-primary" onclick="openAssignUserModal()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Assign User Role
+          </button>
+        </div>
+      </div>
+
+      <!-- Quick Metrics Cards -->
+      <div class="summary-cards-grid" id="user-roles-summary-grid">
+        <div class="summary-metric-card" onclick="switchRbacTab('roles')" style="cursor:pointer;" title="Click to view all 10 System Roles">
+          <div class="summary-metric-label">Configured Roles <span style="font-size:10px;color:var(--text-muted);font-weight:400;">(View All)</span></div>
+          <div class="summary-metric-value" id="stat-total-roles">10</div>
+        </div>
+        <div class="summary-metric-card" onclick="switchRbacTab('users')" style="cursor:pointer;" title="Click to view User Role Assignments">
+          <div class="summary-metric-label">Active Users</div>
+          <div class="summary-metric-value" style="color:#0C3925;" id="stat-active-users">1</div>
+        </div>
+        <div class="summary-metric-card" onclick="switchRbacTab('users')" style="cursor:pointer;" title="Locations scoped to users">
+          <div class="summary-metric-label">Scoped Locations</div>
+          <div class="summary-metric-value" style="color:#0284c7;" id="stat-scoped-locations">4</div>
+        </div>
+        <div class="summary-metric-card" onclick="switchRbacTab('approvals')" style="cursor:pointer;" title="Click to view Pending Approvals">
+          <div class="summary-metric-label">Pending Approvals</div>
+          <div class="summary-metric-value" style="color:#d97706;" id="stat-pending-approvals">0</div>
+        </div>
+      </div>
+
+      <!-- Navigation Tabs -->
+      <div class="tabs" style="margin-bottom:20px;display:flex;gap:8px;border-bottom:1px solid var(--border);padding-bottom:8px;flex-wrap:wrap;">
+        <button class="tab-btn active" id="tab-users-btn" onclick="switchRbacTab('users')">User Assignments</button>
+        <button class="tab-btn" id="tab-roles-btn" onclick="switchRbacTab('roles')">System Roles (10)</button>
+        <button class="tab-btn" id="tab-matrix-btn" onclick="switchRbacTab('matrix')">Permission Matrix</button>
+        <button class="tab-btn" id="tab-approvals-btn" onclick="switchRbacTab('approvals')">Approval Requests</button>
+      </div>
+
+      <!-- TAB 1: User Assignments -->
+      <div id="tab-users-view">
+        <div class="table-wrap data-table-wrap-mobile" id="users-table-wrap">
+          <div class="table-toolbar">
+            <div class="table-toolbar-left" style="flex:1;max-width:440px;">
+              <div class="table-search" style="width:100%;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <input type="text" id="search-users" placeholder="Search by email, name or role…" style="width:100%;">
+              </div>
+            </div>
+            <div class="table-toolbar-right" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+              <select class="form-select" id="filter-user-role" style="min-width:180px;" data-native="true">
+                <option value="">All Roles</option>
+                <option value="super_admin">Super Admin</option>
+                <option value="company_owner">Company Owner</option>
+                <option value="production_manager">Production Manager</option>
+                <option value="factory_operator">Factory Operator</option>
+                <option value="godown_operator">Packaging / Godown Operator</option>
+                <option value="qc_officer">QC Officer</option>
+                <option value="accountant">Accountant</option>
+                <option value="store_manager">Store Manager</option>
+                <option value="sales_executive">Sales Executive</option>
+                <option value="viewer_auditor">Viewer / Auditor</option>
+              </select>
+              <span class="text-sm text-muted" id="users-total-info" style="font-weight:600;">Loading…</span>
+            </div>
+          </div>
+          <table class="data-table" id="users-table">
+            <thead>
+              <tr>
+                <th style="width:24%;">User / Email</th>
+                <th style="width:16%;">Assigned Role</th>
+                <th style="width:13%;">Company Scope</th>
+                <th style="width:11%;">Branch Scope</th>
+                <th style="width:11%;">Warehouse Scope</th>
+                <th style="width:9%;">Status</th>
+                <th style="width:16%;text-align:right;">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="users-tbody">
+              <!-- Dynamically rendered -->
+            </tbody>
+          </table>
+          <div class="pagination"></div>
+        </div>
+      </div>
+
+      <!-- TAB 2: System Roles Directory -->
+      <div id="tab-roles-view" style="display:none;">
+        <div style="background:var(--surface,#1e293b);padding:16px;border-radius:12px;border:1px solid var(--border,#334155);margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
+          <div>
+            <h4 style="margin:0 0 4px;color:var(--text-primary);" id="roles-directory-heading">Configured System Roles (10)</h4>
+            <p style="margin:0;font-size:13px;color:var(--text-muted);">Standard and custom RBAC security personas defined in the ERP. You can inspect permissions, assign users, or manage roles.</p>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <button class="btn btn-secondary btn-sm" onclick="openCustomRoleModal()" id="btn-create-role" style="display:inline-flex;align-items:center;gap:5px;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+              Create Role
+            </button>
+            <button class="btn btn-primary btn-sm" onclick="openAssignUserModal()" style="display:inline-flex;align-items:center;gap:5px;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Assign User to Role
+            </button>
+          </div>
+        </div>
+
+        <div class="table-wrap data-table-wrap-mobile" id="system-roles-table-wrap">
+          <table class="data-table" id="roles-table">
+            <thead>
+              <tr>
+                <th style="width:23%;">Role & Security Persona</th>
+                <th style="width:13%;">Role Code</th>
+                <th style="width:26%;">Functional Domain</th>
+                <th style="width:13%;">Access Scope</th>
+                <th style="width:11%;">Assigned</th>
+                <th style="width:14%;text-align:right;">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="roles-tbody">
+              <!-- Dynamically populated -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- TAB 2: Permission Matrix -->
+      <div id="tab-matrix-view" style="display:none;">
+        <div style="background:var(--surface,#1e293b);padding:16px;border-radius:12px;border:1px solid var(--border,#334155);margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
+          <div>
+            <h4 style="margin:0 0 4px;color:var(--text-primary);">Role Permissions Matrix</h4>
+            <p style="margin:0;font-size:13px;color:var(--text-muted);">Inspect or customize granular action permissions for each role</p>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <label style="font-size:12px;font-weight:700;color:var(--text-muted);text-transform:uppercase;">Select Role:</label>
+            <select id="matrix-role-selector" class="form-select" style="min-width:240px;" onchange="loadPermissionMatrix(this.value)">
+              <option value="super_admin">Software Super Admin</option>
+              <option value="company_owner">Company Owner / Director</option>
+              <option value="production_manager">Production Manager</option>
+              <option value="factory_operator">Factory Operator</option>
+              <option value="godown_operator">Packaging / Godown Operator</option>
+              <option value="qc_officer">QC Officer</option>
+              <option value="accountant">Accountant</option>
+              <option value="store_manager">Inventory / Store Manager</option>
+              <option value="sales_executive">Sales / Dispatch Executive</option>
+              <option value="viewer_auditor">Viewer / Auditor</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Functional Module</th>
+                <th style="text-align:center">View</th>
+                <th style="text-align:center">Create</th>
+                <th style="text-align:center">Edit</th>
+                <th style="text-align:center">Delete</th>
+                <th style="text-align:center">Approve</th>
+                <th style="text-align:center">Reject</th>
+                <th style="text-align:center">Cancel</th>
+                <th style="text-align:center">Export</th>
+              </tr>
+            </thead>
+            <tbody id="matrix-tbody">
+              <!-- Dynamically populated -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- TAB 3: Approval Requests -->
+      <div id="tab-approvals-view" style="display:none;">
+        <div class="table-wrap">
+          <div class="table-toolbar">
+            <div class="table-toolbar-left">
+              <h4 style="margin:0;color:var(--text-primary);">Restricted Transaction Approvals</h4>
+            </div>
+            <div class="table-toolbar-right">
+              <select class="form-select form-select-sm" id="filter-approval-status" onchange="loadApprovalRequests()">
+                <option value="Pending">Pending Decision</option>
+                <option value="Approved">Approved</option>
+                <option value="Rejected">Rejected</option>
+                <option value="">All Statuses</option>
+              </select>
+            </div>
+          </div>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Request Type</th>
+                <th>Reference Code</th>
+                <th>Requested By</th>
+                <th>Required Approver Role</th>
+                <th>Status</th>
+                <th>Decision Notes</th>
+                <th style="text-align:right">Action</th>
+              </tr>
+            </thead>
+            <tbody id="approvals-tbody">
+              <!-- Dynamically populated -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<!-- Modal: Assign / Edit User Role -->
+<div class="modal-overlay" id="user-role-modal">
+  <div class="modal" style="max-width:540px;">
+    <div class="modal-header">
+      <h3 class="modal-title" id="user-modal-title">Assign User Role</h3>
+      <button class="modal-close" onclick="closeUserRoleModal()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <form id="user-role-form" onsubmit="saveUserRoleAssignment(event)">
+      <input type="hidden" id="edit-assignment-id">
+      <div class="modal-body" style="display:grid;gap:14px;">
+        <div class="form-group">
+          <label class="form-label" for="user-email">User Email / Account <span style="color:var(--danger)">*</span></label>
+          <input type="email" id="user-email" class="form-input" placeholder="user@anjani.local" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="user-full-name">Full Name</label>
+          <input type="text" id="user-full-name" class="form-input" placeholder="Employee / User Full Name">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="user-role">Assigned Role <span style="color:var(--danger)">*</span></label>
+          <select id="user-role" class="form-select" required>
+            <option value="super_admin">Software Super Admin (Global)</option>
+            <option value="company_owner">Company Owner / Director</option>
+            <option value="production_manager">Production Manager</option>
+            <option value="factory_operator">Factory Operator</option>
+            <option value="godown_operator">Packaging / Godown Operator</option>
+            <option value="qc_officer">QC Officer</option>
+            <option value="accountant">Accountant</option>
+            <option value="store_manager">Inventory / Store Manager</option>
+            <option value="sales_executive">Sales / Dispatch Executive</option>
+            <option value="viewer_auditor">Viewer / Auditor (Read-Only)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="user-company">Authorized Company <span style="color:var(--danger)">*</span></label>
+          <select id="user-company" class="form-select" required onchange="populateBranchesAndWarehouses(this.value)">
+            <!-- Populated dynamically -->
+          </select>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div class="form-group">
+            <label class="form-label" for="user-branch">Assigned Branch (Optional)</label>
+            <select id="user-branch" class="form-select">
+              <option value="">All Branches</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="user-warehouse">Assigned Warehouse (Optional)</label>
+            <select id="user-warehouse" class="form-select">
+              <option value="">All Warehouses</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeUserRoleModal()">Cancel</button>
+        <button type="submit" class="btn btn-primary" id="save-user-btn">Save Assignment</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal: Create Custom Role -->
+<div class="modal-overlay" id="custom-role-modal">
+  <div class="modal" style="max-width:520px;">
+    <div class="modal-header">
+      <h3 class="modal-title" id="role-modal-title">Create Custom Role</h3>
+      <button class="modal-close" onclick="closeCustomRoleModal()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <form id="custom-role-form" onsubmit="saveCustomRole(event)">
+      <input type="hidden" id="edit-role-is-editing" value="">
+      <div class="modal-body" style="display:grid;gap:14px;">
+        <div class="form-group">
+          <label class="form-label" for="custom-role-name">Role Name <span style="color:var(--danger)">*</span></label>
+          <input type="text" id="custom-role-name" class="form-input" placeholder="e.g. Field Inspection Officer" required oninput="autoFillRoleCode(this.value)">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="custom-role-code">Role Code (Unique Identifier) <span style="color:var(--danger)">*</span></label>
+          <input type="text" id="custom-role-code" class="form-input" placeholder="e.g. field_inspector" pattern="[a-z0-9_]+" required title="Lower case letters, numbers, and underscores only">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="custom-role-domain">Functional Domain / Description <span style="color:var(--danger)">*</span></label>
+          <input type="text" id="custom-role-domain" class="form-input" placeholder="e.g. Crop field trials, efficacy testing & farmer verification" required>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div class="form-group">
+            <label class="form-label" for="custom-role-scope">Access Scope</label>
+            <input type="text" id="custom-role-scope" class="form-input" placeholder="e.g. Field & Trials" value="Field & Agronomy">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="custom-role-access">Access Level</label>
+            <input type="text" id="custom-role-access" class="form-input" placeholder="e.g. Field Operations" value="Field Operations">
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeCustomRoleModal()">Cancel</button>
+        <button type="submit" class="btn btn-primary" id="save-custom-role-btn">Create Role</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script src="../assets/js/database.js?v=1792044203582"></script>
+<script src="../assets/js/utils.js?v=1792044203582"></script>
+<script src="../assets/js/components/table-enhancer.js?v=1792044203582"></script>
+<script src="../assets/js/app.js?v=1792044203582"></script>
+<script src="../assets/js/user-roles.js?v=1792044203582"></script>
+</body>
+</html>

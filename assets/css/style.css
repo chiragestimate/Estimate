@@ -30,27 +30,36 @@
   --transition-slow: all 0.35s cubic-bezier(0.25, 0.8, 0.25, 1);
 
   /* Light Theme (Clean Professional Emerald & Slate) */
-  /* 70% Dominant Surface / Backgrounds: #ffffff */
-  --bg: #f8fafc;
+  /* Dominant Page Background & Surfaces */
+  --bg: #F0F2F5;
   --surface: #ffffff;
   --surface-glass: rgba(255, 255, 255, 0.94);
-  --surface-gradient: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
-  --sidebar-bg: #ffffff;
+  --surface-gradient: linear-gradient(180deg, #ffffff 0%, #F0F2F5 100%);
+  --sidebar-bg: #1A2332;
+  --sidebar-border: rgba(255, 255, 255, 0.08);
+  --sidebar-text: #f8fafc;
+  --sidebar-text-muted: rgba(255, 255, 255, 0.55);
+  --sidebar-hover: rgba(255, 255, 255, 0.08);
   --border: #e2e8f0;
+  --border-subtle: #f1f5f9;
   --bg-input: #ffffff;
   --hover-bg: #f1f5f9;
 
-  /* Header / Topbar (Clean White in 70% surface ratio) */
+  /* Header / Topbar */
   --header-bg: #ffffff;
   --header-border: #e2e8f0;
-  --header-text: #020618;
+  --header-text: #0f172a;
   --header-text-muted: #64748b;
   --header-btn-border: #e2e8f0;
   --header-btn-bg: #ffffff;
   --header-btn-hover: #f1f5f9;
   --header-btn-hover-border: #cbd5e1;
 
-  /* 5% Accent Brand Actions: #0C3925 (Save, Add, Submit, key active badges) */
+  /* Primary Brand Action Green (#0C3925 / #1B5E20) */
+  --primary: #0C3925;
+  --primary-green: #1B5E20;
+  --primary-hover: #08281a;
+  --primary-light: #e6f5ef;
   --accent: #0C3925;
   --accent-light: #e6f5ef;
   --accent-dark: #08281a;
@@ -59,18 +68,18 @@
   --badge-brand-border: #99d6c3;
   --badge-brand-text: #061f14;
 
-  /* 25% Structural Secondary / Typography / Tabs: #020618 */
-  --secondary: #020618;
-  --secondary-hover: #0f172a;
+  /* Structural Secondary */
+  --secondary: #0f172a;
+  --secondary-hover: #1e293b;
   --secondary-fg: #ffffff;
   --secondary-light: #f1f5f9;
-  --secondary-border: #020618;
+  --secondary-border: #cbd5e1;
 
-  /* Typography: #020618 across the entire site */
-  --text-primary: #020618;
-  --text-secondary: #020618;
-  --text-muted: #020618;
-  --text-placeholder: rgba(2, 6, 24, 0.45);
+  /* Typography Scale */
+  --text-primary: #0f172a;
+  --text-secondary: #334155;
+  --text-muted: #64748b;
+  --text-placeholder: #94a3b8;
   --text-bright: #ffffff;
 
   /* Status Colors */
@@ -83,10 +92,10 @@
   --info: #2563eb;
   --info-light: #eff6ff;
 
-  --shadow-sm: 0 1px 3px rgba(2, 6, 24, 0.05);
-  --shadow: 0 4px 12px rgba(2, 6, 24, 0.06);
-  --shadow-md: 0 10px 24px rgba(2, 6, 24, 0.08);
-  --shadow-lg: 0 20px 40px rgba(2, 6, 24, 0.1);
+  --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.05);
+  --shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
+  --shadow-md: 0 10px 24px rgba(15, 23, 42, 0.08);
+  --shadow-lg: 0 20px 40px rgba(15, 23, 42, 0.1);
   --shadow-accent: 0 0 24px rgba(12, 57, 37, 0.2);
 }
 
@@ -201,10 +210,90 @@ body, input, select, textarea, button, p, span, div, h1, h2, h3, h4, h5, h6, td,
   color: #020618;
 }
 
-/* Whitelist elements requiring white text (Primary action buttons, active navigation, active tabs, dark header badges) */
+/* Whitelist elements requiring white text (Primary action buttons, active navigation, active tabs, dark header badges, enterprise dark sidebar) */
 .btn-primary, .btn-primary *, .btn-secondary-dark, .btn-secondary-dark *, .tab-btn.active, .cat-pill.active, .badge-primary, .status-pill.active, [data-theme="dark"] .history-table th, .login-btn, .login-btn *, #btn-text {
   color: #ffffff !important;
 }
+
+/* ─── SIDEBAR DARK ENTERPRISE THEME CONTRAST OVERRIDES ─────────── */
+.sidebar,
+.sidebar .sidebar-brand h1,
+.sidebar .sidebar-brand span,
+.sidebar .nav-item,
+.sidebar .nav-label,
+.sidebar .nav-section-label,
+.sidebar .sidebar-toggle-btn {
+  color: #f8fafc;
+}
+
+.sidebar .sidebar-brand h1 {
+  color: #ffffff !important;
+}
+
+.sidebar .sidebar-brand span {
+  color: rgba(255, 255, 255, 0.6) !important;
+}
+
+.sidebar .nav-section-label {
+  color: rgba(255, 255, 255, 0.45) !important;
+}
+
+.sidebar .nav-item {
+  color: #cbd5e1 !important;
+}
+
+.sidebar .nav-item .nav-label {
+  color: #cbd5e1 !important;
+}
+
+.sidebar .nav-item .nav-icon {
+  color: rgba(255, 255, 255, 0.65) !important;
+}
+
+.sidebar .nav-item:hover {
+  background: rgba(255, 255, 255, 0.08) !important;
+  color: #ffffff !important;
+}
+
+.sidebar .nav-item:hover .nav-label,
+.sidebar .nav-item:hover .nav-icon {
+  color: #ffffff !important;
+}
+
+.sidebar .nav-item.active {
+  background: #1B5E20 !important;
+  border-color: #1B5E20 !important;
+  color: #ffffff !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.28) !important;
+}
+
+.sidebar .nav-item.active .nav-label {
+  color: #ffffff !important;
+  font-weight: 600 !important;
+}
+
+.sidebar .nav-item.active .nav-icon {
+  color: #ffffff !important;
+}
+
+.sidebar.collapsed .nav-item .nav-icon {
+  background: rgba(255, 255, 255, 0.06) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  color: #cbd5e1 !important;
+}
+
+.sidebar.collapsed .nav-item:hover .nav-icon {
+  background: rgba(255, 255, 255, 0.14) !important;
+  border-color: rgba(255, 255, 255, 0.25) !important;
+  color: #ffffff !important;
+}
+
+.sidebar.collapsed .nav-item.active .nav-icon {
+  background: #1B5E20 !important;
+  border-color: #1B5E20 !important;
+  color: #ffffff !important;
+}
+
 
 a {
   text-decoration: none;
@@ -310,7 +399,7 @@ textarea {
   z-index: 100;
   transition: var(--transition-slow);
   overflow: hidden;
-  border-right: 1px solid var(--border);
+  border-right: 1px solid var(--sidebar-border, rgba(255, 255, 255, 0.08));
   box-shadow: 1px 0 3px rgba(15, 23, 42, 0.03);
 }
 
@@ -342,7 +431,7 @@ textarea {
   align-items: center;
   gap: 12px;
   padding: 0 16px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--sidebar-border, rgba(255, 255, 255, 0.08));
   height: var(--header-h);
   box-sizing: border-box;
   flex-shrink: 0;
@@ -871,8 +960,8 @@ textarea {
 /* ─── SIDEBAR FOOTER (Pinned at bottom) ──────────────── */
 .sidebar-footer {
   padding: 8px 0;
-  border-top: 1px solid var(--border);
-  background: rgba(0, 0, 0, 0.12);
+  border-top: 1px solid var(--sidebar-border, rgba(255, 255, 255, 0.08));
+  background: rgba(0, 0, 0, 0.16);
   flex-shrink: 0;
 }
 
@@ -2028,6 +2117,7 @@ span.badge-dot {
 
 /* 8. Draft / Inactive / Out of Stock / Neutral Gray */
 .badge-gray,
+.badge-neutral,
 .badge-draft,
 .badge-inactive,
 .badge-outofstock,
@@ -2037,6 +2127,7 @@ span.badge-dot {
   color: #475569;
 }
 .badge-gray .badge-dot,
+.badge-neutral .badge-dot,
 .badge-draft .badge-dot {
   background: #94a3b8;
 }
@@ -2166,10 +2257,11 @@ button[data-submitting="true"],
   transform: none;
 }
 
-/* 2. Secondary Buttons (Styled with #0C3925 theme) */
+/* 2. Secondary & Outline Buttons (Styled with #0C3925 theme) */
 .btn-secondary,
 .btn-chip,
-.utility-chip {
+.utility-chip,
+.btn-outline {
   background: #ffffff;
   color: #020618;
   border: 1.5px solid #0C3925;
@@ -2181,7 +2273,9 @@ button[data-submitting="true"],
 .btn-secondary:focus,
 .btn-secondary:focus-visible,
 .btn-chip:focus,
-.utility-chip:focus {
+.utility-chip:focus,
+.btn-outline:focus,
+.btn-outline:focus-visible {
   background: #ffffff !important;
   color: #020618 !important;
   border-color: #0C3925 !important;
@@ -2192,7 +2286,8 @@ button[data-submitting="true"],
 @media (hover: hover) and (pointer: fine) {
   .btn-secondary:hover,
   .btn-chip:hover,
-  .utility-chip:hover {
+  .utility-chip:hover,
+  .btn-outline:hover {
     border-color: #0C3925;
     color: #0C3925 !important;
     background: rgba(12, 57, 37, 0.06);
@@ -2203,7 +2298,8 @@ button[data-submitting="true"],
 
 .btn-secondary:active,
 .btn-chip:active,
-.utility-chip:active {
+.utility-chip:active,
+.btn-outline:active {
   background: rgba(12, 57, 37, 0.12) !important;
   color: #0C3925 !important;
   border-color: #0C3925 !important;

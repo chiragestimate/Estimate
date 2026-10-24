@@ -356,7 +356,7 @@ async function archiveCompany(companyId) {
   if (!comp) return;
 
   if (comp.id === 1) {
-    APP.showToast('Security Rule: Anjani Agri Care (ID 1) is the root legal entity and cannot be archived.', 'error');
+    APP.showToast('Security Rule: Afield Crop Care (ID 1) is the root legal entity and cannot be archived.', 'error');
     return;
   }
 
@@ -370,7 +370,7 @@ async function archiveCompany(companyId) {
         const activeId = window.TENANT_CONTEXT.getCompanyId();
         if (comp.id === activeId) {
           localStorage.setItem('erp_active_company_id', 1);
-          APP.showToast('Switched active workspace to Anjani Agri Care.', 'info');
+          APP.showToast('Switched active workspace to Afield Crop Care.', 'info');
         }
 
         // 2. Update company status to Archived
@@ -472,7 +472,7 @@ async function safeDeleteCompany(companyId) {
   if (!comp) return;
 
   if (comp.id === 1) {
-    APP.showToast('Security Rule: Anjani Agri Care (ID 1) is the primary manufacturing company and root legal entity, and cannot be deleted.', 'error');
+    APP.showToast('Security Rule: Afield Crop Care (ID 1) is the primary manufacturing company and root legal entity, and cannot be deleted.', 'error');
     return;
   }
 

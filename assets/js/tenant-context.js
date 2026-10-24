@@ -84,7 +84,7 @@
 
         this._activeCompany = matched || {
           id: 1,
-          name: (typeof localStorage !== 'undefined' && localStorage.getItem('erp_active_company_name')) || 'Anjani Agri Care',
+          name: (typeof localStorage !== 'undefined' && localStorage.getItem('erp_active_company_name')) || 'Afield Crop Care',
           code: (typeof localStorage !== 'undefined' && localStorage.getItem('erp_active_company_code')) || 'ACC',
           is_manufacturing: true,
           currency: 'INR'
@@ -111,7 +111,7 @@
     _fallbackInit() {
       const defaultCompany = {
         id: 1,
-        name: (typeof localStorage !== 'undefined' && localStorage.getItem('erp_active_company_name')) || 'Anjani Agri Care',
+        name: (typeof localStorage !== 'undefined' && localStorage.getItem('erp_active_company_name')) || 'Afield Crop Care',
         code: (typeof localStorage !== 'undefined' && localStorage.getItem('erp_active_company_code')) || 'ACC',
         is_manufacturing: true,
         currency: 'INR'
@@ -154,7 +154,7 @@
      * Get the active company object.
      */
     getActiveCompany() {
-      return this._activeCompany || { id: 1, name: 'Anjani Agri Care', code: 'ACC' };
+      return this._activeCompany || { id: 1, name: 'Afield Crop Care', code: 'ACC' };
     },
 
     /**

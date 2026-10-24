@@ -144,7 +144,7 @@ function extractInvoiceJSON(existingUniqueId = null) {
         GSTGrandTotal: isGst ? calculations.grandTotal : '',
         NonGSTSubtotal: isGst ? '' : calculations.subtotal,
         NonGSTGrandTotal: isGst ? '' : calculations.grandTotal,
-        CompanyName: document.getElementById('s-company').value || 'Anjani Agri Care',
+        CompanyName: document.getElementById('s-company').value || 'Afield Crop Care',
         FromAddress: document.getElementById('s-address').value || '',
         FromPhone: document.getElementById('s-phone').value || '',
         FromEmail: document.getElementById('s-email').value || '',
@@ -169,7 +169,7 @@ function extractInvoiceJSON(existingUniqueId = null) {
             version: '1.1'
         },
         business: {
-            company: document.getElementById('s-company').value || 'Anjani Agri Care',
+            company: document.getElementById('s-company').value || 'Afield Crop Care',
             address: document.getElementById('s-address').value || '',
             state: document.getElementById('s-company-state')?.value || 'Gujarat',
             pincode: document.getElementById('s-company-pincode')?.value || '360024',

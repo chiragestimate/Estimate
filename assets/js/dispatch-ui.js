@@ -1828,10 +1828,10 @@
                 <img src="../assets/images/logo.jpg" alt="Logo" style="height:80px; width:80px; object-fit:contain; display:block;" onerror="this.onerror=null; this.src='../apps/Invoice Builder/logo.jpg';">
               </div>
               <div style="text-align:center;">
-                <h2 style="font-size:21px; font-weight:800; color:#0C3925; margin:0; letter-spacing:-0.4px;">Anjani Agri Care</h2>
+                <h2 style="font-size:21px; font-weight:800; color:#0C3925; margin:0; letter-spacing:-0.4px;">Afield Crop Care</h2>
                 <div style="font-size:11px; color:#334155; margin:4px 0 0; line-height:1.5;">
-                  <span>Sr. No. 67 & 68, Plot No. 33, Siddhi Vinayak Ind. Zone, Virva, Lodhika, Rajkot, Gujarat.</span><br>
-                  <span>Phone: <strong>+91 96646 75227</strong></span><span> &nbsp;|&nbsp; </span><span>Email: <strong>skagro3105@gmail.com</strong></span><br>
+                  <span>SURVEY NO. 255, PLOT NO. 14, NEAR BALKRISHNA STEEL FORGING, SHITALA MATA TEMPLE ROAD, SHAPAR (VERAVAL) 360024 DISTRICT - RAJKOT, GUJARAT, INDIA.</span><br>
+                  <span>Phone: <strong>+91 78787 77727</strong></span><span> &nbsp;|&nbsp; </span><span>Email: <strong>afieldcropcare@gmail.com</strong></span><br>
                   <span>GSTIN: <strong>24AERFS1718Q1ZB</strong></span>
                 </div>
               </div>
@@ -2009,13 +2009,13 @@
       pdf.setFont('helvetica', 'bold');
       pdf.setFontSize(16.5);
       pdf.setTextColor(...C_DARK_GREEN);
-      pdf.text('Anjani Agri Care', centerX, y + 6.5, { align: 'center' });
+      pdf.text('Afield Crop Care', centerX, y + 6.5, { align: 'center' });
 
       pdf.setFont('helvetica', 'normal');
       pdf.setFontSize(8.25);
       pdf.setTextColor(...C_TEXT_MAIN);
-      pdf.text('Sr. No. 67 & 68, Plot No. 33, Siddhi Vinayak Ind. Zone, Virva, Lodhika, Rajkot, Gujarat.', centerX, y + 11.5, { align: 'center' });
-      pdf.text('Phone: +91 96646 75227  |  Email: skagro3105@gmail.com', centerX, y + 15.5, { align: 'center' });
+      pdf.text('SURVEY NO. 255, PLOT NO. 14, NEAR BALKRISHNA STEEL FORGING, SHITALA MATA TEMPLE ROAD, SHAPAR (VERAVAL) 360024 DISTRICT - RAJKOT, GUJARAT, INDIA.', centerX, y + 11.5, { align: 'center' });
+      pdf.text('Phone: +91 78787 77727  |  Email: afieldcropcare@gmail.com', centerX, y + 15.5, { align: 'center' });
       pdf.text('GSTIN: 24AERFS1718Q1ZB', centerX, y + 19.5, { align: 'center' });
 
       // Right Header: Delivery Challan Badge & Meta
@@ -2495,19 +2495,14 @@
           InvoiceNumber: invNo,
           InvoiceType: 'GST',
           business: {
-            company: 'Anjani Agri Care',
-            address: 'Sr. No. 67 and 68, Plot No. 33, Siddhi Vinayak Industrial Zone, At: Virva, Tal: Lodhika, Dist: Rajkot, Gujarat.',
-            phone: '9664675227',
-            email: 'skagro3105@gmail.com',
+            company: 'Afield Crop Care',
+            address: 'SURVEY NO. 255, PLOT NO. 14, NEAR BALKRISHNA STEEL FORGING, SHITALA MATA TEMPLE ROAD, SHAPAR (VERAVAL) 360024 DISTRICT - RAJKOT, GUJARAT, INDIA.',
+            phone: '7878777727',
+            email: 'afieldcropcare@gmail.com',
             gstin: '24AERFS1718Q1ZB',
             signatory: 'Authorized Signatory'
           },
-          bank: {
-            name: 'PUNJAB NATIONAL BANK',
-            account: '9178002100002019',
-            ifsc: 'PUNB0917800',
-            upi: '9427213943m@pnb'
-          },
+          bank: { name: '', account: '', ifsc: '', upi: '' },
           customer: {
             name: clientName,
             address: cleanClientAddr,
@@ -2527,7 +2522,7 @@
           settings: {
             intro: 'Thank you for your business. Please find your commercial tax invoice details below.',
             terms: '',
-            showQR: true,
+            showQR: false,
             taxType: 'GST12'
           },
           rows: items.map((it, idx) => {
@@ -2539,7 +2534,7 @@
             const lineTotal = parseFloat(it.total_amount) || (qty * price);
             return {
               id: 'r_' + (idx + 1),
-              brand: 'Anjani Agri Care',
+              brand: 'Afield Crop Care',
               name: it.product_name,
               desc: it.product_name,
               packaging: packaging,
@@ -2680,10 +2675,10 @@
                 <img src="../assets/images/logo.jpg" alt="Anjani Agri Care" style="height:76px; width:76px; max-width:120px; object-fit:contain; border:none; display:block; background:transparent;" onerror="this.onerror=null; this.src='../apps/Invoice Builder/logo.jpg';" />
               </div>
               <div style="text-align:center; display:flex; flex-direction:column; align-items:center;">
-                <div style="font-size:20px; font-weight:800; color:#0C3925 !important; letter-spacing:-0.4px;">Anjani Agri Care</div>
+                <div style="font-size:20px; font-weight:800; color:#0C3925 !important; letter-spacing:-0.4px;">Afield Crop Care</div>
                 <div style="font-size:11px; color:#000; margin-top:2px; line-height:1.5;">
-                  <span>Sr. No. 67 and 68, Plot No. 33, Siddhi Vinayak Industrial Zone, At: Virva, Tal: Lodhika, Dist: Rajkot, Gujarat.</span><br />
-                  <span>9664675227</span><span> &nbsp;|&nbsp; </span><span>skagro3105@gmail.com</span><br />
+                  <span>SURVEY NO. 255, PLOT NO. 14, NEAR BALKRISHNA STEEL FORGING, SHITALA MATA TEMPLE ROAD, SHAPAR (VERAVAL) 360024 DISTRICT - RAJKOT, GUJARAT, INDIA.</span><br />
+                  <span>9664675227</span><span> &nbsp;|&nbsp; </span><span>afieldcropcare@gmail.com</span><br />
                   <span>GSTIN: <strong>24AERFS1718Q1ZB</strong></span>
                 </div>
               </div>
@@ -2709,8 +2704,8 @@
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-bottom:14px; padding:12px 14px; background:#f8fafc; border-radius:8px; border:1px solid #e2e8f0;">
               <div>
                 <div style="font-size:9.5px; font-weight:700; text-transform:uppercase; letter-spacing:1px; color:#0f766e; margin-bottom:4px;">BILL FROM</div>
-                <div style="font-size:13.5px; font-weight:700; color:#0f172a;">Anjani Agri Care</div>
-                <div style="font-size:11.5px; font-weight:500; color:#1e293b; margin-top:2px; line-height:1.4;">Sr. No. 67 and 68, Plot No. 33, Siddhi Vinayak Industrial Zone, At: Virva, Tal: Lodhika, Dist: Rajkot</div>
+                <div style="font-size:13.5px; font-weight:700; color:#0f172a;">Afield Crop Care</div>
+                <div style="font-size:11.5px; font-weight:500; color:#1e293b; margin-top:2px; line-height:1.4;">SURVEY NO. 255, PLOT NO. 14, NEAR BALKRISHNA STEEL FORGING, SHITALA MATA TEMPLE ROAD, SHAPAR (VERAVAL) 360024 DISTRICT - RAJKOT, GUJARAT, INDIA.</div>
                 <div style="display:grid; grid-template-columns:140px 1fr; gap:2px 16px; font-size:11.5px; line-line:1.4; margin-top:4px;">
                   <div><span style="color:#475569;">State:</span> <strong style="color:#0f172a; font-weight:600;">Gujarat</strong></div>
                   <div><span style="color:#475569;">Pincode:</span> <strong style="color:#0f172a; font-weight:600;">360024</strong></div>
@@ -2776,25 +2771,16 @@
             </div>
 
 
-            <!-- Footer: Bank Details + Signature (Always Visible on Page 1) -->
-            <div style="display:grid; grid-template-columns:1fr auto auto; gap:20px; border-top:2px solid #0C3925; padding-top:14px; margin-top:14px; align-items:flex-end;">
-              <div>
-                <div style="font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:1px; color:#0C3925; margin-bottom:5px;">Payment Details</div>
-                <div style="font-size:11.5px; line-height:1.5; color:#1e293b;">
-                  <div><strong>Bank:</strong> PUNJAB NATIONAL BANK</div>
-                  <div><strong>A/C No.:</strong> 9178002100002019</div>
-                  <div><strong>IFSC:</strong> PUNB0917800</div>
-                  <div><strong>UPI:</strong> 9427213943m@pnb</div>
-                </div>
-              </div>
-              <div id="modal-qr-block" style="text-align:center; min-width:90px;">
-                <div id="qr-canvas" style="width:90px; height:90px; margin:0 auto; display:flex; align-items:center; justify-content:center;"></div>
-                <div style="font-size:9.5px; font-weight:700; color:#64748b; margin-top:4px;">Scan to Pay</div>
+            <!-- Footer: Signature (Bank details removed) -->
+            <div style="display:flex; justify-content:space-between; border-top:2px solid #0C3925; padding-top:14px; margin-top:14px; align-items:flex-end;">
+              <div style="font-size:11.5px; color:#64748b; line-height:1.5;">
+                <div style="font-weight:600; color:#0C3925;">Thank you for your business!</div>
+                <div style="font-size:10px; color:#94a3b8; margin-top:2px;">This is a computer-generated commercial tax invoice.</div>
               </div>
               <div style="text-align:center; min-width:160px;">
                 <div style="font-size:9.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.8px; color:#64748b; margin-bottom:4px;">Authorized Signature</div>
                 <div style="height:32px; display:flex; align-items:center; justify-content:center;">
-                  <span style="font-family:'Brush Script MT', 'Segoe Script', cursive, sans-serif; font-size:22px; font-weight:700; color:#0C3925;">Tirth</span>
+                  <span style="font-family:'Brush Script MT', 'Segoe Script', cursive, sans-serif; font-size:22px; font-weight:700; color:#0C3925;">Chirag</span>
                 </div>
                 <div style="font-size:11.5px; font-weight:700; color:#000; border-top:1px solid #000; padding-top:4px;">Authorized Signatory</div>
               </div>

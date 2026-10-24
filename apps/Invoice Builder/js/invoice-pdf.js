@@ -124,7 +124,7 @@
       document.body.appendChild(wrap);
 
       new window.QRCode(wrap, {
-        text: `upi://pay?pa=${upi || '9427213943m@pnb'}&pn=${encodeURIComponent(companyName || 'Anjani Agri Care')}`,
+        text: `upi://pay?pa=${upi || '9427213943m@pnb'}&pn=${encodeURIComponent(companyName || 'Afield Crop Care')}`,
         width: 90,
         height: 90,
         colorDark: '#000000',
@@ -163,7 +163,7 @@
       return getElementImageDataUrl(qrImg);
     }
     const upiVal = upi || document.getElementById('s-upi')?.value || '9427213943m@pnb';
-    const cName = companyName || document.getElementById('s-company')?.value || 'Anjani Agri Care';
+    const cName = companyName || document.getElementById('s-company')?.value || 'Afield Crop Care';
     return buildQrDataUrl(upiVal, cName);
   }
 
@@ -331,7 +331,7 @@
     const $ = id => document.getElementById(id);
 
     // Business details
-    const companyName = payload.business?.company || $('s-company')?.value || $('p-company')?.textContent || 'Anjani Agri Care';
+    const companyName = payload.business?.company || $('s-company')?.value || $('p-company')?.textContent || 'Afield Crop Care';
     const companyAddress = payload.business?.address || $('s-address')?.value || $('p-address')?.textContent || '';
     const companyPhone = payload.business?.phone || $('s-phone')?.value || ($('p-phone')?.textContent !== '-' ? $('p-phone')?.textContent : '') || '';
     const companyEmail = payload.business?.email || $('s-email')?.value || $('p-email')?.textContent || '';
@@ -600,14 +600,14 @@
     };
 
     // Company details
-    const compName = companyName || 'Anjani Agri Care';
+    const compName = companyName || 'Afield Crop Care';
     const compState = (document.getElementById('s-company-state')?.value || 'Gujarat').trim();
     const compPin = (document.getElementById('s-company-pincode')?.value || '360024').trim();
-    const compPhone = formatPhoneDisplay(companyPhone || '9664675227');
+    const compPhone = formatPhoneDisplay(companyPhone || '7878777727');
     const compGstin = (companyGstin || '24AERFS1718Q1ZB').trim();
 
     // Clean company address
-    let cleanCompAddr = (companyAddress || 'Sr. No. 67 and 68, Plot No. 33, Siddhi Vinayak Industrial Zone, At: Virva, Tal: Lodhika, Dist: Rajkot')
+    let cleanCompAddr = (companyAddress || 'SURVEY NO. 255, PLOT NO. 14, NEAR BALKRISHNA STEEL FORGING, SHITALA MATA TEMPLE ROAD, SHAPAR (VERAVAL) 360024 DISTRICT - RAJKOT, GUJARAT, INDIA.')
       .replace(/,?\s*(?:Gujarat)?\s*(?:-\s*)?360024\s*$/i, '')
       .replace(/,?\s*Gujarat\s*$/i, '')
       .replace(/\bAnd\b/g, 'and')
@@ -1094,34 +1094,42 @@
     pdf.setLineWidth(0.3);
     pdf.line(margin, footerY, rightEdge, footerY);
 
-    // 7A. Left: Payment Details
-    pdf.setFont('helvetica', 'bold');
-    pdf.setFontSize(8.5);
-    pdf.setTextColor(...C_DARK_GREEN);
-    pdf.text('Payment Details', margin, footerY + 5.5);
-
-    const bankLines = [
-      { label: 'Bank: ', val: bankName },
-      { label: 'A/C No.: ', val: bankAcc },
-      { label: 'IFSC: ', val: bankIfsc },
-      { label: 'UPI: ', val: bankUpi }
-    ];
-
-    let bLineY = footerY + 10.0;
-    bankLines.forEach(bl => {
+    // 7A. Left: Payment Details (Only rendered if details are provided)
+    const hasBank = Boolean((bankName && bankName.trim()) || (bankAcc && bankAcc.trim()) || (bankIfsc && bankIfsc.trim()));
+    if (hasBank) {
       pdf.setFont('helvetica', 'bold');
-      pdf.setFontSize(7.5);
-      pdf.setTextColor(...C_TEXT_MAIN);
-      pdf.text(bl.label, margin, bLineY);
+      pdf.setFontSize(8.5);
+      pdf.setTextColor(...C_DARK_GREEN);
+      pdf.text('Payment Details', margin, footerY + 5.5);
 
-      const lblW = pdf.getTextWidth(bl.label);
+      const bankLines = [
+        bankName ? { label: 'Bank: ', val: bankName } : null,
+        bankAcc ? { label: 'A/C No.: ', val: bankAcc } : null,
+        bankIfsc ? { label: 'IFSC: ', val: bankIfsc } : null,
+        bankUpi ? { label: 'UPI: ', val: bankUpi } : null
+      ].filter(Boolean);
+
+      let bLineY = footerY + 10.0;
+      bankLines.forEach(bl => {
+        pdf.setFont('helvetica', 'bold');
+        pdf.setFontSize(7.5);
+        pdf.setTextColor(...C_TEXT_MAIN);
+        pdf.text(bl.label, margin, bLineY);
+
+        const lblW = pdf.getTextWidth(bl.label);
+        pdf.setFont('helvetica', 'normal');
+        pdf.text(bl.val || '—', margin + lblW + 1, bLineY);
+        bLineY += 4.0;
+      });
+    } else {
       pdf.setFont('helvetica', 'normal');
-      pdf.text(bl.val || '—', margin + lblW + 1, bLineY);
-      bLineY += 4.0;
-    });
+      pdf.setFontSize(7.5);
+      pdf.setTextColor(...C_TEXT_MUTED);
+      pdf.text('Thank you for your business.', margin, footerY + 10.0);
+    }
 
     // 7B. Center: QR Code (if enabled)
-    if (showQr) {
+    if (showQr && bankUpi && bankUpi.trim()) {
       const qrDataUrl = getQrDataUrl(bankUpi, companyName) || buildQrDataUrl(bankUpi, companyName);
       if (qrDataUrl) {
         try {
@@ -1143,11 +1151,11 @@
     pdf.setTextColor(...C_TEXT_MAIN);
     pdf.text('Authorized Signature', sigCenterX, footerY + 5.5, { align: 'center' });
 
-    // Draw "Tirth" as signature text
+    // Draw "Chirag" as signature text
     pdf.setFont('helvetica', 'bolditalic');
     pdf.setFontSize(13);
     pdf.setTextColor(...C_DARK_GREEN);
-    pdf.text('Tirth', sigCenterX, footerY + 13.5, { align: 'center' });
+    pdf.text('Chirag', sigCenterX, footerY + 13.5, { align: 'center' });
 
     // Signature dividing line
     pdf.setDrawColor(...C_BORDER);

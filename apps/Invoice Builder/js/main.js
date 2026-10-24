@@ -64,7 +64,7 @@ function normalizeText(value) {
 }
 
 function normalizeBusinessName(value) {
-  if (!value || value === 'AgroChem' || value === 'Agro Chem') return 'Anjani Agri Care';
+  if (!value || value === 'AgroChem' || value === 'Agro Chem') return 'Afield Crop Care';
   return value;
 }
 
@@ -438,7 +438,7 @@ const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/1axb8I12FZrcSzdEUK
 
 // ─── USERS ────────────────────────────────────────────────────────────────────
 const USERS = [
-  { username: 'Tirth', password: 'Tirth', mobile: '9664675227' },
+  { username: 'Tirth', password: 'Tirth', mobile: '7878777727' },
 ];
 
 function normalizeProductRow(item) {
@@ -487,7 +487,7 @@ function updateQR() {
   }
 
   const upi = ($('s-upi')?.value || '').trim() || '9427213943m@pnb';
-  const name = ($('s-company')?.value || '').trim() || 'Anjani Agri Care';
+  const name = ($('s-company')?.value || '').trim() || 'Afield Crop Care';
 
   try {
     qrInstance = new QRCode(qrCanvas, {
@@ -954,11 +954,14 @@ const SYNC_MAP = {
 };
 
 function updateBillFromPreview() {
-  const compName = $('s-company')?.value || 'Anjani Agri Care';
+  const bankBlock = $('bank-block');
+  const hasBankData = Boolean(($('s-bank-name')?.value || '').trim() || ($('s-bank-acc')?.value || '').trim());
+  if (bankBlock) bankBlock.style.display = hasBankData ? '' : 'none';
+  const compName = $('s-company')?.value || 'Afield Crop Care';
   let addr = $('s-address')?.value || '';
   const state = $('s-company-state')?.value || 'Gujarat';
   const pin = $('s-company-pincode')?.value || '360024';
-  const phone = formatPhoneDisplay($('s-phone')?.value || '9664675227');
+  const phone = formatPhoneDisplay($('s-phone')?.value || '7878777727');
   const gstin = ($('s-gstin')?.value || '24AERFS1718Q1ZB').toUpperCase();
 
   addr = addr.replace(/,?\s*(?:Gujarat)?\s*(?:-\s*)?360024\s*$/i, '').replace(/,?\s*Gujarat\s*$/i, '').trim();
@@ -966,7 +969,7 @@ function updateBillFromPreview() {
   const pFromName = $('p-from-name');
   if (pFromName) pFromName.textContent = compName;
   const pFromAddr = $('p-from-addr');
-  if (pFromAddr) pFromAddr.textContent = addr || 'Sr. No. 67 and 68, Plot No. 33, Siddhi Vinayak Industrial Zone, At: Virva, Tal: Lodhika, Dist: Rajkot';
+  if (pFromAddr) pFromAddr.textContent = addr || 'SURVEY NO. 255, PLOT NO. 14, NEAR BALKRISHNA STEEL FORGING, SHITALA MATA TEMPLE ROAD, SHAPAR (VERAVAL) 360024 DISTRICT - RAJKOT, GUJARAT, INDIA.';
   const pFromState = $('p-from-state');
   if (pFromState) pFromState.textContent = state;
   const pFromPin = $('p-from-pin');
@@ -3102,7 +3105,7 @@ function bootOnLoad() {
 
   // Boot Invoice Builder immediately without login requirement
   try {
-    const mobile = (typeof safeStorage !== 'undefined' && safeStorage?.getItem('inv_user_mobile')) || '9664675227';
+    const mobile = (typeof safeStorage !== 'undefined' && safeStorage?.getItem('inv_user_mobile')) || '7878777727';
     const toolbar = $('toolbar');
     const app = $('app');
     if (toolbar) toolbar.classList.remove('hidden');

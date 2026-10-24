@@ -1,8 +1,8 @@
 {
   "id": "./pages/dashboard.html",
-  "name": "Anjani Agri Care ERP",
-  "short_name": "Anjani ERP",
-  "description": "Manufacturing, Inventory, Formulation and Operations Management System for Anjani Agri Care.",
+  "name": "Afield Crop Care ERP",
+  "short_name": "Afield ERP",
+  "description": "Manufacturing, Inventory, Formulation and Operations Management System for Afield Crop Care.",
   "start_url": "./pages/dashboard.html",
   "scope": "./",
   "display": "standalone",

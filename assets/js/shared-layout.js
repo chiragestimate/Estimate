@@ -63,7 +63,7 @@ function getActiveCompanyName() {
     const act = window.TENANT_CONTEXT.getActiveCompany();
     if (act && act.name) return act.name;
   }
-  return localStorage.getItem('erp_active_company_name') || 'Anjani Agri Care';
+  return localStorage.getItem('erp_active_company_name') || 'Afield Crop Care';
 }
 
 function getActiveCompanyCode() {
@@ -351,7 +351,7 @@ const PROFILE_MODAL = `
       <div style="display:grid;gap:12px">
         <div style="padding:14px 16px;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg)">
           <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted);margin-bottom:4px">Workspace</div>
-          <div style="font-size:14px;font-weight:700;color:#0C3925">Anjani Agri Care</div>
+          <div style="font-size:14px;font-weight:700;color:#0C3925">Afield Crop Care</div>
         </div>
         <div style="padding:14px 16px;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg)">
           <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted);margin-bottom:4px">Registered Address</div>
@@ -773,7 +773,7 @@ async function initCompanySwitcher() {
         return `
           <button class="company-dropdown-item ${isCurrent ? 'active' : ''}" type="button" onclick="window.TENANT_CONTEXT && window.TENANT_CONTEXT.switchCompany ? window.TENANT_CONTEXT.switchCompany(${c.id}) : null">
             <div class="company-card-header">
-              <span class="company-item-name">${c.name || 'Anjani Agri Care'}</span>
+              <span class="company-item-name">${c.name || 'Afield Crop Care'}</span>
               <span class="company-badge-pill ${isMfg ? 'mfg' : 'dist'}">${badgeLabel}</span>
             </div>
             <div class="company-card-sub">

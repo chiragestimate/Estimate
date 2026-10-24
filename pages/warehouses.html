@@ -148,20 +148,51 @@
   </div>
 </div>
 
-<!-- Modal: View Warehouse Details -->
+<!-- Modal: View Warehouse Details & Live Stock -->
 <div class="modal-overlay" id="warehouse-view-modal">
-  <div class="modal" style="max-width:540px;">
-    <div class="modal-header">
-      <span class="modal-title" id="warehouse-view-title" style="display:flex;align-items:center;gap:6px;">
-        Warehouse Profile
-      </span>
-      <button class="modal-close" onclick="APP.closeModal('warehouse-view-modal')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+  <div class="modal modal-xl wh-stock-modal" id="warehouse-view-dialog">
+    <div class="modal-header wh-stock-modal-header">
+      <div class="wh-modal-header-info">
+        <div class="wh-modal-title-row">
+          <span class="modal-title" id="warehouse-view-title">Warehouse Inventory</span>
+          <span id="warehouse-view-status-badge"></span>
+        </div>
+        <div class="wh-modal-subtitle" id="warehouse-view-subtitle"></div>
+      </div>
+      <button class="modal-close" onclick="APP.closeModal('warehouse-view-modal')" title="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     </div>
-    <div class="modal-body" style="padding:18px;" id="warehouse-view-body">
-      <!-- Dynamically populated details -->
+
+    <!-- Navigation Tabs in Modal Header -->
+    <div class="wh-modal-nav">
+      <button class="wh-tab-btn active" id="wh-tab-stock-btn" onclick="switchWhModalTab('stock')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+        <span>Stock Batches</span>
+        <span class="badge badge-pill badge-primary" id="wh-stock-tab-badge">0</span>
+      </button>
+      <button class="wh-tab-btn" id="wh-tab-movements-btn" onclick="switchWhModalTab('movements')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+        <span>Stock Movements</span>
+        <span class="badge badge-pill badge-secondary" id="wh-movements-tab-badge">0</span>
+      </button>
+      <button class="wh-tab-btn" id="wh-tab-info-btn" onclick="switchWhModalTab('info')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+        <span>Location Info</span>
+      </button>
     </div>
-    <div class="modal-footer" style="display:flex;justify-content:flex-end;gap:8px;">
-      <button class="btn btn-secondary" onclick="APP.closeModal('warehouse-view-modal')">Close</button>
+
+    <div class="modal-body wh-stock-modal-body" id="warehouse-view-body">
+      <!-- Dynamically populated stock, movements, or info -->
+      <div class="wh-modal-loading">
+        <div class="spinner"></div>
+        <p>Loading warehouse inventory...</p>
+      </div>
+    </div>
+
+    <div class="modal-footer wh-stock-modal-footer">
+      <div class="wh-footer-left" id="wh-footer-timestamp"></div>
+      <div class="wh-footer-right">
+        <button class="btn btn-secondary" onclick="APP.closeModal('warehouse-view-modal')">Close</button>
+      </div>
     </div>
   </div>
 </div>

@@ -16,6 +16,8 @@ let allWarehouses = [];
 let allCompanies = [];
 let allBranches = [];
 let warehouseStockMap = new Map();
+let warehouseStockSummary = new Map();
+let currentWhModalState = null;
 let editingWarehouseId = null;
 let isDeletingWarehouse = false;
 let isArchivingWarehouse = false;
@@ -31,19 +33,35 @@ async function loadWarehouses() {
       window.dbClient.from('warehouses').select('*').order('id', { ascending: true }),
       window.dbClient.from('companies').select('*').order('id', { ascending: true }),
       window.dbClient.from('branches').select('*').order('id', { ascending: true }),
-      window.dbClient.from('stock_batches').select('warehouse_id, current_qty').gt('current_qty', 0)
+      window.dbClient.from('stock_batches').select('warehouse_id, current_qty, unit, item_name').gt('current_qty', 0)
     ]);
 
     allWarehouses = whRes.data || [];
     allCompanies = cRes.data || [];
     allBranches = bRes.data || [];
 
-    // Map live physical units per warehouse
+    // Map live physical units per warehouse with unit-awareness
     warehouseStockMap = new Map();
+    warehouseStockSummary = new Map();
+
     (bStockRes.data || []).forEach(b => {
       const wId = b.warehouse_id;
       const qty = parseFloat(b.current_qty) || 0;
+      const unit = b.unit || 'Nos';
+
       warehouseStockMap.set(wId, (warehouseStockMap.get(wId) || 0) + qty);
+
+      if (!warehouseStockSummary.has(wId)) {
+        warehouseStockSummary.set(wId, {
+          activeBatches: 0,
+          itemNames: new Set(),
+          unitTotals: {}
+        });
+      }
+      const summary = warehouseStockSummary.get(wId);
+      summary.activeBatches += 1;
+      if (b.item_name) summary.itemNames.add(b.item_name);
+      summary.unitTotals[unit] = (summary.unitTotals[unit] || 0) + qty;
     });
 
     populateCompanyFilterDropdown();
@@ -202,6 +220,21 @@ function renderWarehousesTable(data) {
       ? '<span class="badge badge-warning" style="font-size:10px;padding:2px 6px;">Archived</span>'
       : '<span class="badge badge-success" style="font-size:10px;padding:2px 6px;">Active</span>';
 
+    const summary = warehouseStockSummary.get(w.id) || { activeBatches: 0, unitTotals: {} };
+    const unitEntries = Object.entries(summary.unitTotals).filter(([u, q]) => q > 0);
+    let stockDisplayHtml = '';
+    if (summary.activeBatches === 0 || unitEntries.length === 0) {
+      stockDisplayHtml = `<span class="badge badge-gray" style="font-size:10.5px;padding:2px 7px;">No active stock</span>`;
+    } else {
+      const unitsText = unitEntries.map(([u, q]) => `<strong>${q.toLocaleString()}</strong> ${escapeHtml(u)}`).join(', ');
+      stockDisplayHtml = `
+        <div class="wh-stock-units-wrap">
+          <div class="wh-stock-units-line">${unitsText}</div>
+          <div class="wh-stock-batches-count">${summary.activeBatches} active batch${summary.activeBatches !== 1 ? 'es' : ''}</div>
+        </div>
+      `;
+    }
+
     return `
       <tr class="${isArchived ? 'row-archived' : ''}" style="${isArchived ? 'opacity:0.85;' : ''}">
         <td class="cell-bold cell-mono">
@@ -225,16 +258,14 @@ function renderWarehousesTable(data) {
         <td class="wh-branch-text">${br ? escapeHtml(br.name) : '<span class="text-muted">General Depot</span>'}</td>
         <td><span class="badge badge-info wh-type-badge">${escapeHtml(w.warehouse_type || 'General')}</span></td>
         <td class="cell-bold cell-wh-stock">
-          <div class="wh-stock-val ${(warehouseStockMap.get(w.id) || 0) === 0 ? 'is-zero' : ''}">
-            <span class="wh-stock-num">${(warehouseStockMap.get(w.id) || 0).toLocaleString()}</span>
-            <span class="wh-stock-unit">units</span>
-          </div>
+          ${stockDisplayHtml}
         </td>
         <td>${statusBadge}</td>
         <td>
           <div class="row-actions">
-            <button class="action-btn view" onclick="viewWarehouseDetails(${w.id})" title="View Warehouse Details" style="color:var(--text-primary);">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            <button class="wh-view-stock-btn" onclick="viewWarehouseDetails(${w.id})" title="View Live Warehouse Stock">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+              <span>View Stock</span>
             </button>
             <button class="action-btn edit" onclick="openEditWarehouse(${w.id})" title="Edit Warehouse">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
@@ -261,7 +292,7 @@ function renderWarehousesTable(data) {
 }
 
 /**
- * View Warehouse Profile & Live Inventory / Audit Summary
+ * View Warehouse Profile & Live Inventory / Stock Movements
  */
 async function viewWarehouseDetails(id) {
   const w = allWarehouses.find(x => x.id === id);
@@ -271,90 +302,586 @@ async function viewWarehouseDetails(id) {
   const br = allBranches.find(b => b.id === w.branch_id);
   const isArchived = (w.status || 'Active') === 'Archived';
 
+  // Set modal header
   const titleEl = document.getElementById('warehouse-view-title');
-  if (titleEl) {
-    titleEl.innerHTML = `
-      <span style="font-weight:700;">${escapeHtml(w.name)}</span>
-      <span class="badge ${isArchived ? 'badge-warning' : 'badge-success'}" style="margin-left:8px;font-size:11px;">
-        ${isArchived ? 'Archived' : 'Active'}
-      </span>
+  if (titleEl) titleEl.textContent = w.name;
+
+  const statusBadgeEl = document.getElementById('warehouse-view-status-badge');
+  if (statusBadgeEl) {
+    statusBadgeEl.innerHTML = `<span class="badge ${isArchived ? 'badge-warning' : 'badge-success'}">${isArchived ? 'Archived' : 'Active'}</span>`;
+  }
+
+  const subtitleEl = document.getElementById('warehouse-view-subtitle');
+  if (subtitleEl) {
+    subtitleEl.innerHTML = `
+      <span>Code: <strong>${escapeHtml(w.code)}</strong></span>
+      <span>•</span>
+      <span>Legal Entity: <strong>${comp ? escapeHtml(comp.name) : '—'}</strong></span>
+      <span>•</span>
+      <span>Branch: <strong>${br ? escapeHtml(br.name) : 'Company-wide'}</strong></span>
+      <span>•</span>
+      <span>Type: <strong>${escapeHtml(w.warehouse_type || 'General')}</strong></span>
+      ${w.is_default ? '<span>•</span><span class="badge badge-success" style="font-size:10px;padding:1px 5px;">DEFAULT</span>' : ''}
     `;
   }
+
+  switchWhModalTab('stock', false);
 
   const bodyEl = document.getElementById('warehouse-view-body');
   if (bodyEl) {
     bodyEl.innerHTML = `
-      <div style="display:flex;align-items:center;justify-content:center;padding:1.5rem;">
+      <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:48px 16px;gap:12px;">
         <div class="spinner"></div>
+        <p class="text-sm text-muted" style="margin:0;">Loading inventory records for ${escapeHtml(w.name)}...</p>
       </div>
     `;
   }
   APP.openModal('warehouse-view-modal');
 
-  // Query live inventory metrics safely
-  let activeBatchesCount = 0;
-  let totalUnits = 0;
-  let movementCount = 0;
-
   try {
-    const [bRes, mRes] = await Promise.all([
-      window.dbClient.from('stock_batches').select('id, current_qty').eq('warehouse_id', id),
-      window.dbClient.from('stock_movements').select('id', { count: 'exact' }).eq('warehouse_id', id)
+    const [bRes, pRes, iRes, mRes] = await Promise.all([
+      window.dbClient.from('stock_batches').select('*').eq('warehouse_id', id).order('current_qty', { ascending: false }),
+      window.dbClient.from('products').select('id, name, category, packaging, item_size, purchase_price, unit, reorder_level'),
+      window.dbClient.from('inventory_items').select('id, name, category, item_size, item_subtype, unit, reorder_level'),
+      window.dbClient.from('stock_movements').select('*').eq('warehouse_id', id).order('created_at', { ascending: false }).limit(100)
     ]);
-    const batches = (bRes && bRes.data) || [];
-    const activeBatches = batches.filter(b => (Number(b.current_qty) || 0) > 0);
-    activeBatchesCount = activeBatches.length;
-    totalUnits = activeBatches.reduce((acc, b) => acc + (Number(b.current_qty) || 0), 0);
-    movementCount = (mRes && mRes.count) || (mRes && mRes.data ? mRes.data.length : 0);
-  } catch (e) {
-    console.warn('Could not query warehouse stats:', e);
+
+    const pMap = new Map((pRes.data || []).map(p => [p.id, p]));
+    const iMap = new Map((iRes.data || []).map(i => [i.id, i]));
+
+    const batches = (bRes.data || []).map(b => {
+      let category = 'Technical';
+      let packaging = '—';
+      let reorderLevel = 0;
+      let unitCost = parseFloat(b.purchase_price) || 0;
+
+      if (b.item_type === 'Product') {
+        const p = pMap.get(b.item_id);
+        category = (p && p.category) ? p.category : 'Finished Good';
+        packaging = (p && (p.item_size || p.packaging)) ? (p.item_size || p.packaging) : '—';
+        reorderLevel = p ? (parseFloat(p.reorder_level) || 0) : 0;
+        if (!unitCost && p && p.purchase_price) unitCost = parseFloat(p.purchase_price) || 0;
+      } else {
+        const it = iMap.get(b.item_id) || iMap.get(b.inventory_item_id);
+        category = (it && it.category) ? it.category : 'Raw Material';
+        packaging = (it && (it.item_size || it.item_subtype)) ? (it.item_size || it.item_subtype) : '—';
+        reorderLevel = it ? (parseFloat(it.reorder_level) || 0) : 0;
+      }
+
+      const currentQty = parseFloat(b.current_qty) || 0;
+      const totalVal = currentQty * unitCost;
+
+      let status = 'In Stock';
+      let statusBadgeClass = 'badge-success';
+      if (currentQty <= 0) {
+        status = 'Out of Stock';
+        statusBadgeClass = 'badge-danger';
+      } else if (reorderLevel > 0 && currentQty <= reorderLevel) {
+        status = 'Low Stock';
+        statusBadgeClass = 'badge-warning';
+      }
+
+      return {
+        ...b,
+        category,
+        packaging,
+        reorderLevel,
+        unitCost,
+        totalVal,
+        status,
+        statusBadgeClass
+      };
+    });
+
+    const batchLookup = new Map(batches.map(b => [b.id, b]));
+    const movements = (mRes.data || []).map(m => {
+      const b = batchLookup.get(m.batch_id);
+      return {
+        ...m,
+        item_name: b ? b.item_name : (m.item_name || 'Inventory Item'),
+        batch_no: b ? b.batch_no : '—',
+        unit: b ? b.unit : '',
+        qty: parseFloat(m.qty) || 0
+      };
+    });
+
+    const activeBatchesList = batches.filter(b => (parseFloat(b.current_qty) || 0) > 0);
+    const distinctItemNames = new Set(activeBatchesList.map(b => b.item_name));
+    const totalEstValue = activeBatchesList.reduce((acc, b) => acc + (b.totalVal || 0), 0);
+    const lowStockBatches = activeBatchesList.filter(b => b.reorderLevel > 0 && (parseFloat(b.current_qty) || 0) <= b.reorderLevel);
+    const depletedBatches = batches.filter(b => (parseFloat(b.current_qty) || 0) <= 0);
+
+    currentWhModalState = {
+      warehouseId: id,
+      warehouse: w,
+      company: comp,
+      branch: br,
+      batches: batches,
+      movements: movements,
+      activeTab: 'stock',
+      filters: {
+        search: '',
+        category: 'ALL',
+        status: 'IN_STOCK',
+        sortBy: 'name_asc'
+      },
+      metrics: {
+        distinctItemsCount: distinctItemNames.size,
+        activeBatchesCount: activeBatchesList.length,
+        totalEstValue: totalEstValue,
+        lowStockCount: lowStockBatches.length,
+        depletedCount: depletedBatches.length
+      }
+    };
+
+    // Update tab badges
+    const stockBadge = document.getElementById('wh-stock-tab-badge');
+    if (stockBadge) stockBadge.textContent = activeBatchesList.length;
+
+    const movBadge = document.getElementById('wh-movements-tab-badge');
+    if (movBadge) movBadge.textContent = movements.length;
+
+    const timeEl = document.getElementById('wh-footer-timestamp');
+    if (timeEl) {
+      const now = new Date();
+      timeEl.textContent = `Retrieved at ${now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} • Warehouse: ${w.code}`;
+    }
+
+    renderCurrentWhModalTab();
+  } catch (err) {
+    console.error('viewWarehouseDetails error:', err);
+    APP.showToast('Failed to load warehouse stock: ' + err.message, 'error');
+    if (bodyEl) {
+      bodyEl.innerHTML = `
+        <div class="empty-state" style="padding:40px 16px;text-align:center;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:36px;height:36px;margin:0 auto 10px;color:var(--danger,#ef4444);display:block;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          <h3 style="font-size:15px;margin-bottom:6px;color:var(--text-primary);">Failed to Load Warehouse Stock</h3>
+          <p class="text-sm text-muted" style="margin-bottom:14px;max-width:400px;margin-left:auto;margin-right:auto;">${escapeHtml(err.message || 'Database error occurred')}</p>
+          <button class="btn btn-secondary btn-sm" onclick="viewWarehouseDetails(${id})">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px;margin-right:4px;"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+            Retry Loading
+          </button>
+        </div>
+      `;
+    }
+  }
+}
+
+function switchWhModalTab(tabName, shouldRender = true) {
+  if (currentWhModalState) currentWhModalState.activeTab = tabName;
+  ['stock', 'movements', 'info'].forEach(t => {
+    const btn = document.getElementById(`wh-tab-${t}-btn`);
+    if (btn) {
+      if (t === tabName) btn.classList.add('active');
+      else btn.classList.remove('active');
+    }
+  });
+  if (shouldRender) renderCurrentWhModalTab();
+}
+
+function renderCurrentWhModalTab() {
+  if (!currentWhModalState) return;
+  const bodyEl = document.getElementById('warehouse-view-body');
+  if (!bodyEl) return;
+
+  if (currentWhModalState.activeTab === 'stock') {
+    renderWhStockTab(bodyEl);
+  } else if (currentWhModalState.activeTab === 'movements') {
+    renderWhMovementsTab(bodyEl);
+  } else if (currentWhModalState.activeTab === 'info') {
+    renderWhInfoTab(bodyEl);
+  }
+}
+
+function renderWhStockTab(bodyEl) {
+  const { warehouse, batches, filters, metrics } = currentWhModalState;
+
+  // Compute categories present in this warehouse
+  const categories = [...new Set(batches.map(b => b.category).filter(Boolean))].sort();
+
+  // Apply filters
+  let filtered = [...batches];
+  const q = (filters.search || '').toLowerCase().trim();
+  if (q) {
+    filtered = filtered.filter(b =>
+      (b.item_name || '').toLowerCase().includes(q) ||
+      (b.batch_no || '').toLowerCase().includes(q) ||
+      (b.category || '').toLowerCase().includes(q) ||
+      (b.packaging || '').toLowerCase().includes(q)
+    );
   }
 
-  if (bodyEl) {
+  if (filters.category !== 'ALL') {
+    filtered = filtered.filter(b => b.category === filters.category);
+  }
+
+  if (filters.status === 'IN_STOCK') {
+    filtered = filtered.filter(b => (parseFloat(b.current_qty) || 0) > 0);
+  } else if (filters.status === 'DEPLETED') {
+    filtered = filtered.filter(b => (parseFloat(b.current_qty) || 0) <= 0);
+  }
+
+  // Apply sort
+  filtered.sort((a, b) => {
+    switch (filters.sortBy) {
+      case 'name_desc': return (b.item_name || '').localeCompare(a.item_name || '');
+      case 'qty_desc': return (parseFloat(b.current_qty) || 0) - (parseFloat(a.current_qty) || 0);
+      case 'qty_asc': return (parseFloat(a.current_qty) || 0) - (parseFloat(b.current_qty) || 0);
+      case 'val_desc': return (b.totalVal || 0) - (a.totalVal || 0);
+      case 'cat_asc': return (a.category || '').localeCompare(b.category || '');
+      case 'name_asc':
+      default: return (a.item_name || '').localeCompare(b.item_name || '');
+    }
+  });
+
+  const formattedTotalValue = metrics.totalEstValue > 0
+    ? '₹' + metrics.totalEstValue.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    : '₹0.00';
+
+  bodyEl.innerHTML = `
+    <!-- Summary Cards -->
+    <div class="wh-summary-cards">
+      <div class="wh-summary-card">
+        <div class="wh-card-label">Distinct Items</div>
+        <div class="wh-card-value">${metrics.distinctItemsCount}</div>
+        <div class="wh-card-sub">catalog products & materials</div>
+      </div>
+      <div class="wh-summary-card">
+        <div class="wh-card-label">Active Batches</div>
+        <div class="wh-card-value" style="color:#16a34a;">${metrics.activeBatchesCount}</div>
+        <div class="wh-card-sub">positive physical balance</div>
+      </div>
+      <div class="wh-summary-card">
+        <div class="wh-card-label">Total Stock Value</div>
+        <div class="wh-card-value" style="color:#0C3925;">${formattedTotalValue}</div>
+        <div class="wh-card-sub">recorded unit purchase value</div>
+      </div>
+      <div class="wh-summary-card">
+        <div class="wh-card-label">Stock Status</div>
+        <div class="wh-card-value" style="${metrics.lowStockCount > 0 ? 'color:#d97706;' : 'color:#16a34a;'}">
+          ${metrics.lowStockCount > 0 ? `${metrics.lowStockCount} Low` : (metrics.depletedCount > 0 ? `${metrics.depletedCount} Zero` : 'Healthy')}
+        </div>
+        <div class="wh-card-sub">${metrics.lowStockCount > 0 ? 'items below reorder level' : (metrics.depletedCount > 0 ? 'depleted zero-qty batches' : 'all stock above reorder')}</div>
+      </div>
+    </div>
+
+    <!-- Search & Filters Toolbar -->
+    <div class="wh-stock-toolbar">
+      <div class="wh-toolbar-left">
+        <div class="wh-search-box">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" id="wh-stock-search-input" placeholder="Search product, material, or batch…" value="${escapeHtml(filters.search)}" oninput="onWhStockSearchInput(this.value)">
+        </div>
+        <select class="wh-filter-select" id="wh-stock-cat-filter" onchange="onWhStockCategoryChange(this.value)">
+          <option value="ALL" ${filters.category === 'ALL' ? 'selected' : ''}>All Categories (${batches.length})</option>
+          ${categories.map(c => `<option value="${escapeHtml(c)}" ${filters.category === c ? 'selected' : ''}>${escapeHtml(c)}</option>`).join('')}
+        </select>
+        <select class="wh-filter-select" id="wh-stock-status-filter" onchange="onWhStockStatusChange(this.value)">
+          <option value="IN_STOCK" ${filters.status === 'IN_STOCK' ? 'selected' : ''}>Active Stock Only (Qty &gt; 0)</option>
+          <option value="ALL" ${filters.status === 'ALL' ? 'selected' : ''}>All Batches (Include Zero Stock)</option>
+          <option value="DEPLETED" ${filters.status === 'DEPLETED' ? 'selected' : ''}>Depleted Only (Qty ≤ 0)</option>
+        </select>
+      </div>
+      <div class="wh-toolbar-right">
+        <select class="wh-filter-select" id="wh-stock-sort-filter" onchange="onWhStockSortChange(this.value)">
+          <option value="name_asc" ${filters.sortBy === 'name_asc' ? 'selected' : ''}>Item Name (A to Z)</option>
+          <option value="name_desc" ${filters.sortBy === 'name_desc' ? 'selected' : ''}>Item Name (Z to A)</option>
+          <option value="qty_desc" ${filters.sortBy === 'qty_desc' ? 'selected' : ''}>Available Qty (High to Low)</option>
+          <option value="qty_asc" ${filters.sortBy === 'qty_asc' ? 'selected' : ''}>Available Qty (Low to High)</option>
+          <option value="val_desc" ${filters.sortBy === 'val_desc' ? 'selected' : ''}>Stock Value (High to Low)</option>
+          <option value="cat_asc" ${filters.sortBy === 'cat_asc' ? 'selected' : ''}>Category</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Content: Empty State vs Tables / Cards -->
+    ${batches.length === 0 ? `
+      <div class="empty-state" style="padding:48px 16px;text-align:center;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width:40px;height:40px;margin:0 auto 10px;color:var(--text-muted,#9ca3af);display:block;"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+        <h3 style="font-size:15px;margin-bottom:4px;color:var(--text-primary);">No stock is currently available in this warehouse</h3>
+        <p class="text-sm text-muted">There are no inventory batches registered at <strong>${escapeHtml(warehouse.name)}</strong>.</p>
+      </div>
+    ` : filtered.length === 0 ? `
+      <div class="empty-state" style="padding:36px 16px;text-align:center;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width:36px;height:36px;margin:0 auto 8px;color:var(--text-muted,#9ca3af);display:block;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <h3 style="font-size:14px;margin-bottom:4px;color:var(--text-primary);">No matching items</h3>
+        <p class="text-xs text-muted" style="margin-bottom:12px;">No stock items match your search or filter settings.</p>
+        <button class="btn btn-secondary btn-sm" onclick="resetWhStockFilters()">Reset Filters</button>
+      </div>
+    ` : `
+      <!-- Desktop Table -->
+      <div class="table-wrap" id="wh-stock-table-wrap" style="box-shadow:none;border:1px solid var(--border,#e2e8f0);border-radius:8px;overflow:hidden;">
+        <table class="wh-stock-table">
+          <thead>
+            <tr>
+              <th style="width:23%;">Item Name</th>
+              <th style="width:13%;">Category</th>
+              <th style="width:12%;">Batch No</th>
+              <th style="width:11%;">Packaging</th>
+              <th style="width:12%;text-align:right;">Available Qty</th>
+              <th style="width:7%;">Unit</th>
+              <th style="width:10%;text-align:right;">Unit Cost</th>
+              <th style="width:11%;text-align:right;">Total Value</th>
+              <th style="width:11%;text-align:center;">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${filtered.map(b => {
+              const currentQty = parseFloat(b.current_qty) || 0;
+              const formattedVal = b.totalVal > 0 ? '₹' + b.totalVal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—';
+              const formattedCost = b.unitCost > 0 ? '₹' + b.unitCost.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—';
+              return `
+                <tr>
+                  <td>
+                    <div style="font-weight:600;color:var(--text-primary);line-height:1.35;">${escapeHtml(b.item_name)}</div>
+                  </td>
+                  <td><span class="badge badge-info" style="font-size:10.5px;">${escapeHtml(b.category)}</span></td>
+                  <td><span class="wh-batch-pill">${escapeHtml(b.batch_no || '—')}</span></td>
+                  <td style="color:var(--text-muted);font-size:12px;">${escapeHtml(b.packaging || '—')}</td>
+                  <td style="text-align:right;">
+                    <span class="wh-qty-val ${currentQty <= 0 ? 'is-zero' : ''}">${currentQty.toLocaleString()}</span>
+                  </td>
+                  <td><span style="font-weight:500;color:var(--text-muted);">${escapeHtml(b.unit || 'Nos')}</span></td>
+                  <td style="text-align:right;color:var(--text-muted);">${formattedCost}</td>
+                  <td style="text-align:right;font-weight:600;color:#0C3925;">${formattedVal}</td>
+                  <td style="text-align:center;"><span class="badge ${b.statusBadgeClass}" style="font-size:10.5px;">${b.status}</span></td>
+                </tr>
+              `;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Mobile Responsive Cards -->
+      <div class="wh-stock-cards-mobile" id="wh-stock-cards-mobile">
+        ${filtered.map(b => {
+          const currentQty = parseFloat(b.current_qty) || 0;
+          const formattedVal = b.totalVal > 0 ? '₹' + b.totalVal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—';
+          const formattedCost = b.unitCost > 0 ? '₹' + b.unitCost.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—';
+          return `
+            <div class="wh-mobile-stock-card">
+              <div class="wh-card-top-row">
+                <div class="wh-card-item-title">${escapeHtml(b.item_name)}</div>
+                <span class="badge ${b.statusBadgeClass}">${b.status}</span>
+              </div>
+              <div class="wh-card-badge-row">
+                <span class="badge badge-info" style="font-size:10.5px;">${escapeHtml(b.category)}</span>
+                <span class="wh-batch-pill">Batch: ${escapeHtml(b.batch_no || '—')}</span>
+              </div>
+              <div class="wh-card-grid-2col">
+                <div>
+                  <div class="wh-grid-label">Available Stock</div>
+                  <div class="wh-grid-val-stock ${currentQty <= 0 ? 'is-zero' : ''}">
+                    ${currentQty.toLocaleString()} <span style="font-size:11.5px;font-weight:600;color:var(--text-muted);">${escapeHtml(b.unit || 'Nos')}</span>
+                  </div>
+                </div>
+                <div>
+                  <div class="wh-grid-label">Packaging / Size</div>
+                  <div class="wh-grid-val">${escapeHtml(b.packaging || '—')}</div>
+                </div>
+                <div>
+                  <div class="wh-grid-label">Unit Cost</div>
+                  <div class="wh-grid-val">${formattedCost}</div>
+                </div>
+                <div>
+                  <div class="wh-grid-label">Total Stock Value</div>
+                  <div class="wh-grid-val" style="color:#0C3925;font-weight:700;">${formattedVal}</div>
+                </div>
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    `}
+  `;
+}
+
+function renderWhMovementsTab(bodyEl) {
+  const { warehouse, movements } = currentWhModalState;
+
+  if (movements.length === 0) {
     bodyEl.innerHTML = `
-      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:12px;margin-bottom:16px;">
-        <div style="background:var(--bg-card, #fff);border:1px solid var(--border);border-radius:8px;padding:10px 14px;">
-          <div style="font-size:11px;text-transform:uppercase;color:var(--text-muted);font-weight:700;">Warehouse Code</div>
-          <div style="font-size:14px;font-weight:700;color:var(--text-primary);font-family:monospace;margin-top:2px;">${escapeHtml(w.code)}</div>
-        </div>
-        <div style="background:var(--bg-card, #fff);border:1px solid var(--border);border-radius:8px;padding:10px 14px;">
-          <div style="font-size:11px;text-transform:uppercase;color:var(--text-muted);font-weight:700;">Storage Category</div>
-          <div style="font-size:13px;font-weight:600;color:var(--primary);margin-top:2px;">${escapeHtml(w.warehouse_type || 'General')}</div>
-        </div>
-        <div style="background:var(--bg-card, #fff);border:1px solid var(--border);border-radius:8px;padding:10px 14px;">
-          <div style="font-size:11px;text-transform:uppercase;color:var(--text-muted);font-weight:700;">Legal Entity (Owner)</div>
-          <div style="font-size:13px;font-weight:600;color:var(--text-primary);margin-top:2px;">${comp ? escapeHtml(comp.name) : '—'}</div>
-        </div>
-        <div style="background:var(--bg-card, #fff);border:1px solid var(--border);border-radius:8px;padding:10px 14px;">
-          <div style="font-size:11px;text-transform:uppercase;color:var(--text-muted);font-weight:700;">Associated Branch</div>
-          <div style="font-size:13px;font-weight:600;color:var(--text-primary);margin-top:2px;">${br ? escapeHtml(br.name) : 'Company-wide (General Depot)'}</div>
-        </div>
-      </div>
-
-      <div style="background:rgba(0,0,0,0.02);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:16px;">
-        <div style="font-size:11px;text-transform:uppercase;color:var(--text-muted);font-weight:700;margin-bottom:4px;">Physical Location / Bay Address</div>
-        <div style="font-size:13px;color:var(--text-primary);">${w.location ? escapeHtml(w.location) : '<span class="text-muted">No specific location or bay address specified.</span>'}</div>
-        <div style="margin-top:8px;display:flex;align-items:center;gap:6px;">
-          ${w.is_default ? '<span class="badge badge-success" style="font-size:10px;">DEFAULT STOCK LOCATION</span>' : '<span class="badge badge-gray" style="font-size:10px;">Secondary Storage Location</span>'}
-        </div>
-      </div>
-
-      <div style="border-top:1px solid var(--border);padding-top:14px;">
-        <div style="font-size:11.5px;font-weight:700;color:var(--text-primary);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:8px;">Operational Metrics & Audit Records</div>
-        <div style="display:flex;gap:12px;flex-wrap:wrap;">
-          <div style="flex:1;min-width:140px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;padding:10px;">
-            <div style="font-size:11px;color:#166534;font-weight:600;">Active Inventory Batches</div>
-            <div style="font-size:18px;font-weight:700;color:#15803d;margin-top:2px;">${activeBatchesCount} <span style="font-size:12px;font-weight:500;">batches</span></div>
-            <div style="font-size:11px;color:#166534;margin-top:2px;">Total Units: <strong>${totalUnits}</strong></div>
-          </div>
-          <div style="flex:1;min-width:140px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;padding:10px;">
-            <div style="font-size:11px;color:#1e40af;font-weight:600;">Historical Audit Logs</div>
-            <div style="font-size:18px;font-weight:700;color:#1d4ed8;margin-top:2px;">${movementCount} <span style="font-size:12px;font-weight:500;">movements</span></div>
-            <div style="font-size:11px;color:#1e40af;margin-top:2px;">Permanently Preserved</div>
-          </div>
-        </div>
+      <div class="empty-state" style="padding:48px 16px;text-align:center;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width:40px;height:40px;margin:0 auto 10px;color:var(--text-muted,#9ca3af);display:block;"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+        <h3 style="font-size:15px;margin-bottom:4px;color:var(--text-primary);">No stock movements recorded</h3>
+        <p class="text-sm text-muted">No historical transactions or audit movements are associated with <strong>${escapeHtml(warehouse.name)}</strong>.</p>
       </div>
     `;
+    return;
+  }
+
+  bodyEl.innerHTML = `
+    <div style="margin-bottom:12px;font-size:12.5px;color:var(--text-muted);display:flex;justify-content:space-between;align-items:center;">
+      <span>Showing latest <strong>${movements.length}</strong> recorded audit transactions</span>
+      <span class="badge badge-gray" style="font-size:10px;">IMMUTABLE AUDIT TRAIL</span>
+    </div>
+
+    <!-- Desktop Table -->
+    <div class="table-wrap" id="wh-movements-table-wrap" style="box-shadow:none;border:1px solid var(--border,#e2e8f0);border-radius:8px;overflow:hidden;">
+      <table class="wh-movements-table">
+        <thead>
+          <tr>
+            <th style="width:18%;">Date & Time</th>
+            <th style="width:25%;">Item & Batch</th>
+            <th style="width:18%;">Transaction Type</th>
+            <th style="width:14%;text-align:right;">Quantity Delta</th>
+            <th style="width:25%;">Reference / Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${movements.map(m => {
+            const dateStr = m.created_at ? new Date(m.created_at).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }) : '—';
+            const isNegative = (m.qty || 0) < 0;
+            const deltaClass = isNegative ? 'wh-delta-neg' : 'wh-delta-pos';
+            const deltaPrefix = isNegative ? '' : '+';
+            return `
+              <tr>
+                <td style="font-size:11.5px;color:var(--text-muted);">${escapeHtml(dateStr)}</td>
+                <td>
+                  <div style="font-weight:600;line-height:1.3;">${escapeHtml(m.item_name)}</div>
+                  <div style="font-size:11px;font-family:monospace;color:var(--text-muted);">Batch: ${escapeHtml(m.batch_no || '—')}</div>
+                </td>
+                <td>
+                  <span class="badge ${isNegative ? 'badge-warning' : 'badge-success'}" style="font-size:10px;">${escapeHtml(m.txn_type || 'TRANSACTION')}</span>
+                </td>
+                <td style="text-align:right;">
+                  <span class="${deltaClass}">${deltaPrefix}${m.qty.toLocaleString()} ${escapeHtml(m.unit || '')}</span>
+                </td>
+                <td style="font-size:12px;color:var(--text-muted);">
+                  ${m.notes ? escapeHtml(m.notes) : '<span style="color:#cbd5e1;">—</span>'}
+                </td>
+              </tr>
+            `;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Mobile Cards -->
+    <div class="wh-movements-cards-mobile" id="wh-movements-cards-mobile">
+      ${movements.map(m => {
+        const dateStr = m.created_at ? new Date(m.created_at).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }) : '—';
+        const isNegative = (m.qty || 0) < 0;
+        const deltaClass = isNegative ? 'wh-delta-neg' : 'wh-delta-pos';
+        const deltaPrefix = isNegative ? '' : '+';
+        return `
+          <div class="wh-mobile-movement-card">
+            <div class="wh-card-top-row">
+              <span class="badge ${isNegative ? 'badge-warning' : 'badge-success'}" style="font-size:10px;">${escapeHtml(m.txn_type || 'TRANSACTION')}</span>
+              <span style="font-size:11px;color:var(--text-muted);">${escapeHtml(dateStr)}</span>
+            </div>
+            <div class="wh-card-item-title" style="margin-top:4px;">${escapeHtml(m.item_name)}</div>
+            <div style="font-size:11px;font-family:monospace;color:var(--text-muted);margin-bottom:8px;">Batch: ${escapeHtml(m.batch_no || '—')}</div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding-top:6px;border-top:1px solid #f1f5f9;">
+              <span class="wh-grid-label" style="margin:0;">Quantity Change:</span>
+              <span class="${deltaClass}" style="font-size:14px;">${deltaPrefix}${m.qty.toLocaleString()} ${escapeHtml(m.unit || '')}</span>
+            </div>
+            ${m.notes ? `<div style="font-size:11.5px;color:var(--text-muted);margin-top:6px;background:#f8fafc;padding:4px 8px;border-radius:4px;">${escapeHtml(m.notes)}</div>` : ''}
+          </div>
+        `;
+      }).join('')}
+    </div>
+  `;
+}
+
+function renderWhInfoTab(bodyEl) {
+  const { warehouse: w, company: comp, branch: br, metrics, movements } = currentWhModalState;
+
+  bodyEl.innerHTML = `
+    <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:12px;margin-bottom:16px;">
+      <div style="background:var(--surface,#fff);border:1px solid var(--border,#e2e8f0);border-radius:8px;padding:12px 14px;">
+        <div style="font-size:11px;text-transform:uppercase;color:var(--text-muted);font-weight:700;">Warehouse Code</div>
+        <div style="font-size:14px;font-weight:700;color:var(--text-primary);font-family:monospace;margin-top:3px;">${escapeHtml(w.code)}</div>
+      </div>
+      <div style="background:var(--surface,#fff);border:1px solid var(--border,#e2e8f0);border-radius:8px;padding:12px 14px;">
+        <div style="font-size:11px;text-transform:uppercase;color:var(--text-muted);font-weight:700;">Storage Category</div>
+        <div style="font-size:13px;font-weight:600;color:var(--primary,#0C3925);margin-top:3px;">${escapeHtml(w.warehouse_type || 'General')}</div>
+      </div>
+      <div style="background:var(--surface,#fff);border:1px solid var(--border,#e2e8f0);border-radius:8px;padding:12px 14px;">
+        <div style="font-size:11px;text-transform:uppercase;color:var(--text-muted);font-weight:700;">Legal Entity (Owner)</div>
+        <div style="font-size:13px;font-weight:600;color:var(--text-primary);margin-top:3px;">${comp ? escapeHtml(comp.name) : '—'}</div>
+      </div>
+      <div style="background:var(--surface,#fff);border:1px solid var(--border,#e2e8f0);border-radius:8px;padding:12px 14px;">
+        <div style="font-size:11px;text-transform:uppercase;color:var(--text-muted);font-weight:700;">Associated Branch</div>
+        <div style="font-size:13px;font-weight:600;color:var(--text-primary);margin-top:3px;">${br ? escapeHtml(br.name) : 'Company-wide (General Depot)'}</div>
+      </div>
+    </div>
+
+    <div style="background:#ffffff;border:1px solid var(--border,#e2e8f0);border-radius:8px;padding:14px;margin-bottom:16px;">
+      <div style="font-size:11px;text-transform:uppercase;color:var(--text-muted);font-weight:700;margin-bottom:4px;">Physical Location / Bay Address</div>
+      <div style="font-size:13px;color:var(--text-primary);">${w.location ? escapeHtml(w.location) : '<span class="text-muted">No specific bay or physical address specified.</span>'}</div>
+      <div style="margin-top:10px;display:flex;align-items:center;gap:6px;">
+        ${w.is_default ? '<span class="badge badge-success" style="font-size:10px;">DEFAULT STOCK LOCATION</span>' : '<span class="badge badge-gray" style="font-size:10px;">Secondary Storage Location</span>'}
+      </div>
+    </div>
+
+    <div style="background:#ffffff;border:1px solid var(--border,#e2e8f0);border-radius:8px;padding:14px;">
+      <div style="font-size:11px;text-transform:uppercase;color:var(--text-muted);font-weight:700;margin-bottom:8px;">Inventory & Audit Summary</div>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;">
+        <div style="flex:1;min-width:140px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;padding:10px 12px;">
+          <div style="font-size:11px;color:#166534;font-weight:600;">Active Inventory Batches</div>
+          <div style="font-size:18px;font-weight:700;color:#15803d;margin-top:2px;">${metrics.activeBatchesCount} <span style="font-size:12px;font-weight:500;">batches</span></div>
+        </div>
+        <div style="flex:1;min-width:140px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;padding:10px 12px;">
+          <div style="font-size:11px;color:#1e40af;font-weight:600;">Historical Audit Logs</div>
+          <div style="font-size:18px;font-weight:700;color:#1d4ed8;margin-top:2px;">${movements.length} <span style="font-size:12px;font-weight:500;">movements</span></div>
+          <div style="font-size:11px;color:#1e40af;margin-top:2px;">Permanently Preserved</div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function onWhStockSearchInput(val) {
+  if (!currentWhModalState) return;
+  currentWhModalState.filters.search = val;
+  const bodyEl = document.getElementById('warehouse-view-body');
+  if (bodyEl && currentWhModalState.activeTab === 'stock') {
+    renderWhStockTab(bodyEl);
+    const searchInput = document.getElementById('wh-stock-search-input');
+    if (searchInput) {
+      searchInput.focus();
+      searchInput.selectionStart = searchInput.selectionEnd = searchInput.value.length;
+    }
+  }
+}
+
+function onWhStockCategoryChange(val) {
+  if (!currentWhModalState) return;
+  currentWhModalState.filters.category = val;
+  const bodyEl = document.getElementById('warehouse-view-body');
+  if (bodyEl && currentWhModalState.activeTab === 'stock') {
+    renderWhStockTab(bodyEl);
+  }
+}
+
+function onWhStockStatusChange(val) {
+  if (!currentWhModalState) return;
+  currentWhModalState.filters.status = val;
+  const bodyEl = document.getElementById('warehouse-view-body');
+  if (bodyEl && currentWhModalState.activeTab === 'stock') {
+    renderWhStockTab(bodyEl);
+  }
+}
+
+function onWhStockSortChange(val) {
+  if (!currentWhModalState) return;
+  currentWhModalState.filters.sortBy = val;
+  const bodyEl = document.getElementById('warehouse-view-body');
+  if (bodyEl && currentWhModalState.activeTab === 'stock') {
+    renderWhStockTab(bodyEl);
+  }
+}
+
+function resetWhStockFilters() {
+  if (!currentWhModalState) return;
+  currentWhModalState.filters.search = '';
+  currentWhModalState.filters.category = 'ALL';
+  currentWhModalState.filters.status = 'IN_STOCK';
+  currentWhModalState.filters.sortBy = 'name_asc';
+  const bodyEl = document.getElementById('warehouse-view-body');
+  if (bodyEl && currentWhModalState.activeTab === 'stock') {
+    renderWhStockTab(bodyEl);
   }
 }
 

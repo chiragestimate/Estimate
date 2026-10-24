@@ -1249,46 +1249,86 @@
 
       const body = document.getElementById('verify-dispatch-body');
       body.innerHTML = `
-        <div style="background:var(--bg); padding:12px; border-radius:8px; border:1px solid var(--border); margin-bottom:14px; font-size:13px;">
-          <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
-            <span><strong>Dispatch Slip:</strong> ${safeEscape(d.dispatch_no)}</span>
-            <span><strong>Order:</strong> ${safeEscape(d.order_no)}</span>
+        <div class="dispatch-meta-card">
+          <div class="dispatch-meta-row">
+            <div class="dispatch-meta-item">
+              <span class="dispatch-meta-label">Dispatch Slip:</span>
+              <span class="dispatch-meta-val">${safeEscape(d.dispatch_no)}</span>
+            </div>
+            <div class="dispatch-meta-item">
+              <span class="dispatch-meta-label">Order:</span>
+              <span class="dispatch-meta-val">${safeEscape(d.order_no)}</span>
+            </div>
           </div>
-          <div style="display:flex; justify-content:space-between;">
-            <span><strong>Client:</strong> ${safeEscape(d.client_name)}</span>
-            <span><strong>Total Units:</strong> ${d.total_units_dispatched} (${d.total_boxes_dispatched} Boxes)</span>
+          <div class="dispatch-meta-row">
+            <div class="dispatch-meta-item dispatch-meta-full">
+              <span class="dispatch-meta-label">Client:</span>
+              <span class="dispatch-meta-val">${safeEscape(d.client_name)}</span>
+            </div>
+          </div>
+          <div class="dispatch-meta-row">
+            <div class="dispatch-meta-item dispatch-meta-full">
+              <span class="dispatch-meta-label">Total Units:</span>
+              <span class="dispatch-meta-val font-bold text-primary">${d.total_units_dispatched} units (${d.total_boxes_dispatched || 0} Boxes)</span>
+            </div>
           </div>
         </div>
 
-        <div style="margin-bottom:14px;">
-          <h5 style="margin:0 0 8px; font-size:13px; font-weight:700;">Items to Verify</h5>
-          <div style="overflow-x:auto;">
-            <table class="line-items-table" style="width:100%; font-size:12.5px; border-collapse:collapse;">
+        <div class="dispatch-cargo-section">
+          <h5 class="dispatch-cargo-title">Items to Verify</h5>
+          
+          <!-- Desktop / Laptop Table (> 768px) -->
+          <div class="dispatch-cargo-table-wrap">
+            <table class="dispatch-cargo-table">
               <thead>
-                <tr style="background:#f1f5f9; border-bottom:2px solid var(--border, #cbd5e1);">
-                  <th style="padding:8px 10px; text-align:left;">Product</th>
-                  <th style="padding:8px 10px; text-align:center;">Packing Size</th>
-                  <th style="padding:8px 10px; text-align:center;">Boxes</th>
-                  <th style="padding:8px 10px; text-align:right;">Total Units</th>
+                <tr>
+                  <th style="width:42%; text-align:left;">Product</th>
+                  <th style="width:24%; text-align:center;">Packing Size</th>
+                  <th style="width:18%; text-align:center;">Boxes</th>
+                  <th style="width:16%; text-align:right;">Total Units</th>
                 </tr>
               </thead>
               <tbody>
                 ${items.map(it => {
                   const packSize = it.packaging_size || it.packing_size || '—';
                   return `
-                  <tr style="border-bottom:1px solid #e2e8f0;">
-                    <td style="padding:8px 10px; font-weight:600; color:var(--text, #0f172a);">${safeEscape(it.product_name)}</td>
-                    <td style="padding:8px 10px; text-align:center;"><span class="badge badge-neutral" style="font-weight:700; font-size:11.5px; padding:3px 8px; border-radius:4px; display:inline-block;">${safeEscape(packSize)}</span></td>
-                    <td style="padding:8px 10px; text-align:center; font-weight:700;">${it.boxes_dispatched || 0} Boxes${it.loose_dispatched ? ` <small class="text-muted">+ ${it.loose_dispatched} loose</small>` : ''}</td>
-                    <td style="padding:8px 10px; text-align:right; font-weight:800; color:var(--primary, #0C3925);">${it.total_units_dispatched} units</td>
+                  <tr>
+                    <td class="col-product">${safeEscape(it.product_name)}</td>
+                    <td class="col-pack text-center"><span class="badge badge-neutral pack-badge">${safeEscape(packSize)}</span></td>
+                    <td class="col-boxes text-center font-bold">${it.boxes_dispatched || 0} Boxes${it.loose_dispatched ? ` <small class="text-muted">+ ${it.loose_dispatched} loose</small>` : ''}</td>
+                    <td class="col-units text-right font-bold text-primary">${it.total_units_dispatched} units</td>
                   </tr>
                 `;}).join('')}
               </tbody>
             </table>
           </div>
+
+          <!-- Mobile Responsive Cards (<= 768px) -->
+          <div class="dispatch-cargo-cards-mobile">
+            ${items.map(it => {
+              const packSize = it.packaging_size || it.packing_size || '—';
+              return `
+              <div class="dispatch-cargo-card">
+                <div class="dispatch-cargo-card-header">
+                  <div class="dispatch-cargo-pname">${safeEscape(it.product_name)}</div>
+                  <span class="badge badge-neutral pack-badge">${safeEscape(packSize)}</span>
+                </div>
+                <div class="dispatch-cargo-card-grid">
+                  <div class="dispatch-cargo-metric">
+                    <span class="dispatch-metric-label">Boxes Dispatched</span>
+                    <span class="dispatch-metric-val font-bold">${it.boxes_dispatched || 0} Boxes${it.loose_dispatched ? ` <small class="text-muted">+ ${it.loose_dispatched} loose</small>` : ''}</span>
+                  </div>
+                  <div class="dispatch-cargo-metric">
+                    <span class="dispatch-metric-label">Total Units</span>
+                    <span class="dispatch-metric-val font-bold text-primary">${it.total_units_dispatched} units</span>
+                  </div>
+                </div>
+              </div>
+            `;}).join('')}
+          </div>
         </div>
 
-        <div class="form-group" style="margin-bottom:12px;">
+        <div class="form-group" style="margin-bottom:12px; margin-top:14px;">
           <label class="form-label">Verified By (Godown Operator / Supervisor) <span class="required">*</span></label>
           <input class="form-input" id="verify-by-name" value="Godown Operator" placeholder="Operator name…">
         </div>
@@ -1380,46 +1420,86 @@
 
       const body = document.getElementById('approve-dispatch-body');
       body.innerHTML = `
-        <div style="background:var(--bg); padding:12px; border-radius:8px; border:1px solid var(--border); margin-bottom:14px; font-size:13px;">
-          <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
-            <span><strong>Dispatch Slip:</strong> ${safeEscape(d.dispatch_no)}</span>
-            <span><strong>Verified By:</strong> ${safeEscape(d.verified_by || 'Godown Operator')}</span>
+        <div class="dispatch-meta-card">
+          <div class="dispatch-meta-row">
+            <div class="dispatch-meta-item">
+              <span class="dispatch-meta-label">Dispatch Slip:</span>
+              <span class="dispatch-meta-val">${safeEscape(d.dispatch_no)}</span>
+            </div>
+            <div class="dispatch-meta-item">
+              <span class="dispatch-meta-label">Verified By:</span>
+              <span class="dispatch-meta-val">${safeEscape(d.verified_by || 'Godown Operator')}</span>
+            </div>
           </div>
-          <div style="display:flex; justify-content:space-between;">
-            <span><strong>Client:</strong> ${safeEscape(d.client_name)}</span>
-            <span><strong>Total Volume:</strong> ${d.total_units_dispatched} units (${d.total_boxes_dispatched || 0} Boxes)</span>
+          <div class="dispatch-meta-row">
+            <div class="dispatch-meta-item dispatch-meta-full">
+              <span class="dispatch-meta-label">Client:</span>
+              <span class="dispatch-meta-val">${safeEscape(d.client_name)}</span>
+            </div>
+          </div>
+          <div class="dispatch-meta-row">
+            <div class="dispatch-meta-item dispatch-meta-full">
+              <span class="dispatch-meta-label">Total Volume:</span>
+              <span class="dispatch-meta-val font-bold text-primary">${d.total_units_dispatched} units (${d.total_boxes_dispatched || 0} Boxes)</span>
+            </div>
           </div>
         </div>
 
-        <div style="margin-bottom:14px;">
-          <h5 style="margin:0 0 8px; font-size:13px; font-weight:700;">Verified Cargo & Packaging</h5>
-          <div style="overflow-x:auto;">
-            <table class="line-items-table" style="width:100%; font-size:12px; border-collapse:collapse;">
+        <div class="dispatch-cargo-section">
+          <h5 class="dispatch-cargo-title">Verified Cargo & Packaging</h5>
+          
+          <!-- Desktop / Laptop Table (> 768px) -->
+          <div class="dispatch-cargo-table-wrap">
+            <table class="dispatch-cargo-table">
               <thead>
-                <tr style="background:#f1f5f9; border-bottom:2px solid var(--border, #cbd5e1);">
-                  <th style="padding:6px 8px; text-align:left;">Product</th>
-                  <th style="padding:6px 8px; text-align:center;">Packing Size</th>
-                  <th style="padding:6px 8px; text-align:center;">Boxes</th>
-                  <th style="padding:6px 8px; text-align:right;">Quantity</th>
+                <tr>
+                  <th style="width:42%; text-align:left;">Product</th>
+                  <th style="width:24%; text-align:center;">Packing Size</th>
+                  <th style="width:18%; text-align:center;">Boxes</th>
+                  <th style="width:16%; text-align:right;">Quantity</th>
                 </tr>
               </thead>
               <tbody>
                 ${items.map(it => {
                   const packSize = it.packaging_size || it.packing_size || '—';
                   return `
-                  <tr style="border-bottom:1px solid #e2e8f0;">
-                    <td style="padding:6px 8px; font-weight:600;">${safeEscape(it.product_name)}</td>
-                    <td style="padding:6px 8px; text-align:center;"><span class="badge badge-neutral" style="font-weight:700; font-size:11px;">${safeEscape(packSize)}</span></td>
-                    <td style="padding:6px 8px; text-align:center;">${it.boxes_dispatched || 0} Bx</td>
-                    <td style="padding:6px 8px; text-align:right; font-weight:700; color:var(--primary, #0C3925);">${it.total_units_dispatched} units</td>
+                  <tr>
+                    <td class="col-product">${safeEscape(it.product_name)}</td>
+                    <td class="col-pack text-center"><span class="badge badge-neutral pack-badge">${safeEscape(packSize)}</span></td>
+                    <td class="col-boxes text-center font-bold">${it.boxes_dispatched || 0} Bx</td>
+                    <td class="col-units text-right font-bold text-primary">${it.total_units_dispatched} units</td>
                   </tr>
                 `;}).join('')}
               </tbody>
             </table>
           </div>
+
+          <!-- Mobile Responsive Cards (<= 768px) -->
+          <div class="dispatch-cargo-cards-mobile">
+            ${items.map(it => {
+              const packSize = it.packaging_size || it.packing_size || '—';
+              return `
+              <div class="dispatch-cargo-card">
+                <div class="dispatch-cargo-card-header">
+                  <div class="dispatch-cargo-pname">${safeEscape(it.product_name)}</div>
+                  <span class="badge badge-neutral pack-badge">${safeEscape(packSize)}</span>
+                </div>
+                <div class="dispatch-cargo-card-grid">
+                  <div class="dispatch-cargo-metric">
+                    <span class="dispatch-metric-label">Boxes Dispatched</span>
+                    <span class="dispatch-metric-val font-bold">${it.boxes_dispatched || 0} Bx</span>
+                  </div>
+                  <div class="dispatch-cargo-metric">
+                    <span class="dispatch-metric-label">Verified Quantity</span>
+                    <span class="dispatch-metric-val font-bold text-primary">${it.total_units_dispatched} units</span>
+                  </div>
+                </div>
+              </div>
+            `;}).join('')}
+          </div>
         </div>
 
-        <p style="font-size:13px; color:var(--text-muted); margin-bottom:14px;">
+        <p style="font-size:12.5px; color:var(--text-muted); margin-bottom:14px; margin-top:12px; line-height:1.45;">
           Authorizing this commercial dispatch confirms customer credit and authorizes the logistics gate pass.
         </p>
 
@@ -1565,9 +1645,17 @@
           </p>
         </div>
 
-        <div style="display:flex; justify-content:space-between; margin-bottom:12px; font-size:13px;">
-          <span><strong>Dispatch Slip:</strong> ${d.dispatch_no}</span>
-          <span><strong>Client:</strong> ${d.client_name}</span>
+        <div class="dispatch-meta-card" style="margin-bottom:14px;">
+          <div class="dispatch-meta-row">
+            <div class="dispatch-meta-item">
+              <span class="dispatch-meta-label">Dispatch Slip:</span>
+              <span class="dispatch-meta-val font-bold" style="white-space:nowrap;">${safeEscape(d.dispatch_no)}</span>
+            </div>
+            <div class="dispatch-meta-item" style="flex:1 1 auto; min-width:0;">
+              <span class="dispatch-meta-label">Client:</span>
+              <span class="dispatch-meta-val font-bold">${safeEscape(d.client_name)}</span>
+            </div>
+          </div>
         </div>
 
         <div class="form-grid product-form-grid" style="gap:10px; margin-bottom:14px;">

@@ -2678,7 +2678,7 @@
                 <div style="font-size:20px; font-weight:800; color:#0C3925 !important; letter-spacing:-0.4px;">Afield Crop Care</div>
                 <div style="font-size:11px; color:#000; margin-top:2px; line-height:1.5;">
                   <span>SURVEY NO. 255, PLOT NO. 14, NEAR BALKRISHNA STEEL FORGING, SHITALA MATA TEMPLE ROAD, SHAPAR (VERAVAL) 360024 DISTRICT - RAJKOT, GUJARAT, INDIA.</span><br />
-                  <span>9664675227</span><span> &nbsp;|&nbsp; </span><span>afieldcropcare@gmail.com</span><br />
+                  <span>78787 77727</span><span> &nbsp;|&nbsp; </span><span>afieldcropcare@gmail.com</span><br />
                   <span>GSTIN: <strong>24AERFS1718Q1ZB</strong></span>
                 </div>
               </div>
@@ -2709,7 +2709,7 @@
                 <div style="display:grid; grid-template-columns:140px 1fr; gap:2px 16px; font-size:11.5px; line-line:1.4; margin-top:4px;">
                   <div><span style="color:#475569;">State:</span> <strong style="color:#0f172a; font-weight:600;">Gujarat</strong></div>
                   <div><span style="color:#475569;">Pincode:</span> <strong style="color:#0f172a; font-weight:600;">360024</strong></div>
-                  <div><span style="color:#475569;">Phone:</span> <strong style="color:#0f172a; font-weight:600;">96646 75227</strong></div>
+                  <div><span style="color:#475569;">Phone:</span> <strong style="color:#0f172a; font-weight:600;">78787 77727</strong></div>
                   <div><span style="color:#475569;">GSTIN:</span> <strong style="color:#0f172a; font-weight:600;">24AERFS1718Q1ZB</strong></div>
                 </div>
               </div>

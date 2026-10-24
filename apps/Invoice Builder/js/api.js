@@ -797,8 +797,8 @@ async function apiGetInvoice(uniqueId) {
               business: {
                 company: 'Afield Crop Care',
                 address: 'Sr. No. 67 and 68, Plot No. 33, Siddhi Vinayak Industrial Zone, At: Virva, Tal: Lodhika, Dist: Rajkot, Gujarat.',
-                phone: '9664675227',
-                email: 'skagro3105@gmail.com',
+                phone: '7878777727',
+                email: 'afieldcropcare@gmail.com',
                 gstin: '24AERFS1718Q1ZB',
                 signatory: 'Authorized Signatory'
               },
@@ -964,8 +964,8 @@ function _buildInvoiceDocFromRemote(invRow, dispatchRow, items = [], clientRow =
       address: 'Sr. No. 67 and 68, Plot No. 33, Siddhi Vinayak Industrial Zone, At: Virva, Tal: Lodhika, Dist: Rajkot',
       state: 'Gujarat',
       pincode: '360024',
-      phone: '9664675227',
-      email: 'skagro3105@gmail.com',
+      phone: '7878777727',
+      email: 'afieldcropcare@gmail.com',
       gstin: '24AERFS1718Q1ZB',
       signatory: 'Authorized Signatory'
     },
@@ -973,7 +973,7 @@ function _buildInvoiceDocFromRemote(invRow, dispatchRow, items = [], clientRow =
       name: 'PUNJAB NATIONAL BANK',
       account: '9178002100002019',
       ifsc: 'PUNB0917800',
-      upi: '9664675227@upi'
+      upi: '9427213943m@pnb'
     },
     customer: {
       name: clientName,

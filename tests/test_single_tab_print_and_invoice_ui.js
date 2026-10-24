@@ -398,8 +398,8 @@ const mockInvoicePayload = {
   business: {
     company: 'Anjani Agri Care',
     address: 'Sr. No. 67 and 68, Plot No. 33, Siddhi Vinayak Industrial Zone, At: Virva, Tal: Lodhika, Dist: Rajkot, Gujarat.',
-    phone: '9664675227',
-    email: 'skagro3105@gmail.com',
+    phone: '7878777727',
+    email: 'afieldcropcare@gmail.com',
     gstin: '24AERFS1718Q1ZB'
   },
   customer: {

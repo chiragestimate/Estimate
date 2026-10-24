@@ -192,6 +192,12 @@
     filter(query, companyId = null) {
       const cId = companyId || this.getCompanyId();
       if (this._hasMultiCompanySchema) {
+        // For the primary manufacturing parent entity (AAC), support active ID (623), legacy ID (1), and null
+        const activeComp = this.getActiveCompany();
+        const isPrimaryAAC = (activeComp && (activeComp.code === 'AAC' || activeComp.id === 623 || activeComp.id === 1 || activeComp.is_manufacturing));
+        if (isPrimaryAAC && (cId === 623 || cId === 1)) {
+          return query.or(`company_id.eq.${cId},company_id.eq.1,company_id.is.null`);
+        }
         return query.eq('company_id', cId);
       }
       return query;

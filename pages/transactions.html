@@ -30,31 +30,6 @@
   <link rel="manifest" href="../manifest.json">
   <meta name="theme-color" content="#0C3925">
   <style>
-    .tabs-wrap {
-      display: flex;
-      gap: 8px;
-      border-bottom: 2px solid var(--border);
-      padding-bottom: 8px;
-      margin-bottom: 20px;
-    }
-    .btn-tab {
-      background: none;
-      border: none;
-      font-size: 14px;
-      font-weight: 600;
-      color: var(--text-muted);
-      padding: 8px 16px;
-      cursor: pointer;
-      border-radius: 6px;
-      transition: all 0.2s ease;
-    }
-    .btn-tab.active {
-      color: var(--accent);
-      background: rgba(16, 185, 129, 0.12);
-    }
-    .btn-tab:hover:not(.active) {
-      background: rgba(255,255,255,0.03);
-    }
     .accounts-header-wrap {
       display: flex;
       justify-content: space-between;
@@ -128,6 +103,7 @@
     }
   </style>
   <link rel="stylesheet" href="../assets/css/style.css?v=1792044203582">
+  <link rel="stylesheet" href="../assets/css/tabs.css?v=1792044203582">
   <link rel="stylesheet" href="../assets/css/forms.css?v=1792044203582">
   <link rel="stylesheet" href="../assets/css/tables.css?v=1792044203582">
   <link rel="stylesheet" href="../assets/css/responsive.css?v=1792044203582">
@@ -148,16 +124,16 @@
           <h2>Cash & Bank Ledger</h2>
           <p>Payment receipts and disbursements ledger across bank accounts</p>
         </div>
-        <div class="page-header-right">
+        <div class="page-header-right" id="transactions-header-actions">
           <button class="btn btn-primary" onclick="openAdd()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Record Payment</button>
         </div>
       </div>
       
       <!-- Tabs header -->
-      <div class="tabs-wrap">
-        <button class="btn-tab active" id="tab-ledger" onclick="switchTab('ledger')">Transactions Ledger</button>
-        <button class="btn-tab" id="tab-general-ledger" onclick="switchTab('general-ledger')">General Ledger (Double-Entry)</button>
-        <button class="btn-tab" id="tab-accounts" onclick="switchTab('accounts')">Bank Accounts</button>
+      <div class="tabs transactions-tabs" id="transactions-tabs">
+        <button class="tab-btn btn-tab active" id="tab-ledger" onclick="switchTab('ledger')">Transactions Ledger</button>
+        <button class="tab-btn btn-tab" id="tab-accounts" onclick="switchTab('accounts')">Bank Accounts</button>
+        <button class="tab-btn btn-tab" id="tab-general-ledger" onclick="switchTab('general-ledger')">General Ledger (Double-Entry)</button>
       </div>
 
       <div id="section-ledger">
@@ -190,7 +166,7 @@
 
         <div class="table-wrap data-table-wrap-mobile">
           <div class="table-toolbar">
-            <div class="table-toolbar-left" style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <div class="table-toolbar-left" id="txn-toolbar-left">
               <div class="table-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input id="search-input" placeholder="Search transactions..."></div>
               <div class="table-filter"><select id="type-filter" class="form-select"><option value="">All Types</option><option>Receipt</option><option>Payment</option></select></div>
               <div class="table-filter"><select id="account-filter" class="form-select"><option value="">All Accounts</option></select></div>
@@ -209,12 +185,12 @@
       <div id="section-general-ledger" style="display: none;">
         <div class="kpi-grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); margin-bottom: 20px;">
           <div class="stat-card">
-            <div class="stat-label">Total Debits (₹)</div>
+            <div class="stat-label">Total Debits</div>
             <div class="stat-value text-primary" id="gl-total-debits">₹0.00</div>
             <div class="stat-meta">Authoritative asset & expense debits</div>
           </div>
           <div class="stat-card">
-            <div class="stat-label">Total Credits (₹)</div>
+            <div class="stat-label">Total Credits</div>
             <div class="stat-value text-success" id="gl-total-credits">₹0.00</div>
             <div class="stat-meta">Authoritative liability & revenue credits</div>
           </div>
@@ -227,7 +203,7 @@
 
         <div class="table-wrap data-table-wrap-mobile">
           <div class="table-toolbar">
-            <div class="table-toolbar-left" style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <div class="table-toolbar-left" id="gl-toolbar-left">
               <div class="table-search">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                 <input id="gl-search-input" placeholder="Search general ledger..." oninput="applyGlFilters()">

@@ -40,8 +40,14 @@ async function loadManufacturingData() {
     ]);
 
     cachedProducts = prodRes.data || [];
-    cachedInventory = invRes.data || [];
+    cachedInventory = (invRes.data || []).map(i => ({
+      ...i,
+      name: (typeof UTILS !== 'undefined' && UTILS.cleanItemName) ? UTILS.cleanItemName(i.name) : i.name,
+      unit: (typeof UTILS !== 'undefined' && UTILS.cleanUnitLabel) ? UTILS.cleanUnitLabel(i.unit || 'Nos') : (i.unit || 'Nos'),
+      rawName: i.name
+    }));
     allBatches = batchesRes.data || [];
+    window.allBatches = allBatches;
 
     updateKpis();
     renderBatchesTable(allBatches);
@@ -444,7 +450,7 @@ function renderIngredientsTable() {
     const rowOptions = itemOptionsHtml.replace(`value="${line.inventory_id}"`, `value="${line.inventory_id}" selected`);
 
     return `
-      <tr class="production-item-row" style="${isIncrease ? 'background:rgba(16,185,129,0.03);' : 'background:#ffffff;'} border-bottom:1px solid var(--border);">
+      <tr class="production-item-row ${isIncrease ? 'is-increase' : 'is-decrease'}" style="${isIncrease ? 'background:rgba(16,185,129,0.03);' : 'background:#ffffff;'} border-bottom:1px solid var(--border);">
         <td class="cell-prod-item" style="width:34%; padding:8px 8px; vertical-align:middle;">
           <span class="prod-mobile-label">Inventory Item</span>
           <select class="form-select" onchange="updateIngredient(${idx}, 'inventory_id', this.value)" style="font-size:13px; font-weight:500; width:100%; height:38px; border-radius:6px; box-sizing:border-box;">
@@ -452,7 +458,7 @@ function renderIngredientsTable() {
           </select>
         </td>
         <td class="cell-prod-stock" style="width:13%; padding:8px 4px; text-align:center; vertical-align:middle;">
-          <span class="prod-mobile-label">Available Stock</span>
+          <span class="prod-mobile-label">Available Stock:</span>
           ${stockBadge}
         </td>
         <td class="cell-prod-action" style="width:21%; padding:8px 8px; vertical-align:middle;">
@@ -472,9 +478,9 @@ function renderIngredientsTable() {
         </td>
         <td class="cell-prod-remove" style="width:6%; padding:8px 4px; text-align:center; vertical-align:middle;">
           <div class="prod-mobile-actions">
-            <button type="button" class="icon-btn delete-btn" onclick="removeIngredientRow(${idx})" title="Remove item" style="display:inline-flex; align-items:center; justify-content:center; gap:6px; min-width:32px; height:32px; margin:0 auto; color:#dc2626; border-radius:6px; background:rgba(239,68,68,0.08); border:1px solid rgba(239,68,68,0.2); cursor:pointer; transition:all 0.15s ease; padding:0 8px;">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:15px;height:15px;flex-shrink:0;"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-              <span class="prod-mobile-label" style="margin:0; color:#dc2626; font-size:12px; font-weight:700;">Remove</span>
+            <button type="button" class="icon-btn delete-btn" onclick="removeIngredientRow(${idx})" title="Remove item" style="display:inline-flex; align-items:center; justify-content:center; gap:5px; height:28px; color:#dc2626; border-radius:6px; background:rgba(239,68,68,0.08); border:1px solid rgba(239,68,68,0.25); cursor:pointer; transition:all 0.15s ease; padding:0 8px;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px;flex-shrink:0;"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+              <span class="prod-mobile-label" style="margin:0; color:#dc2626; font-size:11.5px; font-weight:700;">Remove</span>
             </button>
           </div>
         </td>
@@ -756,7 +762,10 @@ async function deleteProductionBatch(batchId) {
 }
 
 function viewProductionDetails(batchId) {
-  const batch = allBatches.find(b => String(b.id) === String(batchId));
+  const batchList = (typeof allBatches !== 'undefined' && allBatches && allBatches.length > 0)
+    ? allBatches
+    : (window.allBatches || []);
+  const batch = batchList.find(b => String(b.id) === String(batchId));
   if (!batch) {
     APP.showToast('Batch record not found', 'error');
     return;
@@ -795,42 +804,79 @@ function viewProductionDetails(batchId) {
         return `
           <tr>
             <td>${idx + 1}</td>
-            <td><strong>${escapeHtml(item.item_name)}</strong></td>
+            <td><strong>${escapeHtml((typeof UTILS !== 'undefined' && UTILS.cleanItemName) ? UTILS.cleanItemName(item.item_name) : item.item_name)}</strong></td>
             <td><span class="badge badge-outline">${escapeHtml(item.category || 'Inventory')}</span></td>
             <td>${badge}</td>
             <td><strong>${item.entered_quantity}</strong> ${escapeHtml(item.entered_unit)}</td>
-            <td style="color:var(--text-muted); font-size:12px;">${item.converted_quantity !== item.entered_quantity ? `${item.converted_quantity} ${escapeHtml(item.canonical_unit)}` : '-'}</td>
+            <td style="color:var(--text-muted); font-size:12px;">${item.converted_quantity !== item.entered_quantity && item.canonical_unit ? `${item.converted_quantity} ${escapeHtml(item.canonical_unit)}` : '-'}</td>
           </tr>
         `;
       }).join('')
     : '<tr><td colspan="6" class="text-center text-muted" style="padding:20px;">No itemized inventory transactions recorded for this batch.</td></tr>';
 
+  const cardsHtml = (lineItems.length > 0)
+    ? lineItems.map((item, idx) => {
+        const isInc = item.action === 'INCREASE';
+        const opBadge = isInc
+          ? '<span class="badge badge-success" style="font-weight:700; font-size:11px; padding:3px 8px; border-radius:4px; display:inline-flex; align-items:center; gap:4px;">🔺 INCREASE (Output Added)</span>'
+          : '<span class="badge badge-danger" style="font-weight:700; font-size:11px; padding:3px 8px; border-radius:4px; display:inline-flex; align-items:center; gap:4px;">🔻 DECREASE (Consumed)</span>';
+        const cleanName = (typeof UTILS !== 'undefined' && UTILS.cleanItemName) ? UTILS.cleanItemName(item.item_name) : item.item_name;
+        const baseEq = (item.converted_quantity !== item.entered_quantity && item.canonical_unit)
+          ? `<span style="font-size:11px; color:var(--text-muted); font-weight:normal; display:block; margin-top:2px;">(Base: ${item.converted_quantity} ${escapeHtml(item.canonical_unit)})</span>`
+          : '';
+
+        return `
+          <div class="batch-item-card ${isInc ? 'is-increase' : 'is-decrease'}">
+            <div class="batch-item-card-header">
+              <div class="batch-item-title-wrap">
+                <span class="batch-item-index">#${idx + 1}</span>
+                <span class="batch-item-name">${escapeHtml(cleanName)}</span>
+              </div>
+              <span class="badge badge-outline batch-item-cat">${escapeHtml(item.category || 'Inventory')}</span>
+            </div>
+            <div class="batch-item-card-body">
+              <div class="batch-item-metric-col">
+                <span class="batch-item-label">Stock Operation</span>
+                <div class="batch-item-val">${opBadge}</div>
+              </div>
+              <div class="batch-item-metric-col text-right">
+                <span class="batch-item-label">Quantity</span>
+                <div class="batch-item-val font-bold" style="font-size:13.5px; color:var(--text-primary);">
+                  ${item.entered_quantity} <span style="font-size:12px; font-weight:600; color:var(--text-secondary);">${escapeHtml(item.entered_unit)}</span>${baseEq}
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('')
+    : '<div class="empty-state" style="padding:20px; text-align:center; color:var(--text-muted); font-size:13px;">No itemized inventory transactions recorded for this batch.</div>';
+
   modalBody.innerHTML = `
-    <div style="background:var(--surface,#1e293b); padding:16px; border-radius:10px; border:1px solid var(--border,#334155); margin-bottom:20px;">
-      <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:15px;">
-        <div>
-          <span style="font-size:11px; text-transform:uppercase; color:var(--text-muted);">Batch Reference</span>
-          <div style="font-size:16px; font-weight:700; color:var(--text-primary);">${escapeHtml(formatBatchNo(batch.batch_no))}</div>
+    <div class="batch-details-summary-card">
+      <div class="batch-details-summary-grid">
+        <div class="batch-details-metric">
+          <span class="batch-details-metric-label">Batch Reference</span>
+          <div class="batch-details-metric-val font-bold">${escapeHtml(formatBatchNo(batch.batch_no))}</div>
         </div>
-        <div>
-          <span style="font-size:11px; text-transform:uppercase; color:var(--text-muted);">Manufactured Product</span>
-          <div style="font-size:16px; font-weight:700; color:#0C3925;">${escapeHtml(batch.product_name)}</div>
+        <div class="batch-details-metric">
+          <span class="batch-details-metric-label">Manufactured Product</span>
+          <div class="batch-details-metric-val font-bold" style="color:#0C3925;">${escapeHtml(batch.product_name)}</div>
         </div>
-        <div>
-          <span style="font-size:11px; text-transform:uppercase; color:var(--text-muted);">Production Date</span>
-          <div style="font-size:15px; font-weight:600;">${batch.date || 'N/A'}</div>
+        <div class="batch-details-metric">
+          <span class="batch-details-metric-label">Production Date</span>
+          <div class="batch-details-metric-val font-semibold">${batch.date || 'N/A'}</div>
         </div>
-        <div>
-          <span style="font-size:11px; text-transform:uppercase; color:var(--text-muted);">Quantity Produced</span>
-          <div style="font-size:16px; font-weight:700; color:#0e7490;">${parseFloat(batch.quantity_produced || batch.actual_output_qty || 0).toLocaleString()} ${escapeHtml(outputUnit)}</div>
+        <div class="batch-details-metric">
+          <span class="batch-details-metric-label">Quantity Produced</span>
+          <div class="batch-details-metric-val font-bold" style="color:#0e7490;">${parseFloat(batch.quantity_produced || batch.actual_output_qty || 0).toLocaleString()} ${escapeHtml(outputUnit)}</div>
         </div>
       </div>
-      ${userNotes ? `<div style="margin-top:12px; font-size:12.5px; color:var(--text-muted); border-top:1px dashed var(--border,#334155); padding-top:8px;"><strong>Remarks:</strong> ${escapeHtml(userNotes)}</div>` : ''}
+      ${userNotes ? `<div class="batch-details-remarks"><strong>Remarks:</strong> ${escapeHtml(userNotes)}</div>` : ''}
     </div>
 
     <h4 style="margin:0 0 10px 0; font-size:14px; font-weight:700;">Recorded Inventory Changes</h4>
-    <div class="table-wrap">
-      <table class="data-table" style="font-size:13px;">
+    <div class="table-wrap batch-inventory-table-wrap">
+      <table class="data-table" style="font-size:13px; width:100%;">
         <thead>
           <tr>
             <th style="width:5%;">#</th>
@@ -845,6 +891,10 @@ function viewProductionDetails(batchId) {
           ${rowsHtml}
         </tbody>
       </table>
+    </div>
+
+    <div class="batch-inventory-cards-list">
+      ${cardsHtml}
     </div>
   `;
 

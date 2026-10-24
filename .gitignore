@@ -1,4 +1,4 @@
-﻿# Dependencies
+# Dependencies
 node_modules/
 
 # Environment files
@@ -33,3 +33,9 @@ scratch/generated/
 # Sub-app node_modules
 apps/Formulations/node_modules/
 apps/Invoice Builder/node_modules/
+
+# Test screenshots and scratch scripts
+test_*.png
+test_label_parser.js
+latest_prompt.txt
+

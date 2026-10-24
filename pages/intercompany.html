@@ -23,6 +23,7 @@
   <link rel="manifest" href="../manifest.json">
   <meta name="theme-color" content="#0C3925">
   <link rel="stylesheet" href="../assets/css/style.css?v=1792044203582">
+  <link rel="stylesheet" href="../assets/css/tabs.css?v=1792044203582">
   <link rel="stylesheet" href="../assets/css/forms.css?v=1792044203582">
   <link rel="stylesheet" href="../assets/css/tables.css?v=1792044203582">
   <link rel="stylesheet" href="../assets/css/responsive.css?v=1792044203582">
@@ -39,31 +40,31 @@
     <div class="page-body">
       <div class="page-header">
         <div class="page-header-left">
-          <h2>Intercompany Supply & Reconciliation</h2>
-          <p>Multi-company supply chains, consignment stocks, in-transit movements, and enterprise reconciliation</p>
+          <h2>Intercompany Stock Transfers & Supply Arrangements</h2>
+          <p>Multi-company physical stock movements, consignment inventory, and enterprise reconciliation</p>
         </div>
-        <div class="page-header-right" style="display:flex;gap:8px;">
+        <div class="page-header-right" id="intercompany-header-actions" style="display:flex;gap:8px;">
           <button class="btn btn-primary" onclick="openNewTransfer()">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            New Transfer / Supply
+            New Stock Transfer
           </button>
           <button class="btn btn-secondary" onclick="openAddRelationship()">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-            Trading Matrix
+            Company Trading Matrix
           </button>
         </div>
       </div>
 
       <!-- Navigation Tabs -->
-      <div class="tabs">
-        <button class="tab-btn active" data-tab="Transfers">Supply Chain Transfers</button>
-        <button class="tab-btn" data-tab="Reconciliation">Reconciliation Dashboard</button>
-        <button class="tab-btn" data-tab="Relationships">Trading Matrix</button>
+      <div class="tabs intercompany-tabs" id="intercompany-tabs">
+        <button class="tab-btn active" data-tab="Transfers">Stock Transfers</button>
+        <button class="tab-btn" data-tab="Reconciliation">Stock Reconciliation</button>
+        <button class="tab-btn" data-tab="Relationships">Company Trading Matrix</button>
       </div>
 
-      <!-- TAB 1: SUPPLY CHAIN TRANSFERS -->
+      <!-- TAB 1: STOCK TRANSFERS -->
       <div id="transfers-view" class="tab-content-pane">
-        <div class="table-wrap data-table-wrap-mobile">
+        <div class="table-wrap data-table-wrap-mobile" id="transfers-table-wrap">
           <div class="table-toolbar">
             <div class="table-toolbar-left">
               <div class="table-search">
@@ -84,19 +85,17 @@
           <table class="data-table" id="transfers-table">
             <thead>
               <tr>
-                <th>Transfer Slip No</th>
-                <th>Supply Type</th>
-                <th>From (Source)</th>
-                <th>To (Recipient)</th>
-                <th>Boxes / Loose (Units)</th>
-                <th>Value (₹)</th>
-                <th>Logistics</th>
-                <th>Status</th>
-                <th>Billing Ref</th>
-                <th>Actions</th>
+                <th class="col-transfer-no" style="width:15%;">Transfer Reference</th>
+                <th class="col-arrangement" style="width:12%;">Supply Type</th>
+                <th class="col-from" style="width:18%;">Supplying Entity (Origin)</th>
+                <th class="col-to" style="width:18%;">Receiving Entity (Destination)</th>
+                <th class="col-items" style="width:14%;">Quantity & Packaging</th>
+                <th class="col-amount" style="width:10%;">Transfer Value (₹)</th>
+                <th class="col-status" style="width:7%;">Status</th>
+                <th class="col-actions" style="width:6%;">Actions</th>
               </tr>
             </thead>
-            <tbody><tr><td colspan="10"><div class="empty-state"><div class="spinner" style="margin:0 auto"></div></div></td></tr></tbody>
+            <tbody><tr><td colspan="8"><div class="empty-state"><div class="spinner" style="margin:0 auto"></div></div></td></tr></tbody>
           </table>
           <div class="pagination"></div>
         </div>
@@ -129,7 +128,7 @@
         </div>
 
         <!-- Recipient Breakdown Table -->
-        <div class="table-wrap data-table-wrap-mobile" style="margin-bottom:20px;">
+        <div class="table-wrap data-table-wrap-mobile" style="margin-bottom:20px;" id="recon-recipients-table-wrap">
           <div class="recon-section-header" style="padding:14px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;">
             <h4 style="margin:0;font-size:15px;font-weight:700;">Recipient Company Supply Matrix (Company A, B, C)</h4>
             <span style="font-size:12px;color:var(--text-muted);">Live Reconciliation of Dispatched vs Received Stock</span>
@@ -137,13 +136,13 @@
           <table class="data-table" id="recon-recipients-table">
             <thead>
               <tr>
-                <th>Recipient Company</th>
-                <th>Total Supplied</th>
-                <th>Total Received</th>
-                <th>Currently In Transit</th>
-                <th>Consignment Stock (Owned by Anjani)</th>
-                <th>Damaged / Shortage</th>
-                <th>Reconciliation Status</th>
+                <th style="width:20%;">Recipient Company</th>
+                <th style="width:12%;">Total Supplied</th>
+                <th style="width:12%;">Total Received</th>
+                <th style="width:13%;">Currently In Transit</th>
+                <th style="width:15%;">Consignment Stock (Owned by Anjani)</th>
+                <th style="width:12%;">Damaged / Shortage</th>
+                <th style="width:16%;">Reconciliation Status</th>
               </tr>
             </thead>
             <tbody><tr><td colspan="7"><div class="empty-state"><div class="spinner" style="margin:0 auto"></div></div></td></tr></tbody>
@@ -171,25 +170,15 @@
 
       <!-- TAB 3: TRADING MATRIX & LINKS -->
       <div id="relationships-view" class="tab-content-pane" style="display:none;">
-        <div style="background:rgba(12,57,37,0.06);border:1px solid rgba(12,57,37,0.18);border-radius:12px;padding:16px;margin-bottom:20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
-          <svg viewBox="0 0 24 24" fill="none" stroke="#0C3925" stroke-width="2" style="width:28px;height:28px;flex-shrink:0;"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
-          <div style="min-width:0;flex:1;">
-            <strong style="color:#0C3925;font-size:14px;display:block;">Agrochemical Supply Chain Trading Matrix</strong>
-            <span style="font-size:12.5px;color:var(--text-muted);word-break:break-word;">
-              Configures official relationships between manufacturing companies (e.g. Anjani Agri Care) and recipient companies (e.g. Company A, Company B, and Company C) with custom transfer pricing tiers.
-            </span>
-          </div>
-        </div>
-
-        <div class="table-wrap data-table-wrap-mobile">
-          <div class="table-toolbar">
-            <div class="table-toolbar-left">
-              <div class="table-search">
+        <div class="table-wrap data-table-wrap-mobile" id="relationships-table-wrap">
+          <div class="table-toolbar" id="relationships-table-toolbar">
+            <div class="table-toolbar-left" id="relationships-toolbar-left">
+              <div class="table-search" id="relationships-search-wrap">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                 <input id="search-input" placeholder="Search relationships…">
               </div>
             </div>
-            <div class="table-toolbar-right"><span class="text-sm text-muted" id="total-info">Loading...</span></div>
+            <div class="table-toolbar-right" id="relationships-toolbar-right"><span class="text-sm text-muted" id="total-info">Loading...</span></div>
           </div>
           <table class="data-table" id="relationships-table">
             <thead>
@@ -215,55 +204,118 @@
 <!-- MODALS -->
 <!-- ======================================================================== -->
 
-<!-- Modal 1: New Intercompany Transfer / Supply -->
+<!-- Modal 1: New Intercompany Stock Transfer -->
 <div class="modal-overlay" id="transfer-modal">
   <div class="modal modal-xl">
     <div class="modal-header">
-      <span class="modal-title" id="transfer-modal-title">New Intercompany Stock Supply</span>
+      <span class="modal-title" id="transfer-modal-title">New Stock Transfer / Supply</span>
       <button class="modal-close" onclick="APP.closeModal('transfer-modal')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     </div>
     <div class="modal-body">
       <form id="transfer-form" onsubmit="return false">
-        <section class="product-form-card">
-          <div class="product-form-card-head">
-            <h4>Transfer Metadata & Commercial Arrangement</h4>
-            <p>Define source & recipient entities, supply arrangement, and pricing terms.</p>
+        
+        <!-- WORKFLOW CLARIFICATION BANNER -->
+        <div style="background:rgba(14,165,233,0.08);border:1px solid rgba(14,165,233,0.3);border-radius:10px;padding:12px 14px;margin-bottom:16px;display:flex;align-items:flex-start;gap:12px;">
+          <div style="width:28px;height:28px;border-radius:50%;background:#e0f2fe;color:#0284c7;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+          </div>
+          <div style="font-size:12px;color:#0f172a;line-height:1.5;">
+            <strong style="color:#0369a1;font-size:12.5px;display:block;margin-bottom:2px;">Quick Workflow Guide:</strong>
+            <span style="display:block;margin-bottom:2px;">• <strong>Dispatching an Order for a Co-Marketing Partner or Dealer?</strong> You do <em>not</em> need to enter it here! Go directly to <a href="orders.html" style="color:#0284c7;font-weight:700;text-decoration:underline;">Sales Orders → Prepare Dispatch</a>. You can choose whether it delivers directly to the customer or stocks into the partner godown—in 1 single step with zero duplicate entry!</span>
+            <span>• <strong>Moving unsold bulk stock between internal Warehouses?</strong> Use this form! You do not need to manage batch numbers; factory inventory is tracked and allocated automatically.</span>
+          </div>
+        </div>
+
+        <!-- STEP 1: WHO IS SUPPLYING AND RECEIVING? -->
+        <section class="product-form-card" style="margin-bottom:16px;">
+          <div class="product-form-card-head" style="border-bottom:1px solid var(--border);padding-bottom:8px;margin-bottom:12px;">
+            <h4 style="margin:0;font-size:14px;font-weight:700;color:var(--text);">Step 1: Supplying & Receiving Entities</h4>
+            <p style="margin:2px 0 0;font-size:12px;color:var(--text-muted);">Choose the company providing the stock and the company receiving it, then select their warehouses.</p>
           </div>
           <div class="form-grid product-form-grid">
             <div class="form-group">
-              <label class="form-label">Transfer Slip No</label>
+              <label class="form-label" title="A unique reference used to identify and track this stock transfer.">Transfer Reference Number <span style="font-size:11px;color:var(--text-muted);">(Auto-generated)</span></label>
               <input class="form-input" id="tr-slip-no" readonly style="background:var(--bg);font-weight:700;">
             </div>
             <div class="form-group">
-              <label class="form-label">Supply Arrangement <span class="required">*</span></label>
+              <label class="form-label" title="Select whether this is an outright sale, consignment stock, or branch transfer.">Supply Arrangement <span class="required">*</span></label>
               <select class="form-select" id="tr-supply-type" onchange="onSupplyTypeChange(this.value)">
-                <option value="STANDARD_SALE">Intercompany Commercial Sale (Outright Purchase)</option>
-                <option value="CONSIGNMENT">Consignment Supply (Anjani Retains Legal Ownership)</option>
-                <option value="BRANCH_TRANSFER">Internal Branch Transfer (Same Legal Entity)</option>
+                <option value="STANDARD_SALE">Commercial Sale (Outright Purchase between Sister Companies)</option>
+                <option value="CONSIGNMENT">Consignment Supply (Stock at Recipient, Legal Ownership Retained)</option>
+                <option value="BRANCH_TRANSFER">Internal Branch Transfer (Within Same Legal Entity)</option>
               </select>
             </div>
             <div class="form-group">
-              <label class="form-label">From Company (Supplier) <span class="required">*</span></label>
+              <label class="form-label" title="The company providing and dispatching the physical stock.">Supplying Company <span class="required">*</span></label>
               <select class="form-select" id="tr-from-company" onchange="onFromCompanyChange(this.value)" required></select>
             </div>
             <div class="form-group">
-              <label class="form-label">From Warehouse (Origin) <span class="required">*</span></label>
+              <label class="form-label" title="The warehouse from which the stock will be taken and deducted.">Source Warehouse — Where stock leaves <span class="required">*</span></label>
               <select class="form-select" id="tr-from-warehouse" onchange="onFromWarehouseChange(this.value)" required></select>
             </div>
             <div class="form-group">
-              <label class="form-label">To Company (Recipient) <span class="required">*</span></label>
+              <label class="form-label" title="The company receiving the physical stock.">Receiving Company <span class="required">*</span></label>
               <select class="form-select" id="tr-to-company" onchange="onToCompanyChange(this.value)" required></select>
             </div>
             <div class="form-group">
-              <label class="form-label">To Warehouse (Destination) <span class="required">*</span></label>
-              <select class="form-select" id="tr-to-warehouse" required></select>
+              <label class="form-label" title="The destination warehouse that will receive and credit the stock upon arrival.">Destination Warehouse — Where stock arrives <span class="required">*</span></label>
+              <select class="form-select" id="tr-to-warehouse" onchange="onToWarehouseChange(this.value)" required></select>
             </div>
+          </div>
+          <div id="tr-wh-error-msg" style="display:none;background:rgba(239,68,68,0.1);color:var(--danger,#ef4444);border:1px solid rgba(239,68,68,0.25);border-radius:6px;padding:8px 12px;font-size:12px;margin-top:10px;font-weight:600;"></div>
+        </section>
+
+        <!-- STEP 2: WHAT IS BEING TRANSFERRED? -->
+        <section class="product-form-card" style="margin-bottom:16px;">
+          <div class="product-form-card-head" style="border-bottom:1px solid var(--border);padding-bottom:8px;margin-bottom:12px;">
+            <h4 style="margin:0;font-size:14px;font-weight:700;color:var(--text);">Step 2: Products & Line Items</h4>
+            <p style="margin:2px 0 0;font-size:12px;color:var(--text-muted);">Select products, packaging sizes, and quantities to transfer. Available warehouse inventory is allocated automatically.</p>
+          </div>
+
+          <!-- AUTO-FILL FROM EXISTING SALES ORDER TOOLBAR -->
+          <div class="order-autofill-bar" style="background:#f0fdf4;border:1.5px solid #86efac;border-radius:8px;padding:12px 14px;margin-bottom:14px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+              <div style="display:flex;align-items:center;gap:10px;min-width:240px;flex:1;">
+                <span style="display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:50%;background:#dcfce7;color:#16a34a;flex-shrink:0;">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px;"><polyline points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                </span>
+                <div>
+                  <div style="display:flex;align-items:center;gap:6px;">
+                    <strong style="font-size:13px;color:#166534;">Auto-Fill from Sales Order</strong>
+                    <span class="badge" style="background:#bbf7d0;color:#14532d;font-size:10.5px;font-weight:700;padding:2px 6px;">1-Click Import</span>
+                  </div>
+                  <span style="font-size:11.5px;color:#4b5563;">Select an existing sales order to automatically load all products, packaging sizes, quantities, and rates without typing!</span>
+                </div>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                <select class="form-select" id="tr-import-order-select" onchange="onImportOrderSelected(this.value)" style="min-width:240px;max-width:340px;font-size:12.5px;font-weight:600;border-color:#86efac;background:#ffffff;">
+                  <option value="">-- Choose Sales Order to Auto-Fill --</option>
+                </select>
+                <button type="button" class="btn btn-sm btn-secondary" onclick="clearImportedOrderItems()" style="padding:6px 12px;font-size:12px;" title="Reset back to one empty product line">Reset Lines</button>
+              </div>
+            </div>
+            <div id="tr-order-import-status" style="display:none;margin-top:10px;padding:8px 12px;background:#ffffff;border-radius:6px;border:1px solid #bbf7d0;font-size:12px;color:#15803d;font-weight:600;"></div>
+          </div>
+
+          <div id="transfer-items-container" style="overflow-x:auto;">
+            <!-- Rendered dynamically -->
+          </div>
+          <button type="button" class="btn btn-secondary btn-sm" onclick="addTransferItemRow()" style="margin-top:10px;">+ Add Product Line</button>
+        </section>
+
+        <!-- STEP 3: COMMERCIAL TERMS & LOGISTICS -->
+        <section class="product-form-card" style="margin-bottom:16px;">
+          <div class="product-form-card-head" style="border-bottom:1px solid var(--border);padding-bottom:8px;margin-bottom:12px;">
+            <h4 style="margin:0;font-size:14px;font-weight:700;color:var(--text);">Step 3: Commercial Terms & Transport Details</h4>
+            <p style="margin:2px 0 0;font-size:12px;color:var(--text-muted);">Supply pricing terms, target dispatch date, and transport vehicle details.</p>
+          </div>
+          <div class="form-grid product-form-grid">
             <div class="form-group">
-              <label class="form-label">Pricing Terms</label>
-              <select class="form-select" id="tr-pricing-terms">
-                <option value="Transfer Price">Transfer Price</option>
-                <option value="Dealer Wholesale">Dealer Wholesale</option>
-                <option value="Cost Plus 5%">Cost Plus 5%</option>
+              <label class="form-label" title="Defines the price used for this supply arrangement.">Supply Pricing Terms</label>
+              <select class="form-select" id="tr-pricing-terms" onchange="updateTransferSummaryCard()">
+                <option value="Transfer Price">Transfer Price (Internal Standard)</option>
+                <option value="Dealer Wholesale">Dealer Wholesale (Discounted)</option>
+                <option value="Cost Plus 5%">Cost Plus 5% (Internal Transfer)</option>
                 <option value="Consignment Value">Consignment Valuation</option>
               </select>
             </div>
@@ -271,39 +323,17 @@
               <label class="form-label">Target Dispatch Date</label>
               <input class="form-input" id="tr-dispatch-date" type="date">
             </div>
-          </div>
-        </section>
-
-        <!-- Line Items Section -->
-        <section class="product-form-card">
-          <div class="product-form-card-head">
-            <h4>Physical Batch Allocation & Quantities</h4>
-            <p>Select QC-Approved batches from origin warehouse and specify units to supply.</p>
-          </div>
-          <div id="transfer-items-container" style="overflow-x:auto;">
-            <!-- Rendered dynamically -->
-          </div>
-          <button type="button" class="btn btn-secondary btn-sm" onclick="addTransferItemRow()" style="margin-top:10px;">+ Add Product Line</button>
-        </section>
-
-        <!-- Logistics Section -->
-        <section class="product-form-card">
-          <div class="product-form-card-head">
-            <h4>Logistics & Gate Details</h4>
-            <p>Vehicle registration, transporter name, and government E-Way Bill.</p>
-          </div>
-          <div class="form-grid product-form-grid">
             <div class="form-group">
               <label class="form-label">Vehicle Registration No</label>
-              <input class="form-input" id="tr-vehicle-no" placeholder="GJ-01-AB-1234">
+              <input class="form-input" id="tr-vehicle-no" placeholder="e.g. GJ-01-AB-1234">
             </div>
             <div class="form-group">
               <label class="form-label">Transporter Name</label>
-              <input class="form-input" id="tr-transporter" placeholder="Shreeji Logistics">
+              <input class="form-input" id="tr-transporter" placeholder="e.g. Shreeji Logistics">
             </div>
             <div class="form-group">
               <label class="form-label">Government E-Way Bill No</label>
-              <input class="form-input" id="tr-eway-bill" placeholder="EWB-2026-98124">
+              <input class="form-input" id="tr-eway-bill" placeholder="e.g. EWB-2026-98124">
             </div>
             <div class="form-group form-col-full">
               <label class="form-label">Instructions / Commercial Notes</label>
@@ -311,11 +341,23 @@
             </div>
           </div>
         </section>
+
+        <!-- STEP 4: REVIEW & CONFIRMATION SUMMARY -->
+        <section class="product-form-card" style="background:#f8fafc;border:1px solid #cbd5e1;">
+          <div class="product-form-card-head" style="border-bottom:1px solid #e2e8f0;padding-bottom:8px;margin-bottom:10px;">
+            <h4 style="margin:0;font-size:14px;font-weight:700;color:var(--text);">Step 4: Review & Confirm</h4>
+            <p style="margin:2px 0 0;font-size:12px;color:var(--text-muted);">Verify the transfer details before creating the record.</p>
+          </div>
+          <div id="tr-live-summary-card" style="font-size:12.5px;color:#334155;line-height:1.6;">
+            <!-- Rendered dynamically by updateTransferSummaryCard() -->
+          </div>
+        </section>
+
       </form>
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="APP.closeModal('transfer-modal')">Cancel</button>
-      <button class="btn btn-primary" onclick="saveTransfer()">Create Supply Transfer</button>
+      <button class="btn btn-primary" id="save-transfer-btn" onclick="saveTransfer()">Create Stock Transfer</button>
     </div>
   </div>
 </div>

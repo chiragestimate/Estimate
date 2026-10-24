@@ -588,6 +588,7 @@ function renderCharts(monthlyRows, expensesCats) {
  * Render Top Summary Widgets on Tab 1
  */
 function renderTopSummaries(topSkus, topClients) {
+  const safeEscape = typeof escapeHtml === 'function' ? escapeHtml : (UTILS && UTILS.escapeHtml ? UTILS.escapeHtml : (s => s));
   const prodTbody = document.querySelector('#top-products-table tbody');
   if (prodTbody) {
     const list = topSkus.slice(0, 5);
@@ -595,8 +596,13 @@ function renderTopSummaries(topSkus, topClients) {
       prodTbody.innerHTML = '<tr><td colspan="3" class="text-muted" style="text-align:center; padding:16px;">No products sold.</td></tr>';
     } else {
       prodTbody.innerHTML = list.map((p, i) => `<tr>
-        <td class="col-rank">#${i + 1}</td>
-        <td class="col-name">${p.productName} <span class="badge badge-neutral" style="font-size:10px;">${p.packagingSize}</span></td>
+        <td class="col-rank">${i + 1}</td>
+        <td class="col-name">
+          <div class="top-product-info">
+            <span class="top-product-name">${safeEscape(p.productName || 'Unknown Product')}</span>
+            ${p.packagingSize ? `<span class="top-product-pack">${safeEscape(p.packagingSize)}</span>` : ''}
+          </div>
+        </td>
         <td class="col-rev">${UTILS.fmtCurrency(p.netRevenue)}</td>
       </tr>`).join('');
     }
@@ -609,10 +615,61 @@ function renderTopSummaries(topSkus, topClients) {
       clientTbody.innerHTML = '<tr><td colspan="3" class="text-muted" style="text-align:center; padding:16px;">No customer orders.</td></tr>';
     } else {
       clientTbody.innerHTML = list.map((c, i) => `<tr>
-        <td class="col-rank">#${i + 1}</td>
-        <td class="col-name">${c.clientName}</td>
+        <td class="col-rank">${i + 1}</td>
+        <td class="col-name">
+          <div class="top-client-info">
+            <span class="top-client-name">${safeEscape(c.clientName || 'Unknown Client')}</span>
+            ${c.city ? `<span class="top-client-city">${safeEscape(c.city)}</span>` : ''}
+          </div>
+        </td>
         <td class="col-rev">${UTILS.fmtCurrency(c.totalBilledAmount)}</td>
       </tr>`).join('');
+    }
+  }
+}
+
+/**
+ * Toggle Advanced Business Filters panel
+ */
+function toggleAdvancedFilters() {
+  const body = document.getElementById('advanced-filters-body');
+  const btn = document.getElementById('toggle-advanced-filters-btn');
+  const chevron = document.getElementById('advanced-filters-chevron');
+  if (!body) return;
+
+  const isHidden = body.style.display === 'none' || !body.style.display;
+  body.style.display = isHidden ? 'block' : 'none';
+  if (btn) btn.setAttribute('aria-expanded', isHidden ? 'true' : 'false');
+  if (chevron) chevron.style.transform = isHidden ? 'rotate(180deg)' : 'rotate(0deg)';
+}
+
+/**
+ * Update count of active secondary filters
+ */
+function updateActiveFiltersCount() {
+  const filterIds = [
+    'filter-client',
+    'filter-company',
+    'filter-product',
+    'filter-sku',
+    'filter-order-status',
+    'filter-dispatch-status'
+  ];
+  let activeCount = 0;
+  filterIds.forEach(id => {
+    const el = document.getElementById(id);
+    if (el && el.value && el.value.trim() !== '') {
+      activeCount++;
+    }
+  });
+
+  const badge = document.getElementById('active-filters-count');
+  if (badge) {
+    if (activeCount > 0) {
+      badge.textContent = `${activeCount} active`;
+      badge.style.display = 'inline-block';
+    } else {
+      badge.style.display = 'none';
     }
   }
 }
@@ -621,6 +678,7 @@ function renderTopSummaries(topSkus, topClients) {
  * Filter Form Handlers
  */
 function applyReportFilters() {
+  updateActiveFiltersCount();
   loadReports();
   APP.showToast('Report updated for selected filters', 'success');
 }
@@ -632,6 +690,7 @@ function resetReportFilters() {
   document.getElementById('filter-sku').value = '';
   document.getElementById('filter-order-status').value = '';
   document.getElementById('filter-dispatch-status').value = '';
+  updateActiveFiltersCount();
   selectDatePreset('financial_year');
 }
 
@@ -921,6 +980,8 @@ function exportCurrentReportToCSV() {
 // Global window bindings
 window.switchReportTab = switchReportTab;
 window.selectDatePreset = selectDatePreset;
+window.toggleAdvancedFilters = toggleAdvancedFilters;
+window.updateActiveFiltersCount = updateActiveFiltersCount;
 window.applyReportFilters = applyReportFilters;
 window.resetReportFilters = resetReportFilters;
 window.openCustomerProfile = openCustomerProfile;
@@ -932,4 +993,24 @@ window.exportCurrentReportToCSV = exportCurrentReportToCSV;
 document.addEventListener('DOMContentLoaded', async () => {
   await initReportFilters();
   await loadReports();
+
+  // Attach live change listeners for active filter count
+  ['filter-client', 'filter-company', 'filter-product', 'filter-sku', 'filter-order-status', 'filter-dispatch-status'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('change', updateActiveFiltersCount);
+  });
+
+  // Attach listeners for manual date input changes
+  ['date-from', 'date-to'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.addEventListener('change', () => {
+        document.querySelectorAll('#report-date-presets .cat-pill').forEach(b => b.classList.remove('active'));
+        const custBtn = document.querySelector('#report-date-presets .cat-pill[data-preset="custom"]');
+        if (custBtn) custBtn.classList.add('active');
+        const lbl = document.getElementById('active-range-label');
+        if (lbl) lbl.textContent = 'Custom Range Selected';
+      });
+    }
+  });
 });

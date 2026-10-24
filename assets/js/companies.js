@@ -102,7 +102,6 @@ function renderCompaniesTable(data) {
         <td class="cell-bold cell-mono">
           <div class="comp-code-stack">
             <span class="font-bold">${escapeHtml(c.code)}</span>
-            ${isActive ? '<span class="badge badge-success active-pill-sm" style="font-size:9.5px;padding:1px 5px;line-height:1.2;">ACTIVE</span>' : ''}
           </div>
         </td>
         <td class="cell-company-name">
@@ -117,18 +116,17 @@ function renderCompaniesTable(data) {
         <td class="cell-mono-gstin">${escapeHtml(c.gstin || '—')}</td>
         <td>
           <div class="location-stack">
-            <span class="location-city">${escapeHtml(c.city || '—')}</span>
-            ${c.state ? `<span class="location-state">${escapeHtml(c.state)}</span>` : ''}
+            <span class="location-city">${escapeHtml(c.city || '—')}</span>${c.city && c.state ? '<span class="location-comma">, </span>' : ''}${c.state ? `<span class="location-state">${escapeHtml(c.state)}</span>` : ''}
           </div>
         </td>
         <td>
           <div class="facility-badges-stack">
             <button type="button" class="facility-pill-btn" onclick="openManageBranches(${c.id})" title="Manage Branches (${branchCount})">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="facility-icon"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="9" y1="22" x2="9" y2="22.01"/><line x1="15" y1="22" x2="15" y2="22.01"/><line x1="9" y1="6" x2="9" y2="6.01"/><line x1="15" y1="6" x2="15" y2="6.01"/><line x1="9" y1="10" x2="9" y2="10.01"/><line x1="15" y1="10" x2="15" y2="10.01"/><line x1="9" y1="14" x2="9" y2="14.01"/><line x1="15" y1="14" x2="15" y2="14.01"/><line x1="9" y1="18" x2="9" y2="18.01"/><line x1="15" y1="18" x2="15" y2="18.01"/></svg>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="facility-icon" style="width:13px;height:13px;min-width:13px;min-height:13px;"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="9" y1="22" x2="9" y2="22.01"/><line x1="15" y1="22" x2="15" y2="22.01"/><line x1="9" y1="6" x2="9" y2="6.01"/><line x1="15" y1="6" x2="15" y2="6.01"/><line x1="9" y1="10" x2="9" y2="10.01"/><line x1="15" y1="10" x2="15" y2="10.01"/><line x1="9" y1="14" x2="9" y2="14.01"/><line x1="15" y1="14" x2="15" y2="14.01"/><line x1="9" y1="18" x2="9" y2="18.01"/><line x1="15" y1="18" x2="15" y2="18.01"/></svg>
               <span>${branchCount} ${branchCount === 1 ? 'Branch' : 'Branches'}</span>
             </button>
             <a href="warehouses.html?company=${c.id}" class="facility-pill-btn" title="View Warehouses for ${escapeHtml(c.name)} (${whCount})">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="facility-icon"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="facility-icon" style="width:13px;height:13px;min-width:13px;min-height:13px;"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
               <span>${whCount} ${whCount === 1 ? 'Warehouse' : 'Warehouses'}</span>
             </a>
           </div>
@@ -136,17 +134,12 @@ function renderCompaniesTable(data) {
         <td>${statusBadge}</td>
         <td>
           <div class="row-actions">
-            ${isActive ? `
-              <span class="badge badge-success action-active-badge" title="Current active company">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:11px;height:11px;"><polyline points="20 6 9 17 4 12"/></svg>
-                <span>Active</span>
-              </span>
-            ` : (isArchived ? '' : `
+            ${!isActive && !isArchived ? `
               <button class="action-btn action-btn-select" onclick="window.TENANT_CONTEXT.switchCompany(${c.id})" title="Switch active company to ${escapeHtml(c.name)}">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:11px;height:11px;"><polyline points="9 18 15 12 9 6"/></svg>
                 <span>Select</span>
               </button>
-            `)}
+            ` : ''}
             <button class="action-btn edit" onclick="openEditCompany(${c.id})" title="Edit Details">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
             </button>

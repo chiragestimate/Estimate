@@ -116,9 +116,9 @@ const SIDEBAR_HTML = (logoUrl = getLogoUrl()) => `
     <a href="daily-transactions.html" class="nav-item" data-page="daily-transactions.html" data-tooltip="Daily Stock Usage"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 6h13"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M3 6h.01"/><path d="M3 12h.01"/><path d="M3 18h.01"/></svg></span><span class="nav-label">Daily Stock Usage</span></a>
 
     <div class="nav-section-label">Enterprise & Locations</div>
-    <a href="companies.html" class="nav-item" data-page="companies.html" data-tooltip="Companies & Branches"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2" ry="2"/><line x1="9" y1="22" x2="9" y2="22.01"/><line x1="15" y1="22" x2="15" y2="22.01"/><line x1="9" y1="6" x2="9" y2="6.01"/><line x1="15" y1="6" x2="15" y2="6.01"/><line x1="9" y1="10" x2="9" y2="10.01"/><line x1="15" y1="10" x2="15" y2="10.01"/><line x1="9" y1="14" x2="9" y2="14.01"/><line x1="15" y1="14" x2="15" y2="14.01"/></svg></span><span class="nav-label">Companies & Branches</span></a>
-    <a href="warehouses.html" class="nav-item" data-page="warehouses.html" data-tooltip="Warehouses"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18"/><path d="M5 21V7l7-4 7 4v14"/><path d="M9 10a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v11H9V10z"/></svg></span><span class="nav-label">Warehouses</span></a>
-    <a href="intercompany.html" class="nav-item" data-page="intercompany.html" data-tooltip="Intercompany Links"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></span><span class="nav-label">Intercompany Links</span></a>
+    <a href="companies.html" class="nav-item" data-page="companies.html" data-tooltip="Companies & Branches"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/><path d="M10 6h4"/><path d="M10 10h4"/><path d="M10 14h4"/><path d="M10 18h4"/></svg></span><span class="nav-label">Companies & Branches</span></a>
+    <a href="warehouses.html" class="nav-item" data-page="warehouses.html" data-tooltip="Warehouses"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 8.35V20a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8.35A2 2 0 0 1 3.26 6.5l8-3.2a2 2 0 0 1 1.48 0l8 3.2A2 2 0 0 1 22 8.35Z"/><path d="M6 18h12"/><path d="M6 14h12"/><rect width="12" height="12" x="6" y="10"/></svg></span><span class="nav-label">Warehouses</span></a>
+    <a href="intercompany.html" class="nav-item" data-page="intercompany.html" data-tooltip="Intercompany Links"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 17H7A5 5 0 0 1 7 7h2"/><path d="M15 7h2a5 5 0 1 1 0 10h-2"/><line x1="8" x2="16" y1="12" y2="12"/></svg></span><span class="nav-label">Intercompany Links</span></a>
 
     <div class="nav-section-label">Finance & Reports</div>
     <a href="transactions.html" class="nav-item" data-page="transactions.html" data-tooltip="Cash & Bank Ledger"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg></span><span class="nav-label">Cash & Bank Ledger</span></a>
@@ -209,28 +209,51 @@ const TOPBAR_HTML = (title, breadcrumb, logoUrl = getLogoUrl()) => `
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px;opacity:0.6"><polyline points="6 9 12 15 18 9"/></svg>
       </button>
       <div class="dropdown-menu dropdown-menu-company" id="company-dropdown-menu" role="menu">
-        <div style="padding: 6px 10px; font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.5px;">Switch Active Company</div>
+        <div class="company-dropdown-header">SWITCH ACTIVE COMPANY</div>
         <div id="company-list-container">
           <button class="company-dropdown-item active" type="button" onclick="window.TENANT_CONTEXT && window.TENANT_CONTEXT.switchCompany ? window.TENANT_CONTEXT.switchCompany(${getActiveCompanyId()}) : null">
-            <div class="company-item-details">
+            <div class="company-card-header">
               <span class="company-item-name">${getActiveCompanyName()}</span>
-              <span class="company-item-sub">${getActiveCompanyCode()} • Current Entity</span>
+              <span class="company-badge-pill mfg">MANUFACTURER</span>
             </div>
-            <span class="company-badge-pill mfg">Manufacturer</span>
+            <div class="company-card-sub">
+              <span>Rajkot</span>
+              <span class="sub-sep">•</span>
+              <span>${getActiveCompanyCode()}</span>
+              <span class="sub-sep">•</span>
+              <span class="status-current-tag">Current</span>
+            </div>
           </button>
         </div>
-        <div class="dropdown-divider"></div>
-        <a href="companies.html" class="dropdown-item" style="display:flex;align-items:center;gap:8px;">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><rect x="4" y="2" width="16" height="20" rx="2" ry="2"/></svg>
-          <span>Companies & Branches</span>
+        <div class="dropdown-divider company-menu-divider"></div>
+        <a href="companies.html" class="dropdown-item company-nav-item">
+          <svg class="company-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/>
+            <path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/>
+            <path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/>
+            <path d="M10 6h4"/>
+            <path d="M10 10h4"/>
+            <path d="M10 14h4"/>
+            <path d="M10 18h4"/>
+          </svg>
+          <span class="company-nav-label">Companies & Branches</span>
         </a>
-        <a href="warehouses.html" class="dropdown-item" style="display:flex;align-items:center;gap:8px;">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><path d="M3 21h18"/><path d="M5 21V7l7-4 7 4v14"/></svg>
-          <span>Warehouses</span>
+        <a href="warehouses.html" class="dropdown-item company-nav-item">
+          <svg class="company-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 8.35V20a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8.35A2 2 0 0 1 3.26 6.5l8-3.2a2 2 0 0 1 1.48 0l8 3.2A2 2 0 0 1 22 8.35Z"/>
+            <path d="M6 18h12"/>
+            <path d="M6 14h12"/>
+            <rect width="12" height="12" x="6" y="10"/>
+          </svg>
+          <span class="company-nav-label">Warehouses</span>
         </a>
-        <a href="intercompany.html" class="dropdown-item" style="display:flex;align-items:center;gap:8px;">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/></svg>
-          <span>Intercompany Links</span>
+        <a href="intercompany.html" class="dropdown-item company-nav-item">
+          <svg class="company-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 17H7A5 5 0 0 1 7 7h2"/>
+            <path d="M15 7h2a5 5 0 1 1 0 10h-2"/>
+            <line x1="8" x2="16" y1="12" y2="12"/>
+          </svg>
+          <span class="company-nav-label">Intercompany Links</span>
         </a>
       </div>
     </div>
@@ -676,6 +699,31 @@ async function initCompanySwitcher() {
   const listContainer = document.getElementById('company-list-container');
   if (!btn || !menu) return;
 
+  const positionMenu = () => {
+    if (!menu.classList.contains('open')) return;
+    if (window.innerWidth <= 768) {
+      const rect = btn.getBoundingClientRect();
+      const topPos = Math.round(rect.bottom + 8);
+      menu.style.position = 'fixed';
+      menu.style.top = topPos + 'px';
+      menu.style.left = '0px';
+      menu.style.right = '0px';
+      menu.style.marginLeft = 'auto';
+      menu.style.marginRight = 'auto';
+      menu.style.width = 'calc(100vw - 32px)';
+      menu.style.maxWidth = '320px';
+    } else {
+      menu.style.position = '';
+      menu.style.top = '';
+      menu.style.left = '';
+      menu.style.right = '';
+      menu.style.marginLeft = '';
+      menu.style.marginRight = '';
+      menu.style.width = '';
+      menu.style.maxWidth = '';
+    }
+  };
+
   btn.onclick = (e) => {
     e.stopPropagation();
     document.getElementById('notif-dropdown-menu')?.classList.remove('open');
@@ -684,7 +732,12 @@ async function initCompanySwitcher() {
     document.getElementById('user-avatar-btn')?.setAttribute('aria-expanded', 'false');
     const isOpen = menu.classList.toggle('open');
     btn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    if (isOpen) {
+      positionMenu();
+    }
   };
+
+  window.addEventListener('resize', positionMenu);
 
   document.addEventListener('click', (e) => {
     if (!menu.contains(e.target) && !btn.contains(e.target)) {
@@ -712,30 +765,30 @@ async function initCompanySwitcher() {
     if (mobileBrand && active) mobileBrand.textContent = active.name;
 
     if (listContainer) {
-      if (companies && companies.length > 0) {
-        listContainer.innerHTML = companies.map(c => `
-          <button class="company-dropdown-item ${c.id === (active ? active.id : 1) ? 'active' : ''}" type="button" onclick="window.TENANT_CONTEXT && window.TENANT_CONTEXT.switchCompany ? window.TENANT_CONTEXT.switchCompany(${c.id}) : null">
-            <div class="company-item-details">
-              <span class="company-item-name">${c.name}</span>
-              <span class="company-item-sub">${c.city ? c.city + ' • ' : ''}${c.code}${c.id === (active ? active.id : 1) ? ' • Current' : ''}</span>
+      const renderItem = (c, isCurrent) => {
+        const isMfg = c.is_manufacturing !== false;
+        const city = c.city || (c.code === 'AAC' || (c.name && c.name.toLowerCase().includes('anjani')) ? 'Rajkot' : '');
+        const code = c.code || 'AAC';
+        const badgeLabel = isMfg ? 'MANUFACTURER' : 'TRADING';
+        return `
+          <button class="company-dropdown-item ${isCurrent ? 'active' : ''}" type="button" onclick="window.TENANT_CONTEXT && window.TENANT_CONTEXT.switchCompany ? window.TENANT_CONTEXT.switchCompany(${c.id}) : null">
+            <div class="company-card-header">
+              <span class="company-item-name">${c.name || 'Anjani Agri Care'}</span>
+              <span class="company-badge-pill ${isMfg ? 'mfg' : 'dist'}">${badgeLabel}</span>
             </div>
-            <span class="company-badge-pill ${c.is_manufacturing ? 'mfg' : 'dist'}">
-              ${c.is_manufacturing ? 'Manufacturer' : 'Trading'}
-            </span>
-          </button>
-        `).join('');
-      } else if (active) {
-        listContainer.innerHTML = `
-          <button class="company-dropdown-item active" type="button" onclick="window.TENANT_CONTEXT && window.TENANT_CONTEXT.switchCompany ? window.TENANT_CONTEXT.switchCompany(${active.id || 1}) : null">
-            <div class="company-item-details">
-              <span class="company-item-name">${active.name || 'Anjani Agri Care'}</span>
-              <span class="company-item-sub">${active.code || 'ACC'} • Current Entity</span>
+            <div class="company-card-sub">
+              ${city ? `<span>${city}</span><span class="sub-sep">•</span>` : ''}
+              <span>${code}</span>
+              ${isCurrent ? `<span class="sub-sep">•</span><span class="status-current-tag">Current</span>` : ''}
             </div>
-            <span class="company-badge-pill ${active.is_manufacturing ? 'mfg' : 'dist'}">
-              ${active.is_manufacturing ? 'Manufacturer' : 'Trading'}
-            </span>
           </button>
         `;
+      };
+
+      if (companies && companies.length > 0) {
+        listContainer.innerHTML = companies.map(c => renderItem(c, c.id === (active ? active.id : 1))).join('');
+      } else if (active) {
+        listContainer.innerHTML = renderItem(active, true);
       }
     }
   };

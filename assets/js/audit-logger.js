@@ -413,7 +413,7 @@
         recordId: companyId,
         referenceNo: companyCode,
         beforeValues: null,
-        afterValues: { companyId, companyName, companyCode },
+        afterValues: { companyId, companyName, companyCode, status: 'Active' },
         metadata: { companyId, companyName, companyCode }
       });
     }
@@ -428,7 +428,7 @@
         recordId: companyId,
         referenceNo: companyCode,
         beforeValues: null,
-        afterValues: { companyId, companyName, companyCode },
+        afterValues: { companyId, companyName, companyCode, status: 'Active' },
         metadata: { companyId, companyName, companyCode }
       });
     }
@@ -488,7 +488,7 @@
         recordId: warehouseId,
         referenceNo: warehouseCode,
         beforeValues: null,
-        afterValues: { companyId, warehouseId, warehouseName, warehouseCode },
+        afterValues: { companyId, warehouseId, warehouseName, warehouseCode, status: 'Active' },
         metadata: { companyId, warehouseId, warehouseName, warehouseCode }
       });
     }
@@ -503,7 +503,7 @@
         recordId: warehouseId,
         referenceNo: warehouseCode,
         beforeValues: null,
-        afterValues: { companyId, warehouseId, warehouseName, warehouseCode },
+        afterValues: { companyId, warehouseId, warehouseName, warehouseCode, status: 'Active' },
         metadata: { companyId, warehouseId, warehouseName, warehouseCode }
       });
     }

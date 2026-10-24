@@ -128,7 +128,9 @@ async function loadDashboard() {
       if (costMap[p.id] && costMap[p.id].totalQty > 0) {
         cost = costMap[p.id].totalCost / costMap[p.id].totalQty;
       }
-      return { ...p, stock: batchStock, val: batchStock * cost };
+      const cName = (typeof UTILS !== 'undefined' && UTILS.cleanItemName) ? UTILS.cleanItemName(p.name) : (p.name || '');
+      const cUnit = (typeof UTILS !== 'undefined' && UTILS.cleanUnitLabel) ? UTILS.cleanUnitLabel(p.unit || '') : (p.unit || '');
+      return { ...p, name: cName, unit: cUnit, stock: batchStock, val: batchStock * cost };
     });
 
     const techSubtypes = ['insecticide', 'herbicide', 'fungicide', 'pgr', 'solvent', 'technical'];

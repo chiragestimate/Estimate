@@ -3,7 +3,7 @@
 const supabaseUrl = 'https://quxcvoywufjjynluntvg.supabase.co';
 const supabaseKey = 'sb_publishable_XickYJH_8m0FTaJaT2k8TA_X2MEJSDr';
 
-// Resilient fetch wrapper to transparently recover from clock skew ("JWT issued at future")
+// Resilient fetch wrapper to transparently recover from clock skew, expired JWTs, or auth failures
 async function resilientFetch(input, init) {
   const defaultFetch = window.fetch.bind(window);
   const pubKey = (typeof import_meta !== 'undefined' && import_meta.env) ? import_meta.env.VITE_SUPABASE_PUBLISHABLE_KEY : supabaseKey;
@@ -14,18 +14,24 @@ async function resilientFetch(input, init) {
     throw err;
   }
 
-  if (!response.ok && (response.status === 401 || response.status === 400)) {
+  if (!response.ok && (response.status === 401 || response.status === 400 || response.status === 403)) {
     try {
       const cloned = response.clone();
-      const body = await cloned.json();
-      if (body && body.message && typeof body.message === 'string' && body.message.toLowerCase().includes('jwt issued at future')) {
-        console.warn('[Supabase Bridge] Clock skew detected ("JWT issued at future"). Recovering seamlessly...');
-        // 1. Wait 1200ms for timestamp alignment
-        await new Promise(r => setTimeout(r, 1200));
-        let retryResp = await defaultFetch(input, init);
-        if (retryResp.ok) return retryResp;
+      const body = await cloned.json().catch(() => ({}));
+      const msg = String(body?.message || body?.details || body?.error_description || body?.error || '').toLowerCase();
+      const isAuthError = response.status === 401 || response.status === 403 || msg.includes('jwt') || msg.includes('token') || msg.includes('unauthorized') || msg.includes('claim') || msg.includes('key');
 
-        // 2. Fall back to publishable key if token is still deemed from future
+      if (isAuthError) {
+        if (msg.includes('jwt issued at future')) {
+          console.warn('[Supabase Bridge] Clock skew detected ("JWT issued at future"). Recovering seamlessly...');
+          // 1. Wait 1200ms for timestamp alignment
+          await new Promise(r => setTimeout(r, 1200));
+          let retryResp = await defaultFetch(input, init);
+          if (retryResp.ok) return retryResp;
+        }
+
+        console.warn('[Supabase Bridge] Auth failure (' + (body?.message || response.status) + '). Retrying anonymously with pubKey...');
+        // Fall back to publishable key if token is expired, invalid, or rejected
         const modifiedInit = { ...(init || {}) };
         const headers = new Headers(modifiedInit.headers || {});
         headers.set('apikey', pubKey);
@@ -33,13 +39,24 @@ async function resilientFetch(input, init) {
         modifiedInit.headers = headers;
 
         const anonResp = await defaultFetch(input, modifiedInit);
-        if (anonResp.ok) return anonResp;
+        if (anonResp.ok) {
+          try {
+            for (let i = localStorage.length - 1; i >= 0; i--) {
+              const k = localStorage.key(i);
+              if (k && (k.startsWith('sb-') && k.endsWith('-auth-token'))) {
+                localStorage.removeItem(k);
+              }
+            }
+          } catch (_) {}
+          return anonResp;
+        }
       }
     } catch (_) {}
   }
 
   return response;
 }
+window.resilientFetch = resilientFetch;
 
 // Supabase CDN is loaded synchronously before this script
 if (window.supabase) {

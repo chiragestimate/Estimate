@@ -15,6 +15,7 @@
 let allWarehouses = [];
 let allCompanies = [];
 let allBranches = [];
+let warehouseStockMap = new Map();
 let editingWarehouseId = null;
 let isDeletingWarehouse = false;
 let isArchivingWarehouse = false;
@@ -26,15 +27,24 @@ async function loadWarehouses() {
     await DB.initDB();
     await window.TENANT_CONTEXT.init();
 
-    const [whRes, cRes, bRes] = await Promise.all([
+    const [whRes, cRes, bRes, bStockRes] = await Promise.all([
       window.dbClient.from('warehouses').select('*').order('id', { ascending: true }),
       window.dbClient.from('companies').select('*').order('id', { ascending: true }),
-      window.dbClient.from('branches').select('*').order('id', { ascending: true })
+      window.dbClient.from('branches').select('*').order('id', { ascending: true }),
+      window.dbClient.from('stock_batches').select('warehouse_id, current_qty').gt('current_qty', 0)
     ]);
 
     allWarehouses = whRes.data || [];
     allCompanies = cRes.data || [];
     allBranches = bRes.data || [];
+
+    // Map live physical units per warehouse
+    warehouseStockMap = new Map();
+    (bStockRes.data || []).forEach(b => {
+      const wId = b.warehouse_id;
+      const qty = parseFloat(b.current_qty) || 0;
+      warehouseStockMap.set(wId, (warehouseStockMap.get(wId) || 0) + qty);
+    });
 
     populateCompanyFilterDropdown();
     filterAndRenderWarehouses();
@@ -103,6 +113,12 @@ function populateCompanyFilterDropdown() {
     compSelect.value = String(targetCompId);
   } else {
     compSelect.value = 'ALL';
+  }
+
+  if (compSelect._ussInstance) {
+    compSelect._ussInstance.updateOptions();
+  } else if (typeof UniversalSearchSelect !== 'undefined' && typeof UniversalSearchSelect.initAll === 'function') {
+    UniversalSearchSelect.initAll(compSelect.parentNode || document);
   }
 }
 
@@ -208,6 +224,12 @@ function renderWarehousesTable(data) {
         </td>
         <td class="wh-branch-text">${br ? escapeHtml(br.name) : '<span class="text-muted">General Depot</span>'}</td>
         <td><span class="badge badge-info wh-type-badge">${escapeHtml(w.warehouse_type || 'General')}</span></td>
+        <td class="cell-bold cell-wh-stock">
+          <div class="wh-stock-val ${(warehouseStockMap.get(w.id) || 0) === 0 ? 'is-zero' : ''}">
+            <span class="wh-stock-num">${(warehouseStockMap.get(w.id) || 0).toLocaleString()}</span>
+            <span class="wh-stock-unit">units</span>
+          </div>
+        </td>
         <td>${statusBadge}</td>
         <td>
           <div class="row-actions">

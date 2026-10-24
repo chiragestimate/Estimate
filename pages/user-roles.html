@@ -76,7 +76,7 @@
       </div>
 
       <!-- Navigation Tabs -->
-      <div class="tabs" style="margin-bottom:20px;display:flex;gap:8px;border-bottom:1px solid var(--border);padding-bottom:8px;flex-wrap:wrap;">
+      <div class="tabs rbac-tabs" id="roles-tabs">
         <button class="tab-btn active" id="tab-users-btn" onclick="switchRbacTab('users')">User Assignments</button>
         <button class="tab-btn" id="tab-roles-btn" onclick="switchRbacTab('roles')">System Roles (10)</button>
         <button class="tab-btn" id="tab-matrix-btn" onclick="switchRbacTab('matrix')">Permission Matrix</button>
@@ -132,12 +132,12 @@
 
       <!-- TAB 2: System Roles Directory -->
       <div id="tab-roles-view" style="display:none;">
-        <div style="background:var(--surface,#1e293b);padding:16px;border-radius:12px;border:1px solid var(--border,#334155);margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
+        <div class="roles-summary-header" style="background:#ffffff;padding:16px;border-radius:12px;border:1px solid #e2e8f0;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
           <div>
             <h4 style="margin:0 0 4px;color:var(--text-primary);" id="roles-directory-heading">Configured System Roles (10)</h4>
             <p style="margin:0;font-size:13px;color:var(--text-muted);">Standard and custom RBAC security personas defined in the ERP. You can inspect permissions, assign users, or manage roles.</p>
           </div>
-          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <div class="roles-header-actions" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
             <button class="btn btn-secondary btn-sm" onclick="openCustomRoleModal()" id="btn-create-role" style="display:inline-flex;align-items:center;gap:5px;">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
               Create Role
@@ -168,14 +168,14 @@
         </div>
       </div>
 
-      <!-- TAB 2: Permission Matrix -->
+      <!-- TAB 3: Permission Matrix -->
       <div id="tab-matrix-view" style="display:none;">
-        <div style="background:var(--surface,#1e293b);padding:16px;border-radius:12px;border:1px solid var(--border,#334155);margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
+        <div class="matrix-summary-header" style="background:#ffffff;padding:16px;border-radius:12px;border:1px solid #e2e8f0;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
           <div>
             <h4 style="margin:0 0 4px;color:var(--text-primary);">Role Permissions Matrix</h4>
             <p style="margin:0;font-size:13px;color:var(--text-muted);">Inspect or customize granular action permissions for each role</p>
           </div>
-          <div style="display:flex;align-items:center;gap:10px;">
+          <div class="matrix-header-controls" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
             <label style="font-size:12px;font-weight:700;color:var(--text-muted);text-transform:uppercase;">Select Role:</label>
             <select id="matrix-role-selector" class="form-select" style="min-width:240px;" onchange="loadPermissionMatrix(this.value)">
               <option value="super_admin">Software Super Admin</option>
@@ -192,8 +192,8 @@
           </div>
         </div>
 
-        <div class="table-wrap">
-          <table class="data-table">
+        <div class="table-wrap" id="permission-matrix-wrap">
+          <table class="data-table" id="permission-matrix-table">
             <thead>
               <tr>
                 <th>Functional Module</th>
@@ -211,12 +211,13 @@
               <!-- Dynamically populated -->
             </tbody>
           </table>
+          <div id="matrix-mobile-cards" class="matrix-mobile-cards-wrap"></div>
         </div>
       </div>
 
-      <!-- TAB 3: Approval Requests -->
+      <!-- TAB 4: Approval Requests -->
       <div id="tab-approvals-view" style="display:none;">
-        <div class="table-wrap">
+        <div class="table-wrap" id="approvals-table-wrap">
           <div class="table-toolbar">
             <div class="table-toolbar-left">
               <h4 style="margin:0;color:var(--text-primary);">Restricted Transaction Approvals</h4>
@@ -230,7 +231,7 @@
               </select>
             </div>
           </div>
-          <table class="data-table">
+          <table class="data-table" id="approvals-table">
             <thead>
               <tr>
                 <th>Request Type</th>
@@ -246,6 +247,7 @@
               <!-- Dynamically populated -->
             </tbody>
           </table>
+          <div id="approvals-mobile-cards" class="approvals-mobile-cards-wrap"></div>
         </div>
       </div>
 

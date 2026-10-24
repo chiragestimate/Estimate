@@ -480,6 +480,52 @@ runTest('7.5: apps/Invoice Builder is synchronized with root Invoice Builder', (
   const rootIndex = fs.readFileSync(path.join(__dirname, '../Invoice Builder/index.html'), 'utf8');
   const appsIndex = fs.readFileSync(path.join(__dirname, '../apps/Invoice Builder/index.html'), 'utf8');
   assert.strictEqual(rootIndex, appsIndex, 'apps/Invoice Builder/index.html must match root Invoice Builder/index.html');
+  const rootHistory = fs.readFileSync(path.join(__dirname, '../Invoice Builder/js/history.js'), 'utf8');
+  const appsHistory = fs.readFileSync(path.join(__dirname, '../apps/Invoice Builder/js/history.js'), 'utf8');
+  assert.strictEqual(rootHistory, appsHistory, 'apps/Invoice Builder/js/history.js must match root Invoice Builder/js/history.js');
+});
+
+runTest('8.1: History page renderHistoryRows executes without ReferenceError and formats amounts', () => {
+  const historyJsCode = fs.readFileSync(path.join(__dirname, '../Invoice Builder/js/history.js'), 'utf8');
+  // Verify amtStr is declared
+  assert(historyJsCode.includes('const amtVal = parseFloat(inv.totalAmount || inv.GrandTotal || 0) || 0;'), 'amtVal must be calculated');
+  assert(historyJsCode.includes("const amtStr = '₹' + INR.format(amtVal);"), 'amtStr must be defined before use');
+
+  // Test execution in mock environment
+  const mockRows = [];
+  const mockTableBody = {
+    innerHTML: '',
+    appendChild: (tr) => mockRows.push(tr)
+  };
+  const mockDoc = {
+    addEventListener: () => {},
+    getElementById: (id) => id === 'history-tbody' ? mockTableBody : null,
+    createElement: (tag) => ({ tagName: tag, innerHTML: '', style: {} })
+  };
+  const mockScope = {
+    document: mockDoc,
+    window: {},
+    allInvoices: [],
+    escapeHTML: (s) => s || '',
+    Intl: Intl
+  };
+  const fn = new Function('document', 'window', 'escapeHTML', 'Intl', `
+    ${historyJsCode}
+    return { renderHistoryRows };
+  `);
+  const exported = fn(mockDoc, mockScope.window, mockScope.escapeHTML, Intl);
+  assert(typeof exported.renderHistoryRows === 'function', 'renderHistoryRows must be a function');
+
+  // Render sample invoices (including dispatch and direct)
+  const testInvoices = [
+    { uniqueId: 'INV-01', invoiceNumber: 'INV-01', customerName: 'Krishi Seva Kendra', totalAmount: 181440, date: '2026-10-19', source: 'dispatch' },
+    { uniqueId: 'INV-02', invoiceNumber: '100', customerName: 'Kisan Agro', totalAmount: 50000, date: '2026-10-18' }
+  ];
+  exported.renderHistoryRows(testInvoices);
+  assert.strictEqual(mockRows.length, 2, 'Must render 2 rows');
+  assert(mockRows[0].innerHTML.includes('1,81,440.00'), 'Row 1 must contain formatted amount 1,81,440.00');
+  assert(mockRows[0].innerHTML.includes('DISPATCH'), 'Row 1 must show DISPATCH badge');
+  assert(mockRows[1].innerHTML.includes('50,000.00'), 'Row 2 must contain formatted amount 50,000.00');
 });
 
 console.log('\n================================================================');

@@ -1,3 +1,385 @@
+
+/* ─── CO-MARKETING BRAND / LABEL OWNER & STOCK VERIFICATION HELPERS ─── */
+async function populateOrderBrandSelect(selectedOwner = 'AAC') {
+  const sel = document.getElementById('order-label-owner-select');
+  if (!sel) return;
+
+  let companies = [];
+  try {
+    const { data: compList } = await window.dbClient.from('companies').select('id, name, code, is_manufacturing');
+    companies = compList || [];
+  } catch (_) {}
+
+  if (!companies.some(c => c.code === 'AAC')) companies.unshift({ id: 1, name: 'Anjani Agri Care', code: 'AAC', is_manufacturing: true });
+  if (!companies.some(c => c.code === 'GAS')) companies.push({ id: 2, name: 'Greenfield Agro Solutions', code: 'GAS', is_manufacturing: false });
+
+  const activeCode = (window.TENANT_CONTEXT && window.TENANT_CONTEXT.getActiveCompany) 
+    ? (window.TENANT_CONTEXT.getActiveCompany().code || 'AAC') 
+    : 'AAC';
+  const targetOwner = (selectedOwner || activeCode || 'AAC').toUpperCase();
+  currentOrderLabelOwner = targetOwner;
+
+  sel.innerHTML = companies.map(c => {
+    const isSel = c.code.toUpperCase() === targetOwner;
+    const typeLabel = c.is_manufacturing ? 'In-House Mfg' : 'Co-Marketing Partner';
+    return `<option value="${c.code}" ${isSel ? 'selected' : ''}>${c.code} (${c.name} - ${typeLabel})</option>`;
+  }).join('');
+}
+
+function onOrderClientChange(clientId) {
+  const clientSelect = document.getElementById('client-select');
+  if (!clientSelect) return;
+  const clientText = (clientSelect.options[clientSelect.selectedIndex]?.text || '').toLowerCase();
+  
+  // Co-marketing company auto-detection: if client is Greenfield / GAS, switch brand to GAS
+  if (clientText.includes('greenfield') || clientText.includes('gas')) {
+    const ownerSel = document.getElementById('order-label-owner-select');
+    if (ownerSel) {
+      ownerSel.value = 'GAS';
+      onOrderLabelOwnerChange('GAS');
+    }
+  } else if (clientText.includes('anjani') || clientText.includes('aac')) {
+    const ownerSel = document.getElementById('order-label-owner-select');
+    if (ownerSel) {
+      ownerSel.value = 'AAC';
+      onOrderLabelOwnerChange('AAC');
+    }
+  }
+}
+
+function onOrderLabelOwnerChange(ownerVal) {
+  currentOrderLabelOwner = (ownerVal || 'AAC').trim().toUpperCase();
+  console.log('[Orders] Brand / Label Owner changed to:', currentOrderLabelOwner);
+  // Re-resolve labels for all current order items
+  orderItems.forEach(it => {
+    resolveOrderItemLabel(it, currentOrderLabelOwner);
+  });
+  renderOrderItems();
+}
+
+function resolveOrderItemLabel(item, labelOwner = currentOrderLabelOwner) {
+  if (!item || !item.product_id) {
+    item.label_inventory_id = null;
+    item.label_name = null;
+    item.label_stock = 0;
+    return null;
+  }
+
+  const pMatch = cachedProductsList.find(p => p.id == item.product_id);
+  const pName = item.product_name || pMatch?.name || '';
+  const packSize = item.packaging_size || item.packing_size || '';
+
+  const targetOwner = (labelOwner || currentOrderLabelOwner || 'AAC').toUpperCase();
+
+  // Search cachedLabelsList
+  const matched = (cachedLabelsList || []).find(it => {
+    if ((it.category || '').toLowerCase() !== 'labels') return false;
+
+    // 1. Check Product match
+    let pMatchOk = false;
+    if (it.product_id && parseInt(it.product_id, 10) === parseInt(item.product_id, 10)) {
+      pMatchOk = true;
+    } else if (pName && it.name.toLowerCase().includes(pName.toLowerCase())) {
+      pMatchOk = true;
+    }
+    if (!pMatchOk) return false;
+
+    // 2. Check Size match
+    const itSize = it.item_size || it.size || '';
+    let sizeMatchOk = false;
+    if (window.INVENTORY_CORE && window.INVENTORY_CORE.Units) {
+      sizeMatchOk = window.INVENTORY_CORE.Units.sizesMatch(itSize, packSize);
+      if (!sizeMatchOk && it.name) {
+        sizeMatchOk = window.INVENTORY_CORE.Units.sizesMatch(it.name, packSize);
+      }
+    } else {
+      sizeMatchOk = (itSize && packSize && itSize.toLowerCase().replace(/\s+/g, '') === packSize.toLowerCase().replace(/\s+/g, ''));
+    }
+    if (!sizeMatchOk) return false;
+
+    // 3. Check Owner match (AAC vs GAS)
+    const itSubtype = String(it.item_subtype || '').trim().toUpperCase();
+    const itNameUpper = String(it.name || '').toUpperCase();
+    if (itSubtype === targetOwner) return true;
+    if (itNameUpper.includes(`[${targetOwner}]`) || itNameUpper.includes(`(${targetOwner})`)) return true;
+    if (!itSubtype && targetOwner === 'AAC') return true;
+
+    return false;
+  });
+
+  if (matched) {
+    item.label_inventory_id = matched.id;
+    item.label_name = matched.name;
+    item.label_owner = targetOwner;
+    item.label_stock = matched.total_stock !== undefined ? matched.total_stock : (parseFloat(matched.stock) || 0);
+  } else {
+    item.label_inventory_id = null;
+    item.label_name = null;
+    item.label_owner = targetOwner;
+    item.label_stock = 0;
+  }
+
+  return matched;
+}
+
+function isPackagingSizeCompatible(pkgNameOrSize, targetSize) {
+  if (!pkgNameOrSize || !targetSize) return false;
+  const pStr = String(pkgNameOrSize).toLowerCase();
+  const tStr = String(targetSize).toLowerCase();
+
+  const pNums = pStr.match(/\d+(?:\.\d+)?/g) || [];
+  const tNums = tStr.match(/\d+(?:\.\d+)?/g) || [];
+  if (!pNums.length || !tNums.length) return false;
+
+  const pNum = parseFloat(pNums[0]);
+  const tNum = parseFloat(tNums[0]);
+  if (pNum !== tNum) return false;
+
+  const isMl = (s) => /\bml\b|m\.l\.|milli/i.test(s);
+  const isLtr = (s) => /\b(ltr|lt|l|litre|liter)\b/i.test(s) && !isMl(s);
+  const isKg = (s) => /\b(kg|kilo)\b/i.test(s);
+  const isGm = (s) => /\b(gm|g|gram)\b/i.test(s) && !isKg(s);
+
+  if (isMl(tStr) && !isMl(pStr)) return false;
+  if (isLtr(tStr) && !isLtr(pStr)) return false;
+  if (isKg(tStr) && !isKg(pStr)) return false;
+  if (isGm(tStr) && !isGm(pStr)) return false;
+
+  return true;
+}
+
+function updateOrderStockSummary() {
+  const container = document.getElementById('order-stock-summary-box');
+  const contentEl = document.getElementById('order-stock-summary-content');
+  const badgeEl = document.getElementById('stock-summary-badge');
+  const statsPillsEl = document.getElementById('stock-summary-stats-pills');
+  if (!container || !contentEl) return;
+
+  const validItems = orderItems.filter(it => it.product_id && (parseFloat(it.quantity) || 0) > 0);
+  if (!validItems.length) {
+    container.style.display = 'none';
+    if (badgeEl) {
+      badgeEl.className = 'badge badge-secondary';
+      badgeEl.textContent = '⚠️ Verification Incomplete';
+    }
+    return;
+  }
+
+  container.style.display = 'block';
+
+  let totalRequirementsCount = 0;
+  let totalAvailableCount = 0;
+  let totalShortageCount = 0;
+  let nonLabelDeficits = 0;
+  let labelDeficits = 0;
+
+  const productCardsHtml = validItems.map((it, idx) => {
+    const qty = parseFloat(it.quantity) || 0;
+    const pName = it.product_name || `Product #${idx + 1}`;
+    const packSize = it.packaging_size || '';
+    const lineRows = [];
+    let lineDeficits = 0;
+    let lineLabelDeficit = false;
+
+    // 1. Bulk Technical Formulation
+    const packMl = (window.INVENTORY_CORE && window.INVENTORY_CORE.parsePackagingSize)
+      ? window.INVENTORY_CORE.parsePackagingSize(packSize).volumeMl
+      : (UTILS.parsePackSizeInMl(packSize) || 1000);
+    const volumeLiters = (packMl / 1000) * qty;
+    let techAvail = 0;
+    let techName = `${pName} Formulation Bulk`;
+    if (it.inventory_item_id) {
+      const techItem = (allInventoryItemsList || []).find(t => t.id == it.inventory_item_id);
+      if (techItem) {
+        techAvail = techItem.total_stock || 0;
+        techName = techItem.name;
+      }
+    }
+    const techDeficit = techAvail < volumeLiters;
+    totalRequirementsCount++;
+    if (techDeficit) {
+      totalShortageCount++;
+      nonLabelDeficits++;
+      lineDeficits++;
+    } else {
+      totalAvailableCount++;
+    }
+    lineRows.push({
+      type: 'Technical Bulk',
+      item: `${techName} (AAC Technical)`,
+      required: `${volumeLiters.toFixed(2)} L`,
+      available: `${techAvail.toFixed(2)} L`,
+      status: techDeficit ? 'Deficit' : 'OK',
+      isLabel: false
+    });
+
+    // 2. Bottle
+    if (it.bottle_inventory_id) {
+      const btl = (cachedBottlesList || []).find(b => b.id == it.bottle_inventory_id);
+      const btlAvail = btl ? (btl.total_stock || 0) : 0;
+      const btlDeficit = btlAvail < qty;
+      totalRequirementsCount++;
+      if (btlDeficit) {
+        totalShortageCount++;
+        nonLabelDeficits++;
+        lineDeficits++;
+      } else {
+        totalAvailableCount++;
+      }
+      const btlDisplay = btl ? (typeof UTILS !== 'undefined' && UTILS.formatPackagingDisplayName ? UTILS.formatPackagingDisplayName(btl, 'Bottles') : btl.name) : 'Bottle';
+      lineRows.push({
+        type: 'Bottle',
+        item: `${btlDisplay} (AAC Packaging)`,
+        required: `${qty} Nos`,
+        available: `${btlAvail.toFixed(0)} Nos`,
+        status: btlDeficit ? 'Deficit' : 'OK',
+        isLabel: false
+      });
+    }
+
+    // 3. Box
+    if (it.box_inventory_id) {
+      const bx = (cachedBoxesList || []).find(b => b.id == it.box_inventory_id);
+      const outerBoxes = (it.outer_boxes_consumed !== undefined && it.outer_boxes_consumed !== null)
+        ? it.outer_boxes_consumed
+        : Math.ceil(qty / (it.bottles_per_box || 12));
+      it.outer_boxes_consumed = outerBoxes;
+      const bxAvail = bx ? (bx.total_stock || 0) : 0;
+      const bxDeficit = bxAvail < outerBoxes;
+      totalRequirementsCount++;
+      if (bxDeficit) {
+        totalShortageCount++;
+        nonLabelDeficits++;
+        lineDeficits++;
+      } else {
+        totalAvailableCount++;
+      }
+      const bxDisplay = bx ? (typeof UTILS !== 'undefined' && UTILS.formatPackagingDisplayName ? UTILS.formatPackagingDisplayName(bx, 'Boxes') : bx.name) : 'Box';
+      lineRows.push({
+        type: 'Box',
+        item: `${bxDisplay} (AAC Packaging)`,
+        required: `${outerBoxes} Nos`,
+        available: `${bxAvail.toFixed(0)} Nos`,
+        status: bxDeficit ? 'Deficit' : 'OK',
+        isLabel: false
+      });
+    }
+
+    // 4. Label (Company-specific)
+    const lblMatch = resolveOrderItemLabel(it, currentOrderLabelOwner);
+    const lblAvail = it.label_stock || 0;
+    const lblDeficit = !lblMatch || (lblAvail < qty);
+    totalRequirementsCount++;
+    if (lblDeficit) {
+      totalShortageCount++;
+      labelDeficits++;
+      lineLabelDeficit = true;
+    } else {
+      totalAvailableCount++;
+    }
+    lineRows.push({
+      type: 'Label',
+      item: lblMatch ? lblMatch.name : `${currentOrderLabelOwner} ${pName} ${packSize} Label`,
+      required: `${qty} Nos`,
+      available: lblMatch ? `${lblAvail.toFixed(0)} Nos` : '0 (Not in inventory)',
+      status: lblDeficit ? 'Deficit' : 'OK',
+      isLabel: true
+    });
+
+    // Derive line status badge
+    let lineBadgeClass = 'badge-success';
+    let lineBadgeText = '✓ Available';
+    if (lineDeficits > 0) {
+      lineBadgeClass = 'badge-danger';
+      lineBadgeText = '⚠️ Shortage';
+    } else if (lineLabelDeficit) {
+      lineBadgeClass = 'badge-warning';
+      lineBadgeText = '⚠️ Label Shortage';
+    }
+
+    return `
+      <div class="stock-line-card" style="margin-bottom:12px; border:1px solid var(--border); border-radius:8px; overflow:hidden; background:rgba(255,255,255,0.015);">
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 12px; background:rgba(255,255,255,0.03); border-bottom:1px solid var(--border); flex-wrap:wrap; gap:6px;">
+          <div style="font-size:12.5px; font-weight:700; color:var(--text-primary); display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+            <span style="color:var(--text-muted); font-size:11.5px;">#${idx + 1}</span>
+            <span>${pName}</span>
+            <span style="color:var(--text-muted); font-weight:400;">—</span>
+            <span style="color:var(--accent); font-weight:600;">${packSize}</span>
+            <span style="color:var(--text-muted); font-weight:400;">—</span>
+            <span>Qty: <strong>${qty}</strong></span>
+          </div>
+          <span class="badge ${lineBadgeClass}" style="font-size:10px; padding:2px 7px;">${lineBadgeText}</span>
+        </div>
+        <table class="data-table" style="font-size:11.5px; margin:0; width:100%; border:none;">
+          <thead>
+            <tr style="background:rgba(0,0,0,0.15);">
+              <th style="padding:4px 10px; width:18%;">Type</th>
+              <th style="padding:4px 10px;">Item / Material Name</th>
+              <th style="padding:4px 10px; width:110px;">Required</th>
+              <th style="padding:4px 10px; width:130px;">Available Stock</th>
+              <th style="padding:4px 10px; width:85px; text-align:right;">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${lineRows.map(r => `
+              <tr style="${r.status === 'Deficit' ? (r.isLabel ? 'background:rgba(245,158,11,0.06);' : 'background:rgba(239,68,68,0.06);') : ''}">
+                <td style="padding:4px 10px; font-weight:600; color:var(--text-secondary);">${r.type}</td>
+                <td style="padding:4px 10px; font-weight:600; color:${r.status === 'Deficit' ? (r.isLabel ? 'var(--warning,#f59e0b)' : 'var(--danger,#ef4444)') : 'var(--text-primary)'};">
+                  ${r.isLabel ? `<span class="badge ${currentOrderLabelOwner === 'GAS' ? 'badge-info' : 'badge-purple'}" style="font-size:9px; padding:1px 4px; margin-right:4px;">${currentOrderLabelOwner}</span>` : ''}
+                  ${r.item}
+                </td>
+                <td style="padding:4px 10px;">${r.required}</td>
+                <td style="padding:4px 10px; font-weight:700; color:${r.status === 'Deficit' ? (r.isLabel ? 'var(--warning,#f59e0b)' : 'var(--danger,#ef4444)') : 'var(--accent)'};">${r.available}</td>
+                <td style="padding:4px 10px; text-align:right;">
+                  <span class="badge ${r.status === 'Deficit' ? (r.isLabel ? 'badge-warning' : 'badge-danger') : 'badge-success'}" style="font-size:9.5px; padding:1px 6px;">${r.status === 'Deficit' ? 'DEFICIT' : 'OK'}</span>
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
+  }).join('');
+
+  // Update top stats pills
+  if (statsPillsEl) {
+    statsPillsEl.innerHTML = `
+      <span class="badge" style="background:rgba(255,255,255,0.06); color:var(--text-secondary); font-size:11px; padding:2px 8px; border:1px solid var(--border);">
+        <strong>${validItems.length}</strong> ${validItems.length === 1 ? 'Product' : 'Products'}
+      </span>
+      <span class="badge" style="background:rgba(255,255,255,0.06); color:var(--text-secondary); font-size:11px; padding:2px 8px; border:1px solid var(--border);">
+        <strong>${totalRequirementsCount}</strong> Requirements
+      </span>
+      <span class="badge badge-success" style="font-size:11px; padding:2px 8px;">
+        <strong>${totalAvailableCount}</strong> Available
+      </span>
+      ${totalShortageCount > 0 ? `
+      <span class="badge ${nonLabelDeficits > 0 ? 'badge-danger' : 'badge-warning'}" style="font-size:11px; padding:2px 8px;">
+        <strong>${totalShortageCount}</strong> Shortage${totalShortageCount > 1 ? 's' : ''}
+      </span>` : ''}
+    `;
+  }
+
+  // Update top overall status badge
+  if (badgeEl) {
+    if (nonLabelDeficits > 0) {
+      badgeEl.className = 'badge badge-danger';
+      badgeEl.textContent = '⚠️ Stock Shortage Detected';
+    } else if (labelDeficits > 0) {
+      badgeEl.className = 'badge badge-warning';
+      badgeEl.textContent = '⚠️ Label Shortage — Order Can Be Saved';
+    } else {
+      badgeEl.className = 'badge badge-success';
+      badgeEl.textContent = '✓ All Required Stock Available';
+    }
+  }
+
+  contentEl.innerHTML = productCardsHtml;
+}
+
+let currentOrderLabelOwner = 'AAC';
+let cachedLabelsList = [];
+let allInventoryItemsList = [];
 /* orders.js */
 let allOrders = [], orderItems = [], editingOrderId = null;
 let activeOrderTab = 'Orders';
@@ -76,25 +458,29 @@ async function fetchPackagingData() {
     });
 
     if (!invRes.error && invRes.data) {
-      cachedBottlesList = invRes.data.filter(it => it.category === 'Bottles').map(it => ({
+      allInventoryItemsList = invRes.data.map(it => ({
         ...it,
         total_stock: stockMap[it.id] !== undefined ? stockMap[it.id] : (parseFloat(it.stock) || 0)
       }));
-      cachedBoxesList = invRes.data.filter(it => it.category === 'Boxes' || (it.category && it.category.toLowerCase().includes('box')) || (it.name && it.name.toLowerCase().includes('box'))).map(it => ({
+      cachedBottlesList = allInventoryItemsList.filter(it => it.category === 'Bottles');
+      cachedBoxesList = allInventoryItemsList.filter(it => it.category === 'Boxes' || (it.category && it.category.toLowerCase().includes('box')) || (it.name && it.name.toLowerCase().includes('box'))).map(it => ({
         ...it,
-        total_stock: stockMap[it.id] !== undefined ? stockMap[it.id] : (parseFloat(it.stock) || 0)
+        name: (it.name || '').replace(/\s*box\s+box\s*/gi, ' Box ').trim()
       }));
+      cachedLabelsList = allInventoryItemsList.filter(it => it.category === 'Labels');
     }
   } catch (e) {
     console.error('Failed to fetch packaging/inventory data:', e);
   }
 }
 
-async function loadOrders() {
+async function loadOrders(showSkeleton = true) {
   console.log('Loading orders...');
   updatePageDebug('Loading Orders...', '#0C3925');
   try {
-    UTILS.renderTableSkeleton('orders-table');
+    if (showSkeleton) {
+      UTILS.renderTableSkeleton('orders-table');
+    }
     await DB.initDB();
 
     // High performance: fetch packaging, inventory, stock batches, orders, clients, and order_items all in parallel!
@@ -145,6 +531,7 @@ async function loadOrders() {
       }));
       cachedBoxesList = invRes.data.filter(it => it.category === 'Boxes' || (it.category && it.category.toLowerCase().includes('box')) || (it.name && it.name.toLowerCase().includes('box'))).map(it => ({
         ...it,
+        name: (it.name || '').replace(/\s*box\s+box\s*/gi, ' Box ').trim(),
         total_stock: stockMap[it.id] !== undefined ? stockMap[it.id] : (parseFloat(it.stock) || 0)
       }));
     }
@@ -179,10 +566,13 @@ async function loadOrders() {
       let totalOrdUnits = 0;
       let totalDispUnits = 0;
       o.items = itemsByOrderId.get(o.id) || [];
-      o.items.forEach(it => {
-        let metaMatch = null;
-        if (dispatchMeta && Array.isArray(dispatchMeta.items_meta)) {
-          metaMatch = dispatchMeta.items_meta.find(m => m.id == it.id || m.product_id == it.product_id || (m.product_name && String(m.product_name).toLowerCase().trim() === String(it.product_name).toLowerCase().trim()));
+      o.items.forEach((it, itIdx) => {
+        const matchFn = (window.UTILS && window.UTILS.matchOrderItemWithMeta) || matchOrderItemWithMeta;
+        let metaMatch = matchFn ? matchFn(it, dispatchMeta?.items_meta, itIdx) : null;
+        if (!metaMatch && dispatchMeta && Array.isArray(dispatchMeta.items_meta)) {
+          const normP = (window.UTILS && window.UTILS.normalizePackSize) || ((p) => String(p || '').toLowerCase().replace(/\s+/g, '').replace(/litres?|ltrs?|lt\b/g, 'l').replace(/millilitres?|milliliters?|mls?/g, 'ml').replace(/grams?|gms?/g, 'g').replace(/kilograms?|kgs?/g, 'kg'));
+          const itPack = normP(it.packing_size || it.packaging_size);
+          metaMatch = dispatchMeta.items_meta.find(m => (m.id && String(m.id) === String(it.id)) || (String(m.product_id) === String(it.product_id) && normP(m.packing_size || m.packaging_size) === itPack));
         }
         if (metaMatch) {
           if (!it.bottle_inventory_id && metaMatch.bottle_inventory_id) it.bottle_inventory_id = metaMatch.bottle_inventory_id;
@@ -195,16 +585,40 @@ async function loadOrders() {
           it.total_volume = metaMatch.total_volume || null;
         }
 
-        const ordUnits = parseInt(it.ordered_units || metaMatch?.ordered_units || it.total_units || it.quantity, 10) || 0;
-        const dispUnits = parseInt(it.dispatched_units || metaMatch?.dispatched_units || 0, 10);
-        const remUnits = it.remaining_units !== undefined ? parseInt(it.remaining_units, 10) : (metaMatch?.remaining_units !== undefined ? parseInt(metaMatch.remaining_units, 10) : Math.max(0, ordUnits - dispUnits));
+        // Dynamic aggregation of qualifying fulfilled units from dispatch records in dispatchMeta.dispatches
+        let qualifyingDispUnits = 0;
+        if (dispatchMeta && Array.isArray(dispatchMeta.dispatches)) {
+          const normP = (window.UTILS && window.UTILS.normalizePackSize) || ((p) => String(p || '').toLowerCase().replace(/\s+/g, '').replace(/litres?|ltrs?|lt\b/g, 'l').replace(/millilitres?|milliliters?|mls?/g, 'ml').replace(/grams?|gms?/g, 'g').replace(/kilograms?|kgs?/g, 'kg'));
+          const itPack = normP(it.packing_size || it.packaging_size);
+          dispatchMeta.dispatches.forEach(d => {
+            const dSt = (d.status || '').toLowerCase().trim();
+            if (dSt === 'dispatched' || d.stock_deducted === true) {
+              if (Array.isArray(d.items)) {
+                d.items.forEach(di => {
+                  const diPack = normP(di.packaging_size || di.packing_size);
+                  const match = (di.order_item_id && (di.order_item_id == it.id || di.order_item_id == it.order_item_id)) ||
+                    (String(di.product_id) === String(it.product_id) && (!diPack || !itPack || diPack === itPack));
+                  if (match) {
+                    qualifyingDispUnits += parseInt(di.total_units_dispatched || di.quantity || 0, 10);
+                  }
+                });
+              }
+            }
+          });
+        }
+
+        const ordUnits = parseInt(it.quantity !== undefined && it.quantity !== null && it.quantity !== '' ? it.quantity : (it.ordered_units || metaMatch?.ordered_units || it.total_units || 0), 10) || 0;
+        const dispUnits = Math.min(ordUnits, Math.max(qualifyingDispUnits, parseInt(it.dispatched_units || metaMatch?.dispatched_units || 0, 10)));
+        const remUnits = Math.max(0, ordUnits - dispUnits);
 
         it.ordered_units = ordUnits;
         it.dispatched_units = dispUnits;
         it.remaining_units = remUnits;
 
         if (!it.bottles_per_box) {
-          const pkg = allPackagingData.find(p => p.product_id == it.product_id);
+          const normP = (window.UTILS && window.UTILS.normalizePackSize) || ((p) => String(p || '').toLowerCase().replace(/\s+/g, '').replace(/litres?|ltrs?|lt\b/g, 'l').replace(/millilitres?|milliliters?|mls?/g, 'ml').replace(/grams?|gms?/g, 'g').replace(/kilograms?|kgs?/g, 'kg'));
+          const itPack = normP(it.packing_size || it.packaging_size);
+          const pkg = allPackagingData.find(p => String(p.product_id) === String(it.product_id) && normP(p.packaging_size || p.size) === itPack) || allPackagingData.find(p => String(p.product_id) === String(it.product_id));
           const upb = pkg ? (parseInt(pkg.units_per_box || pkg.bottles_per_box, 10) || 1) : 1;
           it.bottles_per_box = upb;
           if (it.box_quantity === undefined) {
@@ -249,18 +663,17 @@ async function loadOrders() {
       });
 
       // Authoritative dispatch status derivation
-      if (!o.dispatch_status) {
-        if (dispatchMeta && dispatchMeta.dispatch_status) {
-          o.dispatch_status = dispatchMeta.dispatch_status;
-        } else if (dispatchMeta && Array.isArray(dispatchMeta.dispatches) && dispatchMeta.dispatches.length > 0) {
-          o.dispatch_status = dispatchMeta.dispatches[0].status || 'Pending Verification';
-        } else if (totalOrdUnits > 0 && totalDispUnits >= totalOrdUnits) {
-          o.dispatch_status = 'Fully Dispatched';
-        } else if (totalDispUnits > 0) {
-          o.dispatch_status = 'Partially Dispatched';
-        } else {
-          o.dispatch_status = 'Pending Verification';
-        }
+      if (totalOrdUnits > 0 && totalDispUnits >= totalOrdUnits) {
+        o.dispatch_status = 'Fully Dispatched';
+      } else if (totalDispUnits > 0) {
+        o.dispatch_status = 'Partially Dispatched';
+      } else if (dispatchMeta && dispatchMeta.dispatch_status) {
+        o.dispatch_status = dispatchMeta.dispatch_status;
+      } else if (dispatchMeta && Array.isArray(dispatchMeta.dispatches) && dispatchMeta.dispatches.length > 0) {
+        const activeDispatches = dispatchMeta.dispatches.filter(d => (d.status || '').toLowerCase() !== 'cancelled');
+        o.dispatch_status = activeDispatches.length > 0 ? (activeDispatches[0].status || 'Pending Verification') : 'Pending Verification';
+      } else {
+        o.dispatch_status = 'Pending Verification';
       }
       // Keep detailed items in sync with parent order dispatch_status
       allDetailedItems.filter(it => it.order_id === o.id).forEach(it => {
@@ -280,9 +693,43 @@ async function loadOrders() {
       if (curVal) clientFilterEl.value = curVal;
     }
 
+    window.allOrders = allOrders;
+    window.allClients = (clientsRes && clientsRes.data) ? clientsRes.data : (window.allClients || []);
+    window.allPackagingData = (pkgRes && pkgRes.data) ? pkgRes.data : (window.allPackagingData || []);
+    window.loadOrders = loadOrders;
+
+    // Strict synchronization of dispatches with loaded orders
+    if (allOrders.length === 0) {
+      window.allDispatches = [];
+      if (window.DISPATCH_SERVICE && typeof window.DISPATCH_SERVICE.clearAllDispatches === 'function') {
+        window.DISPATCH_SERVICE.clearAllDispatches();
+      }
+      if (window.DISPATCH_UI) {
+        if (typeof window.DISPATCH_UI.setAllDispatches === 'function') {
+          window.DISPATCH_UI.setAllDispatches([]);
+        }
+        if (typeof window.DISPATCH_UI.renderDispatchesTable === 'function') {
+          window.DISPATCH_UI.renderDispatchesTable();
+        }
+      }
+    } else if (Array.isArray(window.allDispatches) && window.allDispatches.length > 0) {
+      const activeIds = new Set(allOrders.map(o => String(o.id)));
+      const activeNos = new Set(allOrders.map(o => String(o.order_no || '').trim().toUpperCase()));
+      window.allDispatches = window.allDispatches.filter(d => {
+        return (d.order_id && activeIds.has(String(d.order_id))) ||
+               (d.order_no && activeNos.has(String(d.order_no).trim().toUpperCase()));
+      });
+      if (window.DISPATCH_UI && typeof window.DISPATCH_UI.setAllDispatches === 'function') {
+        window.DISPATCH_UI.setAllDispatches(window.allDispatches);
+      }
+    }
+
     applyFiltersAndRender();
     updatePageDebug('Ready (' + allOrders.length + ')', '#0C3925');
     setTimeout(() => UTILS.initAllAutocompleteSelects(), 50);
+    if (window.DISPATCH_UI && typeof window.DISPATCH_UI.loadDispatches === 'function') {
+      window.DISPATCH_UI.loadDispatches().catch(() => {});
+    }
   } catch (err) {
     console.error('loadOrders failed:', err);
     updatePageDebug('FAILED', '#EF4444');
@@ -341,75 +788,212 @@ function applyFiltersAndRender() {
 let ordersTableEnhancer = null;
 
 function renderOrdersSlice(slice) {
+  const cardsContainer = document.getElementById('orders-cards-container');
   const tbody = document.querySelector('#orders-table tbody');
-  if (!tbody) return;
-  tbody.innerHTML = slice.map(o => {
-    const totalAmount = parseFloat(o.total_amount) || 0;
-    const paidAmount = parseFloat(o.paid_amount) || 0;
-    const balance = totalAmount - paidAmount;
-    const rowBg = balance <= 0 ? 'rgba(12, 57, 37, 0.05)' : 'rgba(239, 68, 68, 0.05)';
-    
-    // Status Badge
-    let statusVal = o.status || 'Pending';
-    if (statusVal === 'Delivered') {
-      statusVal = 'Completed';
-    }
-    const statusBadge = UTILS.statusBadge(statusVal);
 
-    let dispStatus = o.dispatch_status;
-    if (!dispStatus) {
+  const safeEscape = (str) => {
+    if (typeof escapeHtml === 'function') return escapeHtml(str);
+    if (typeof window !== 'undefined' && window.UTILS && typeof window.UTILS.escapeHtml === 'function') return window.UTILS.escapeHtml(str);
+    return String(str || '').replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+  };
+
+  // 1. Render Responsive Order Summary Cards
+  if (cardsContainer) {
+    cardsContainer.innerHTML = slice.map(o => {
+      const totalAmount = parseFloat(o.total_amount) || 0;
+      const paidAmount = parseFloat(o.paid_amount) || 0;
+      const balance = totalAmount - paidAmount;
+
+      let statusVal = o.status || 'Pending';
+      if (statusVal === 'Delivered') statusVal = 'Completed';
+      const isCompleted = statusVal.toLowerCase() === 'completed';
+      const statusBadge = `<span class="badge ${isCompleted ? 'badge-success' : 'badge-warning'}">${statusVal}</span>`;
+
+      let dispStatus = o.dispatch_status;
       const items = o.items || [];
-      const totalOrd = items.reduce((s, it) => s + (parseInt(it.ordered_units || it.quantity, 10) || 0), 0);
+      const totalOrd = items.reduce((s, it) => s + (parseInt(it.ordered_units || it.total_units || it.quantity, 10) || 0), 0);
       const totalDisp = items.reduce((s, it) => s + (parseInt(it.dispatched_units, 10) || 0), 0);
-      if (totalOrd > 0 && totalDisp >= totalOrd) {
-        dispStatus = 'Fully Dispatched';
-      } else if (totalDisp > 0) {
-        dispStatus = 'Partially Dispatched';
-      } else {
-        dispStatus = 'Pending Verification';
+      if (!dispStatus) {
+        if (totalOrd > 0 && totalDisp >= totalOrd) {
+          dispStatus = 'Fully Dispatched';
+        } else if (totalDisp > 0) {
+          dispStatus = 'Partially Dispatched';
+        } else {
+          dispStatus = 'Pending Verification';
+        }
       }
-    }
-    const dispatchBadge = UTILS.statusBadge(dispStatus);
+      const dispatchBadge = UTILS.statusBadge(dispStatus);
 
-    let balanceClass = 'text-muted';
-    if (balance > 0.005) {
-      balanceClass = 'text-danger font-bold';
-    } else if (balance < -0.005) {
-      balanceClass = 'text-info font-bold';
-    } else {
-      balanceClass = 'text-success font-semibold';
-    }
+      let balanceClass = 'text-muted';
+      if (balance > 0.005) {
+        balanceClass = 'text-danger font-bold';
+      } else if (balance < -0.005) {
+        balanceClass = 'text-info font-bold';
+      } else {
+        balanceClass = 'text-success font-semibold';
+      }
 
-    return `<tr style="background: ${rowBg}">
-      <td class="cell-bold">${o.order_no}</td>
-      <td class="cell-client">${o.client_display || '—'}</td>
-      <td>${UTILS.fmtDate(o.date)}</td>
-      <td class="cell-amount text-right">${UTILS.fmtCurrency(totalAmount)}</td>
-      <td class="cell-amount text-right text-success font-semibold">${UTILS.fmtCurrency(paidAmount)}</td>
-      <td class="cell-amount text-right ${balanceClass}">${UTILS.fmtCurrency(balance)}</td>
-      <td class="text-center">${dispatchBadge}</td>
-      <td class="text-center">${statusBadge}</td>
-      <td class="text-center"><div class="row-actions" style="justify-content:center;">
-        <button class="action-btn view" onclick="viewOrder(${o.id})" title="View Details"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
-        <button class="action-btn edit" onclick="openEdit(${o.id})" title="Edit Order"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
-        ${dispStatus !== 'Fully Dispatched' && (o.status || '').toLowerCase() !== 'cancelled' ? `
-          <button class="action-btn" onclick="openPrepareDispatch(${o.id})" title="Prepare Dispatch Slip" style="color:var(--primary);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><path d="M5 18H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h3.19M15 6h2a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-3.19"/><path d="M12 12v6"/><path d="m9 15 3 3 3-3"/></svg></button>
-        ` : ''}
-        <button class="action-btn delete" onclick="deleteOrder(${o.id})" title="Delete"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg></button>
-      </div></td>
-    </tr>`;
-  }).join('');
-  UTILS.applyMobileTableLabels('orders-table');
+      const dispPercent = totalOrd > 0 ? Math.min(100, Math.round((totalDisp / totalOrd) * 100)) : (dispStatus === 'Fully Dispatched' ? 100 : 0);
+      const dispCountText = totalOrd > 0 ? `${totalDisp} / ${totalOrd} units dispatched (${dispPercent}%)` : dispStatus;
+      const canDispatch = dispStatus !== 'Fully Dispatched' && (o.status || '').toLowerCase() !== 'cancelled';
+
+      return `
+        <div class="order-summary-card" data-order-id="${o.id}">
+          <!-- Order Header -->
+          <div class="order-summary-card-header">
+            <div class="order-summary-header-meta">
+              <span class="order-summary-order-no">${o.order_no}</span>
+              <span class="order-summary-date">${UTILS.fmtDate(o.date)}</span>
+            </div>
+            <div class="order-summary-header-badges">
+              ${dispatchBadge}
+              ${statusBadge}
+            </div>
+          </div>
+
+          <!-- Client Information -->
+          <div class="order-summary-client-row">
+            <span class="order-summary-client-label">Client</span>
+            <span class="order-summary-client-name" title="${safeEscape(o.client_display || '—')}">${safeEscape(o.client_display || '—')}</span>
+          </div>
+
+          <div class="order-summary-card-divider"></div>
+
+          <!-- Financial Summary (Total, Paid, Balance) -->
+          <div class="order-summary-finance-grid">
+            <div class="finance-box">
+              <span class="finance-box-label">Total</span>
+              <span class="finance-box-val">${UTILS.fmtCurrency(totalAmount)}</span>
+            </div>
+            <div class="finance-box">
+              <span class="finance-box-label">Paid</span>
+              <span class="finance-box-val text-success font-semibold">${UTILS.fmtCurrency(paidAmount)}</span>
+            </div>
+            <div class="finance-box">
+              <span class="finance-box-label">Balance</span>
+              <span class="finance-box-val ${balanceClass}">${UTILS.fmtCurrency(balance)}</span>
+            </div>
+          </div>
+
+          <!-- Dispatch Progress Summary -->
+          <div class="order-summary-dispatch-progress">
+            <div class="dispatch-progress-label">
+              <span>Dispatch Progress</span>
+              <span class="dispatch-progress-counts font-semibold">${dispCountText}</span>
+            </div>
+            <div class="dispatch-progress-bar-wrap">
+              <div class="dispatch-progress-bar-fill" style="width: ${dispPercent}%;"></div>
+            </div>
+          </div>
+
+          <!-- Actions -->
+          <div class="order-summary-card-actions">
+            <button type="button" class="order-card-btn view" onclick="viewOrder(${o.id})" title="View Details">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              <span>View Details</span>
+            </button>
+            <button type="button" class="order-card-btn edit" onclick="openEdit(${o.id})" title="Edit Order">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              <span>Edit</span>
+            </button>
+            ${canDispatch ? `
+              <button type="button" class="order-card-btn dispatch" onclick="openPrepareDispatch(${o.id})" title="Prepare Dispatch Slip">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 18H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h3.19M15 6h2a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-3.19"/><path d="M12 12v6"/><path d="m9 15 3 3 3-3"/></svg>
+                <span style="color:#ffffff;">Dispatch</span>
+              </button>
+            ` : ''}
+            <a href="intercompany.html?import_order_id=${o.id}" class="order-card-btn transfer" style="color:var(--text-secondary);text-decoration:none;" title="Create Intercompany Transfer for this Order">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+              <span>Transfer</span>
+            </a>
+            <button type="button" class="order-card-btn delete" onclick="deleteOrder(${o.id})" title="Delete Order">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>
+              <span>Delete</span>
+            </button>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  // 2. Also populate table fallback if tbody exists
+  if (tbody) {
+    tbody.innerHTML = slice.map(o => {
+      const totalAmount = parseFloat(o.total_amount) || 0;
+      const paidAmount = parseFloat(o.paid_amount) || 0;
+      const balance = totalAmount - paidAmount;
+      const rowBg = balance <= 0 ? 'rgba(12, 57, 37, 0.05)' : 'rgba(239, 68, 68, 0.05)';
+      
+      let statusVal = o.status || 'Pending';
+      if (statusVal === 'Delivered') statusVal = 'Completed';
+      const statusBadge = UTILS.statusBadge(statusVal);
+
+      let dispStatus = o.dispatch_status;
+      if (!dispStatus) {
+        const items = o.items || [];
+        const totalOrd = items.reduce((s, it) => s + (parseInt(it.ordered_units || it.quantity, 10) || 0), 0);
+        const totalDisp = items.reduce((s, it) => s + (parseInt(it.dispatched_units, 10) || 0), 0);
+        if (totalOrd > 0 && totalDisp >= totalOrd) {
+          dispStatus = 'Fully Dispatched';
+        } else if (totalDisp > 0) {
+          dispStatus = 'Partially Dispatched';
+        } else {
+          dispStatus = 'Pending Verification';
+        }
+      }
+      const dispatchBadge = UTILS.statusBadge(dispStatus);
+
+      let balanceClass = 'text-muted';
+      if (balance > 0.005) {
+        balanceClass = 'text-danger font-bold';
+      } else if (balance < -0.005) {
+        balanceClass = 'text-info font-bold';
+      } else {
+        balanceClass = 'text-success font-semibold';
+      }
+
+      return `<tr style="background: ${rowBg}">
+        <td class="cell-bold">${o.order_no}</td>
+        <td class="cell-client">${o.client_display || '—'}</td>
+        <td>${UTILS.fmtDate(o.date)}</td>
+        <td class="cell-amount text-right">${UTILS.fmtCurrency(totalAmount)}</td>
+        <td class="cell-amount text-right text-success font-semibold">${UTILS.fmtCurrency(paidAmount)}</td>
+        <td class="cell-amount text-right ${balanceClass}">${UTILS.fmtCurrency(balance)}</td>
+        <td class="text-center">${dispatchBadge}</td>
+        <td class="text-center">${statusBadge}</td>
+        <td class="text-center"><div class="row-actions" style="justify-content:center;">
+          <button class="action-btn view" onclick="viewOrder(${o.id})" title="View Details"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
+          <button class="action-btn edit" onclick="openEdit(${o.id})" title="Edit Order"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+          ${dispStatus !== 'Fully Dispatched' && (o.status || '').toLowerCase() !== 'cancelled' ? `
+            <button class="action-btn" onclick="openPrepareDispatch(${o.id})" title="Prepare Dispatch Slip" style="color:var(--primary);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><path d="M5 18H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h3.19M15 6h2a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-3.19"/><path d="M12 12v6"/><path d="m9 15 3 3 3-3"/></svg></button>
+          ` : ''}
+          <a class="action-btn" href="intercompany.html?import_order_id=${o.id}" title="Transfer via Intercompany" style="color:var(--text-muted);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><polyline points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></a>
+          <button class="action-btn delete" onclick="deleteOrder(${o.id})" title="Delete"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg></button>
+        </div></td>
+      </tr>`;
+    }).join('');
+    UTILS.applyMobileTableLabels('orders-table');
+  }
 }
 
 function renderTable(data) {
+  const cardsContainer = document.getElementById('orders-cards-container');
   const tbody = document.querySelector('#orders-table tbody');
-  if (!tbody) return;
   const countEl = document.getElementById('total-info');
   if (countEl) countEl.textContent = `${data.length} order${data.length !== 1 ? 's' : ''}`;
   
   if (!data.length) {
-    tbody.innerHTML = `<tr class="empty-row"><td colspan="9"><div class="empty-state"><h3>No orders found</h3><p>Create your first order or adjust search filters.</p></div></td></tr>`;
+    if (cardsContainer) {
+      cardsContainer.innerHTML = `
+        <div class="empty-state" style="grid-column: 1 / -1; width: 100%; text-align: center; padding: 48px 20px;">
+          <h3>No orders found</h3>
+          <p>Create your first order or adjust search filters.</p>
+        </div>
+      `;
+    }
+    if (tbody) {
+      tbody.innerHTML = `<tr class="empty-row"><td colspan="9"><div class="empty-state"><h3>No orders found</h3><p>Create your first order or adjust search filters.</p></div></td></tr>`;
+    }
     const pag = document.querySelector('#orders-table-wrap .pagination');
     if (pag) pag.style.display = 'none';
     return;
@@ -569,7 +1153,7 @@ function renderOrderItemsDetailTable(data) {
             ${canDispatch ? `
               <button type="button" class="order-card-btn dispatch" onclick="openPrepareDispatch(${it.order_id})" title="Prepare Dispatch">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 18H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h3.19M15 6h2a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-3.19"/><path d="M12 12v6"/><path d="m9 15 3 3 3-3"/></svg>
-                <span>Dispatch</span>
+                <span style="color:#ffffff;">Dispatch</span>
               </button>
             ` : ''}
           </div>
@@ -665,10 +1249,15 @@ function renderOrderItemsDetailTable(data) {
 
 async function viewOrder(id) {
   try {
-    const { data: o, error: oErr } = await window.dbClient.from('orders').select('*').eq('id', id).single();
-    if (oErr) throw oErr;
-    const { data: itemsData } = await window.dbClient.from('order_items').select('*').eq('order_id', id);
-    o.items = itemsData || [];
+    const cachedOrder = (window.allOrders || []).find(o => String(o.id) === String(id));
+    let o = (cachedOrder && Array.isArray(cachedOrder.items) && cachedOrder.items.length) ? cachedOrder : null;
+    if (!o) {
+      const { data: dbO, error: oErr } = await window.dbClient.from('orders').select('*').eq('id', id).single();
+      if (oErr) throw oErr;
+      const { data: itemsData } = await window.dbClient.from('order_items').select('*').eq('order_id', id);
+      dbO.items = itemsData || [];
+      o = dbO;
+    }
 
     const balance = parseFloat(o.total_amount) - parseFloat(o.paid_amount || 0);
     let statusVal = o.status || 'Pending';
@@ -696,7 +1285,8 @@ async function viewOrder(id) {
         if (b) btlName = b.name;
       }
       if (dispatchMeta && Array.isArray(dispatchMeta.items_meta)) {
-        const metaMatch = dispatchMeta.items_meta.find(m => m.id == it.id || m.product_id == it.product_id || (m.product_name && String(m.product_name).toLowerCase().trim() === String(it.product_name).toLowerCase().trim()));
+        const matchFn = (window.UTILS && window.UTILS.matchOrderItemWithMeta) || matchOrderItemWithMeta;
+        const metaMatch = matchFn ? matchFn(it, dispatchMeta.items_meta) : null;
         if (metaMatch) {
           if (!btlName && metaMatch.bottle_inventory_id) {
             const b = cachedBottlesList.find(x => x.id == metaMatch.bottle_inventory_id);
@@ -717,6 +1307,17 @@ async function viewOrder(id) {
               <div>Pack: <span class="badge badge-neutral" style="font-size:11px; padding:2px 6px;">${pSize || '—'}</span></div>
               ${btlName ? `<div>Bottle: <span class="badge badge-neutral" style="font-size:11px; padding:2px 6px;">${btlName}</span></div>` : ''}
               ${boxName ? `<div>Box: <span class="badge badge-neutral" style="font-size:11px; padding:2px 6px;">${boxName}</span></div>` : ''}
+              ${(() => {
+                let lbl = null;
+                if (dispatchMeta && Array.isArray(dispatchMeta.items_meta)) {
+                  const matchFn = (window.UTILS && window.UTILS.matchOrderItemWithMeta) || matchOrderItemWithMeta;
+                  const m = matchFn ? matchFn(it, dispatchMeta.items_meta) : null;
+                  if (m && (m.label_name || m.label_owner)) {
+                    lbl = `${m.label_owner ? '[' + m.label_owner + '] ' : ''}${m.label_name || 'Label'}`;
+                  }
+                }
+                return lbl ? `<div>Label: <span class="badge badge-neutral" style="font-size:11px; padding:2px 6px;">${lbl}</span></div>` : '';
+              })()}
             </div>
             <div>Qty: <strong style="color:var(--text-primary)">${it.quantity}</strong> × ${UTILS.fmtCurrency(it.unit_price)}</div>
           </div>
@@ -751,6 +1352,27 @@ async function viewOrder(id) {
           </div>
         </div>
 
+        <!-- Fulfillment Route (Source & Destination) -->
+        <div class="dispatch-route-card-block" style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; background: rgba(12, 57, 37, 0.04); border: 1px solid rgba(12, 57, 37, 0.14); border-radius: 8px; padding: 10px 12px;">
+          <div class="dispatch-route-col">
+            <span class="dispatch-route-label" style="font-size: 9.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.8px; color: #0C3925; display:block; margin-bottom: 2px;">SOURCE</span>
+            <div class="dispatch-route-val" style="font-size: 13px; font-weight: 700; color: var(--text-primary);">${(() => {
+              const sourceWhId = o.warehouse_id || 1;
+              if (typeof window !== 'undefined' && Array.isArray(window.allWarehouses)) {
+                const foundWh = window.allWarehouses.find(w => String(w.id) === String(sourceWhId) || w.code === String(sourceWhId));
+                if (foundWh) return `${foundWh.name} (${foundWh.code})`;
+              }
+              return 'Main Plant Warehouse (WH-AAC-01)';
+            })()}</div>
+            <span class="dispatch-route-sub" style="font-size: 10.5px; color: var(--text-muted);">Origin Fulfillment Facility</span>
+          </div>
+          <div class="dispatch-route-col dispatch-dest-col">
+            <span class="dispatch-route-label" style="font-size: 9.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.8px; color: #0284c7; display:block; margin-bottom: 2px;">DESTINATION</span>
+            <div class="dispatch-route-val" style="font-size: 13px; font-weight: 700; color: var(--text-primary);">${o.client_name || 'Customer Consignee'}</div>
+            <span class="dispatch-route-sub" style="font-size: 10.5px; color: var(--text-muted);">Direct Customer Delivery Point</span>
+          </div>
+        </div>
+
         <!-- Ordered Items Section -->
         <div>
           <h4 style="margin: 0 0 8px; font-size: 13px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px;">Ordered Items (${(o.items || []).length})</h4>
@@ -765,8 +1387,12 @@ async function viewOrder(id) {
           </div>
         ` : ''}
 
-        <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 4px;">
+        <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 4px; flex-wrap: wrap;">
           <button class="btn btn-secondary" onclick="APP.closeModal('view-modal')">Close</button>
+          <a href="intercompany.html?import_order_id=${o.id}" class="btn btn-secondary" style="display:inline-flex;align-items:center;gap:6px;background:rgba(12,57,37,0.06);color:#0C3925;border-color:rgba(12,57,37,0.2);" title="Auto-fill this order into an Intercompany Transfer">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><polyline points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+            Transfer via Intercompany
+          </a>
           <button class="btn btn-primary" onclick="APP.closeModal('view-modal'); openEdit(${o.id});">Edit Order</button>
         </div>
       </div>
@@ -784,9 +1410,14 @@ async function populateClientSelect() {
   const sel = document.getElementById('client-select');
   if (!sel) return;
   try {
-    const { data: clientsData, error } = await window.dbClient.from('clients').select('*');
-    if (error) throw error;
-    const clients = clientsData || [];
+    let clients = window.allClients || [];
+    if (!clients.length && window.dbClient) {
+      const { data: clientsData, error } = await window.dbClient.from('clients').select('*');
+      if (!error && clientsData) {
+        clients = clientsData;
+        window.allClients = clientsData;
+      }
+    }
     sel.innerHTML = '<option value="">Select Client</option>' + clients.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
     if (sel._ussInstance) {
       sel._ussInstance.updateOptions();
@@ -804,31 +1435,71 @@ async function openAdd() {
   document.getElementById('modal-title').textContent = 'New Sales Order';
   const orderForm = document.getElementById('order-form');
   orderForm.reset();
-  const nextOrderNo = await getNextOrderNo();
+
+  // Instant visual modal response (< 10ms)
+  APP.openModal('order-modal');
+
+  // Synchronous next order number derivation from memory
+  let maxNum = 0;
+  (window.allOrders || []).forEach(o => {
+    if (o.order_no) {
+      const num = UTILS.extractNumericPart(o.order_no);
+      if (num < 1000000 && num > maxNum) maxNum = num;
+    }
+  });
+  const nextOrderNo = 'O-' + String(maxNum + 1).padStart(2, '0');
   const orderNoField = document.getElementById('order-no-field');
   if (orderNoField) orderNoField.value = nextOrderNo;
+
   const toggle = document.getElementById('auto-discount-toggle');
   if (toggle) toggle.checked = false;
   const gstSel = document.getElementById('gst-type-select');
   if (gstSel) { gstSel.value = ''; onGstTypeChange(''); }
   handleAutoDiscount();
+
   orderItems = [{ id: Date.now(), product_id: '', product_name: '', packaging_size: '', bottle_inventory_id: null, box_inventory_id: null, quantity: 1, unit_price: 0, total: 0 }];
+  await populateOrderBrandSelect('AAC');
   await populateClientSelect();
   await renderOrderItems();
   UTILS.applyDefaultDateInputs(orderForm, { skipFieldNames: ['due_date'] });
-  APP.openModal('order-modal');
-  setTimeout(() => UTILS.initAllAutocompleteSelects(), 10);
+
+  // Non-blocking background order number verification with DB
+  getNextOrderNo().then(verifiedNo => {
+    if (orderNoField && (!orderNoField.value || orderNoField.value.startsWith('O-'))) {
+      orderNoField.value = verifiedNo;
+    }
+  }).catch(() => {});
+
+  setTimeout(() => UTILS.initAllAutocompleteSelects(orderForm), 10);
 }
 
 async function openEdit(id) {
   editingOrderId = id;
+  // Instant visual modal response (< 10ms)
+  APP.openModal('order-modal');
+  document.getElementById('modal-title').textContent = 'Edit Order';
+
   try {
+    // If cached in memory, populate immediately
+    const cached = (window.allOrders || []).find(x => String(x.id) === String(id));
+    let existingOwner = 'AAC';
+    if (cached && cached.notes && /(?:DISPATCH_META|Dispatch_meta):/i.test(cached.notes)) {
+      try {
+        const meta = JSON.parse(cached.notes.replace(/^[\s\S]*?(?:DISPATCH_META|Dispatch_meta):/i, '').trim());
+        if (meta.label_owner) existingOwner = meta.label_owner;
+      } catch (_) {}
+    }
+    await populateOrderBrandSelect(existingOwner);
     await populateClientSelect();
     
-    const { data: o, error: oErr } = await window.dbClient.from('orders').select('*').eq('id', id).single();
-    if (oErr) throw oErr;
-    const { data: itemsData } = await window.dbClient.from('order_items').select('*').eq('order_id', id);
-    o.items = itemsData || [];
+    let o = cached;
+    if (!o || !Array.isArray(o.items) || !o.items.length) {
+      const { data: dbO, error: oErr } = await window.dbClient.from('orders').select('*').eq('id', id).single();
+      if (oErr) throw oErr;
+      const { data: itemsData } = await window.dbClient.from('order_items').select('*').eq('order_id', id);
+      dbO.items = itemsData || [];
+      o = dbO;
+    }
 
     document.getElementById('modal-title').textContent = 'Edit Order';
     if (o.status === 'Delivered') {
@@ -873,7 +1544,8 @@ async function openEdit(id) {
       let boxInvId = null;
       let boxName = null;
       if (dispatchMeta && Array.isArray(dispatchMeta.items_meta)) {
-        const metaMatch = dispatchMeta.items_meta.find(m => m.id == item.id || m.product_id == item.product_id || (m.product_name && String(m.product_name).toLowerCase().trim() === String(item.product_name).toLowerCase().trim()));
+        const matchFn = (window.UTILS && window.UTILS.matchOrderItemWithMeta) || matchOrderItemWithMeta;
+        const metaMatch = matchFn ? matchFn(item, dispatchMeta.items_meta) : null;
         if (metaMatch) {
           if (q <= 0) {
             q = parseFloat(metaMatch.QUANTITY || metaMatch.quantity || metaMatch.TOTAL_UNITS || metaMatch.total_units || 0);
@@ -952,6 +1624,20 @@ function cleanSizeLabel(size, unit) {
   return `${s} ${u}`;
 }
 
+function formatBottleDropdownLabel(btl) {
+  if (!btl) return 'Select Bottle';
+  return (typeof UTILS !== 'undefined' && UTILS.formatPackagingDisplayName)
+    ? UTILS.formatPackagingDisplayName(btl, 'Bottles')
+    : String(btl.name || btl).replace(/\b(bottle|bottles)\b/gi, '').replace(/\([^)]*avail[^)]*\)/gi, '').trim();
+}
+
+function formatBoxDropdownLabel(bxName, stock) {
+  if (!bxName) return 'Select Box';
+  return (typeof UTILS !== 'undefined' && UTILS.formatPackagingDisplayName)
+    ? UTILS.formatPackagingDisplayName(bxName, 'Boxes')
+    : String(bxName.name || bxName).replace(/\s*box\s+box\s*/gi, ' Box ').replace(/\b(box|boxes)\b/gi, '').replace(/\([^)]*avail[^)]*\)/gi, '').trim();
+}
+
 let cachedProductsList = [];
 
 async function renderOrderItems() {
@@ -997,7 +1683,6 @@ async function renderOrderItems() {
       if (pkgOptions.length > 0) {
         const itemNormPack = item.packaging_size ? String(item.packaging_size).toLowerCase().replace(/\s+/g, '') : '';
         
-        // First check if any option matches item.packaging_size
         let matchedIndex = -1;
         if (itemNormPack) {
           matchedIndex = pkgOptions.findIndex(opt => {
@@ -1024,9 +1709,10 @@ async function renderOrderItems() {
           return `<option value="${sizeLabel}" data-price="${priceVal}" ${isSel ? 'selected' : ''}>${sizeLabel}</option>`;
         }).join('');
 
-        // Ensure item.packaging_size is set if not already set
         if (!item.packaging_size && pkgOptions.length > 0) {
-          const selOpt = pkgOptions.find(opt => opt.is_base) || pkgOptions[0];
+          const selOpt = pkgOptions.find(opt => opt.is_base)
+            || pkgOptions.find(opt => /\b1\s*(?:litre|ltr|l)\b/i.test(opt.packaging_size || opt.size || ''))
+            || pkgOptions[0];
           item.packaging_size = cleanSizeLabel(selOpt.packaging_size || selOpt.size || '', unitStr);
           if (!item.unit_price) item.unit_price = parseFloat(selOpt.sell_price || selOpt.selling_price) || 0;
         }
@@ -1040,46 +1726,52 @@ async function renderOrderItems() {
         pkgSelectHtml = `<input type="text" class="form-input order-pack-input" data-idx="${idx}" value="${fallbackSize}" placeholder="Pack size" onchange="onPackSizeChange(${idx}, this.value)">`;
       }
 
+      const curBtl = (cachedBottlesList || []).find(b => b.id == item.bottle_inventory_id);
+      const selectedBottleTitle = curBtl ? formatBottleDropdownLabel(curBtl) : 'Select Bottle';
+
+      const curBx = (cachedBoxesList || []).find(b => b.id == item.box_inventory_id);
+      const selectedBoxTitle = curBx ? formatBoxDropdownLabel(curBx) : 'Select Box';
+
       return `
         <tr data-row-idx="${idx}">
-          <td style="min-width:160px">
+          <td style="min-width:170px">
             <span class="mobile-label">Product</span>
             <select class="form-select order-product-select" data-idx="${idx}" onchange="onProductSelectChange(${idx}, this.value)">
               <option value="">Select Product</option>
               ${cachedProductsList.map(p => `<option value="${p.id}" ${p.id == item.product_id ? 'selected' : ''}>${p.name}</option>`).join('')}
             </select>
           </td>
-          <td style="min-width:120px" class="pack-size-cell">
+          <td style="min-width:115px" class="pack-size-cell">
             <span class="mobile-label">Pack Size</span>
             ${pkgSelectHtml}
           </td>
-          <td style="min-width:160px">
+          <td style="min-width:190px">
             <span class="mobile-label">Bottle</span>
-            <select class="form-select order-bottle-select" data-idx="${idx}" onchange="onBottleChange(${idx}, this.value)">
+            <select class="form-select order-bottle-select" data-idx="${idx}" title="${selectedBottleTitle}" style="width:100%;" onchange="onBottleChange(${idx}, this.value)">
               <option value="">Select Bottle</option>
-              ${cachedBottlesList.map(b => `<option value="${b.id}" ${b.id == item.bottle_inventory_id ? 'selected' : ''}>${b.name} (${parseFloat(b.total_stock || b.stock || 0).toFixed(0)} avail)</option>`).join('')}
+              ${cachedBottlesList.map(b => `<option value="${b.id}" ${b.id == item.bottle_inventory_id ? 'selected' : ''}>${formatBottleDropdownLabel(b)}</option>`).join('')}
             </select>
           </td>
-          <td style="min-width:160px">
+          <td style="min-width:190px">
             <span class="mobile-label">Box</span>
-            <select class="form-select order-box-select" data-idx="${idx}" onchange="onBoxChange(${idx}, this.value)">
+            <select class="form-select order-box-select" data-idx="${idx}" title="${selectedBoxTitle}" style="width:100%;" onchange="onBoxChange(${idx}, this.value)">
               <option value="">Select Box</option>
-              ${cachedBoxesList.map(bx => `<option value="${bx.id}" ${bx.id == item.box_inventory_id ? 'selected' : ''}>${bx.name} (${parseFloat(bx.total_stock || bx.stock || 0).toFixed(0)} avail)</option>`).join('')}
+              ${cachedBoxesList.map(bx => `<option value="${bx.id}" ${bx.id == item.box_inventory_id ? 'selected' : ''}>${formatBoxDropdownLabel(bx)}</option>`).join('')}
             </select>
           </td>
-          <td>
+          <td style="min-width:70px">
             <span class="mobile-label">Quantity</span>
             <input type="number" class="form-input item-qty-input" value="${item.quantity}" min="0" step="any" oninput="onQtyChange(${idx}, this.value)" onchange="onQtyChange(${idx}, this.value)">
           </td>
-          <td>
+          <td style="min-width:80px">
             <span class="mobile-label">Unit Price (₹)</span>
             <input type="number" class="form-input item-price-input" value="${item.unit_price}" min="0" step="any" oninput="onUnitPriceChange(${idx}, this.value)" onchange="onUnitPriceChange(${idx}, this.value)">
           </td>
-          <td class="cell-amount item-total-display">
+          <td class="cell-amount item-total-display" style="min-width:85px">
             <span class="mobile-label">Total</span>
             ${UTILS.fmtCurrency(item.total)}
           </td>
-          <td>
+          <td style="min-width:40px; text-align:center;">
             <span class="mobile-label">Remove</span>
             <button class="action-btn delete" onclick="removeItem(${idx})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg></button>
           </td>
@@ -1087,6 +1779,7 @@ async function renderOrderItems() {
       `;
     }).join('');
     calculateTotal();
+    updateOrderStockSummary();
     setTimeout(() => {
       if (window.UTILS?.initAllAutocompleteSelects) {
         UTILS.initAllAutocompleteSelects();
@@ -1110,8 +1803,13 @@ async function onProductSelectChange(idx, valOrEvt) {
     console.log(`[OrderRow ${idx}] Cleared product selection.`);
     it.product_name = '';
     it.packaging_size = '';
+    it.bottle_inventory_id = null;
+    it.box_inventory_id = null;
+    it.box_name = null;
+    it.quantity = 0;
     it.unit_price = 0;
     it.total = 0;
+    resolveOrderItemLabel(it, currentOrderLabelOwner);
     await renderOrderItems();
     return;
   }
@@ -1138,33 +1836,41 @@ async function onProductSelectChange(idx, valOrEvt) {
       }
     }
   }
-  console.log(`[OrderRow ${idx}] Raw packaging_options array:`, pkgOptions);
 
   if (pkgOptions.length > 0) {
     pkgOptions = UTILS.sortPackSizesDescending(pkgOptions, opt => opt.packaging_size || opt.size);
-    const selectedOpt = pkgOptions.find(opt => opt.is_base) || pkgOptions[0];
+    const selectedOpt = pkgOptions.find(opt => opt.is_base)
+      || pkgOptions.find(opt => /\b1\s*(?:litre|ltr|l)\b/i.test(opt.packaging_size || opt.size || ''))
+      || pkgOptions[0];
     const rawSize = selectedOpt.packaging_size || selectedOpt.size || '';
     it.packaging_size = cleanSizeLabel(rawSize, p?.unit);
     it.unit_price = parseFloat(selectedOpt.sell_price || selectedOpt.selling_price) || parseFloat(p?.sell_price) || 0;
+    it.bottles_per_box = parseInt(selectedOpt.units_per_box || selectedOpt.bottles_per_box, 10) || 12;
   } else {
-    it.packaging_size = p?.unit || '';
+    it.packaging_size = p?.unit || '1 Litre';
     it.unit_price = parseFloat(p?.sell_price) || 0;
+    it.bottles_per_box = 12;
   }
 
-  if (!it.bottle_inventory_id && it.packaging_size && cachedBottlesList.length > 0) {
-    const normSize = String(it.packaging_size).toLowerCase().replace(/\s+/g, '');
-    const btlMatch = cachedBottlesList.find(b => {
-      const bSize = String(b.item_size || b.name || '').toLowerCase().replace(/\s+/g, '');
-      return bSize.includes(normSize) || normSize.includes(bSize);
-    });
-    if (btlMatch) it.bottle_inventory_id = btlMatch.id;
+  // Auto-match bottle & box based on initial packaging size
+  if (it.packaging_size && (cachedBottlesList || []).length > 0) {
+    const btlMatch = cachedBottlesList.find(b => isPackagingSizeCompatible(b.name || b.item_size, it.packaging_size));
+    it.bottle_inventory_id = btlMatch ? btlMatch.id : null;
   }
-  if (!it.box_inventory_id && cachedBoxesList.length === 1) {
-    it.box_inventory_id = cachedBoxesList[0].id;
-    it.box_name = cachedBoxesList[0].name;
+  if (it.packaging_size && (cachedBoxesList || []).length > 0) {
+    const bxMatch = cachedBoxesList.find(b => isPackagingSizeCompatible(b.name, it.packaging_size));
+    if (bxMatch) {
+      it.box_inventory_id = bxMatch.id;
+      it.box_name = bxMatch.name;
+    } else if (cachedBoxesList.length === 1) {
+      it.box_inventory_id = cachedBoxesList[0].id;
+      it.box_name = cachedBoxesList[0].name;
+    }
   }
 
   it.total = (parseFloat(it.quantity) || 0) * (parseFloat(it.unit_price) || 0);
+  it.outer_boxes_consumed = it.box_inventory_id ? Math.ceil((parseFloat(it.quantity) || 0) / (it.bottles_per_box || 12)) : 0;
+  resolveOrderItemLabel(it, currentOrderLabelOwner);
   await renderOrderItems();
 }
 
@@ -1204,35 +1910,60 @@ async function onPackSizeChange(idx, val) {
     if (!isNaN(pr) && pr >= 0) {
       it.unit_price = pr;
     }
+    if (matchOpt.units_per_box || matchOpt.bottles_per_box) {
+      it.bottles_per_box = parseInt(matchOpt.units_per_box || matchOpt.bottles_per_box, 10) || 12;
+    }
   }
 
-  if (!it.bottle_inventory_id && it.packaging_size && cachedBottlesList.length > 0) {
-    const normSize = String(it.packaging_size).toLowerCase().replace(/\s+/g, '');
-    const btlMatch = cachedBottlesList.find(b => {
-      const bSize = String(b.item_size || b.name || '').toLowerCase().replace(/\s+/g, '');
-      return bSize.includes(normSize) || normSize.includes(bSize);
-    });
-    if (btlMatch) it.bottle_inventory_id = btlMatch.id;
+  // Issue E: Check bottle compatibility with new pack size
+  if (it.bottle_inventory_id) {
+    const curBottle = (cachedBottlesList || []).find(b => b.id == it.bottle_inventory_id);
+    if (!curBottle || !isPackagingSizeCompatible(curBottle.name || curBottle.item_size, valStr)) {
+      const newBtl = (cachedBottlesList || []).find(b => isPackagingSizeCompatible(b.name || b.item_size, valStr));
+      it.bottle_inventory_id = newBtl ? newBtl.id : null;
+    }
+  } else if ((cachedBottlesList || []).length > 0) {
+    const newBtl = cachedBottlesList.find(b => isPackagingSizeCompatible(b.name || b.item_size, valStr));
+    if (newBtl) it.bottle_inventory_id = newBtl.id;
   }
-  if (!it.box_inventory_id && cachedBoxesList.length === 1) {
-    it.box_inventory_id = cachedBoxesList[0].id;
-    it.box_name = cachedBoxesList[0].name;
+
+  // Issue E: Check box compatibility with new pack size
+  if (it.box_inventory_id) {
+    const curBox = (cachedBoxesList || []).find(b => b.id == it.box_inventory_id);
+    if (!curBox || !isPackagingSizeCompatible(curBox.name, valStr)) {
+      const newBx = (cachedBoxesList || []).find(b => isPackagingSizeCompatible(b.name, valStr));
+      it.box_inventory_id = newBx ? newBx.id : null;
+      it.box_name = newBx ? newBx.name : null;
+    }
+  } else if ((cachedBoxesList || []).length > 0) {
+    const newBx = cachedBoxesList.find(b => isPackagingSizeCompatible(b.name, valStr));
+    if (newBx) {
+      it.box_inventory_id = newBx.id;
+      it.box_name = newBx.name;
+    }
   }
 
   it.total = (parseFloat(it.quantity) || 0) * (parseFloat(it.unit_price) || 0);
+  it.outer_boxes_consumed = it.box_inventory_id ? Math.ceil((parseFloat(it.quantity) || 0) / (it.bottles_per_box || 12)) : 0;
+  resolveOrderItemLabel(it, currentOrderLabelOwner);
   await renderOrderItems();
 }
 
 function onQtyChange(idx, val) {
   const it = orderItems[idx];
+  if (!it) return;
   it.quantity = parseFloat(val) || 0;
   it.total = it.quantity * (parseFloat(it.unit_price) || 0);
+  it.outer_boxes_consumed = it.box_inventory_id ? Math.ceil(it.quantity / (it.bottles_per_box || 12)) : 0;
   const row = document.querySelector(`tr[data-row-idx="${idx}"]`);
   if (row) {
+    const qtyInp = row.querySelector('.item-qty-input');
+    if (qtyInp && qtyInp.value != val) qtyInp.value = val;
     const totalDisp = row.querySelector('.item-total-display');
     if (totalDisp) totalDisp.textContent = UTILS.fmtCurrency(it.total);
   }
   calculateTotal();
+  updateOrderStockSummary();
 }
 
 function onBottleChange(idx, val) {
@@ -1240,6 +1971,13 @@ function onBottleChange(idx, val) {
   const it = orderItems[idx];
   if (!it) return;
   it.bottle_inventory_id = valStr ? parseInt(valStr, 10) : null;
+  const b = (cachedBottlesList || []).find(x => x.id == it.bottle_inventory_id);
+  const row = document.querySelector(`tr[data-row-idx="${idx}"]`);
+  if (row) {
+    const sel = row.querySelector('.order-bottle-select');
+    if (sel) sel.title = b ? formatBottleDropdownLabel(b) : 'Select Bottle';
+  }
+  updateOrderStockSummary();
 }
 
 function onBoxChange(idx, val) {
@@ -1247,8 +1985,15 @@ function onBoxChange(idx, val) {
   const it = orderItems[idx];
   if (!it) return;
   it.box_inventory_id = valStr ? parseInt(valStr, 10) : null;
-  const bObj = cachedBoxesList.find(b => b.id == it.box_inventory_id);
-  it.box_name = bObj ? bObj.name : null;
+  const bObj = (cachedBoxesList || []).find(b => b.id == it.box_inventory_id);
+  it.box_name = bObj ? (bObj.name || '').replace(/\s*box\s+box\s*/gi, ' Box ').trim() : null;
+  it.outer_boxes_consumed = it.box_inventory_id ? Math.ceil((parseFloat(it.quantity) || 0) / (it.bottles_per_box || 12)) : 0;
+  const row = document.querySelector(`tr[data-row-idx="${idx}"]`);
+  if (row) {
+    const sel = row.querySelector('.order-box-select');
+    if (sel) sel.title = bObj ? formatBoxDropdownLabel(bObj) : 'Select Box';
+  }
+  updateOrderStockSummary();
 }
 
 function onUnitPriceChange(idx, val) {
@@ -1358,18 +2103,23 @@ function calculateTotal() {
   }
 }
 
+let isOrderSaving = false;
+
 async function saveOrder() {
+  if (isOrderSaving) return;
   const d = UTILS.getFormData('order-form');
   if (!d.client_id) { APP.showToast('Please select a client', 'error'); return; }
   if (orderItems.length === 0) { APP.showToast('Please add at least one item', 'error'); return; }
+
+  const saveBtn = document.querySelector('#order-modal button.btn-primary');
+  if (saveBtn && (saveBtn.dataset.submitting === 'true' || saveBtn.disabled)) return;
+  isOrderSaving = true;
 
   let finalOrderNo = d.order_no ? formatOrderNo(d.order_no) : '';
   if (!finalOrderNo) {
     finalOrderNo = await getNextOrderNo();
   }
 
-  const saveBtn = document.querySelector('#order-modal button.btn-primary');
-  if (saveBtn && (saveBtn.dataset.submitting === 'true' || saveBtn.disabled)) return;
   if (saveBtn) {
     saveBtn.dataset.submitting = 'true';
     if (typeof APP !== 'undefined' && APP.setButtonLoading) {
@@ -1451,19 +2201,89 @@ async function saveOrder() {
         if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Save Order'; }
         return;
       }
+      // Resolve label for this row
+      resolveOrderItemLabel(it, currentOrderLabelOwner);
+    }
+
+    // STRICT PRE-COMMIT STOCK VALIDATION (Guarantees zero partial deduction & zero silent substitution)
+    const labelWarnings = [];
+    if (!isBackorderMode) {
+      for (let i = 0; i < orderItems.length; i++) {
+        const it = orderItems[i];
+        const qty = parseFloat(it.quantity) || 0;
+        const pName = it.product_name || `Item #${i + 1}`;
+        const pSize = it.packaging_size || '';
+
+        // A. Validate Bottle (Strict)
+        if (it.bottle_inventory_id) {
+          const btl = (cachedBottlesList || []).find(b => b.id == it.bottle_inventory_id);
+          const btlAvail = btl ? (btl.total_stock || 0) : 0;
+          if (btlAvail < qty) {
+            APP.showToast(`INSUFFICIENT_STOCK: Required ${qty} bottles of "${btl?.name || 'Bottle'}", but only ${btlAvail.toFixed(0)} available.`, 'error');
+            if (saveBtn) { saveBtn.dataset.submitting = 'false'; saveBtn.disabled = false; saveBtn.textContent = 'Save Order'; }
+            return;
+          }
+        }
+
+        // B. Validate Box (Strict)
+        const outerBoxes = (it.box_inventory_id && qty > 0) ? (it.outer_boxes_consumed || Math.ceil(qty / (it.bottles_per_box || 12))) : 0;
+        if (it.box_inventory_id && outerBoxes > 0) {
+          const bx = (cachedBoxesList || []).find(b => b.id == it.box_inventory_id);
+          const bxAvail = bx ? (bx.total_stock || 0) : 0;
+          if (bxAvail < outerBoxes) {
+            APP.showToast(`INSUFFICIENT_STOCK: Required ${outerBoxes} boxes of "${bx?.name || 'Box'}", but only ${bxAvail.toFixed(0)} available.`, 'error');
+            if (saveBtn) { saveBtn.dataset.submitting = 'false'; saveBtn.disabled = false; saveBtn.textContent = 'Save Order'; }
+            return;
+          }
+        }
+
+        // C. Validate Technical Bulk (Strict)
+        if (it.inventory_item_id) {
+          const techItem = (allInventoryItemsList || []).find(t => t.id == it.inventory_item_id);
+          const packMl = (window.INVENTORY_CORE && window.INVENTORY_CORE.parsePackagingSize)
+            ? window.INVENTORY_CORE.parsePackagingSize(pSize).volumeMl
+            : (UTILS.parsePackSizeInMl(pSize) || 1000);
+          const volumeLiters = (packMl / 1000) * qty;
+          const techAvail = techItem ? (techItem.total_stock || 0) : 0;
+          if (techAvail < volumeLiters) {
+            APP.showToast(`INSUFFICIENT_STOCK: Required ${volumeLiters.toFixed(2)} L of "${techItem?.name || pName}", but only ${techAvail.toFixed(2)} available.`, 'error');
+            if (saveBtn) { saveBtn.dataset.submitting = 'false'; saveBtn.disabled = false; saveBtn.textContent = 'Save Order'; }
+            return;
+          }
+        }
+
+        // D. Validate Label (Issue F: Non-blocking warning per business rule)
+        if (!it.label_inventory_id) {
+          labelWarnings.push(`No matching ${currentOrderLabelOwner} label found for "${pName} (${pSize})". Required: ${qty} Nos, Available: 0 Nos.`);
+        } else {
+          const lbl = (cachedLabelsList || []).find(l => l.id == it.label_inventory_id);
+          const lblAvail = lbl ? (lbl.total_stock || 0) : (it.label_stock || 0);
+          if (lblAvail < qty) {
+            labelWarnings.push(`Insufficient ${currentOrderLabelOwner} labels for "${pName} (${pSize})". Required: ${qty} Nos, Available: ${lblAvail.toFixed(0)} Nos.`);
+          }
+        }
+      }
+
+      if (labelWarnings.length > 0) {
+        APP.showToast(`⚠️ Label Shortage: ${labelWarnings.join('; ')}. Order will be saved with label shortage.`, 'warning', 4500);
+      }
     }
 
     const executeSave = async (allowBackorder = false) => {
 
-      // Fetch latest inventory items for auto-matching fallback
+      // Fast in-memory / cached technical item resolution
       for (const item of orderItems) {
-        const product = cachedProductsList.find(p => p.id == item.product_id);
-        const pName = item.product_name || product?.name || '';
-        if (window.INVENTORY_SERVICE && window.INVENTORY_SERVICE.resolveTechnicalItem) {
-          const techItem = await window.INVENTORY_SERVICE.resolveTechnicalItem(item.product_id, pName);
-          if (techItem) {
-            item.inventory_item_id = techItem.id;
-            if (product) product.inventory_item_id = techItem.id;
+        if (!item.inventory_item_id) {
+          const product = cachedProductsList.find(p => p.id == item.product_id);
+          if (product?.inventory_item_id) {
+            item.inventory_item_id = product.inventory_item_id;
+          } else if (window.INVENTORY_SERVICE && window.INVENTORY_SERVICE.resolveTechnicalItem) {
+            const pName = item.product_name || product?.name || '';
+            const techItem = await window.INVENTORY_SERVICE.resolveTechnicalItem(item.product_id, pName);
+            if (techItem) {
+              item.inventory_item_id = techItem.id;
+              if (product) product.inventory_item_id = techItem.id;
+            }
           }
         }
       }
@@ -1534,7 +2354,7 @@ async function saveOrder() {
 
       APP.closeModal('order-modal');
       APP.showToast('Order saved successfully!', 'success');
-      await loadOrders();
+      loadOrders(false); // Smooth non-blocking background sync without skeleton flicker
     };
 
     try {
@@ -1559,6 +2379,7 @@ async function saveOrder() {
     console.error('saveOrder failed:', err);
     APP.showToast('Failed to save order: ' + err.message, 'error');
   } finally {
+    isOrderSaving = false;
     if (saveBtn) {
       delete saveBtn.dataset.submitting;
       if (typeof APP !== 'undefined' && APP.setButtonLoading) {
@@ -1619,7 +2440,8 @@ async function revertOrderStock(orderId) {
           let boxId = null;
           let boxesConsumed = 0;
           if (dispatchMeta && Array.isArray(dispatchMeta.items_meta)) {
-            const metaIt = dispatchMeta.items_meta.find(m => m.id == it.id || m.product_id == it.product_id);
+            const matchFn = (window.UTILS && window.UTILS.matchOrderItemWithMeta) || matchOrderItemWithMeta;
+            const metaIt = matchFn ? matchFn(it, dispatchMeta.items_meta) : null;
             if (metaIt && metaIt.box_inventory_id && metaIt.outer_boxes_consumed > 0) {
               boxId = parseInt(metaIt.box_inventory_id, 10);
               boxesConsumed = metaIt.outer_boxes_consumed;
@@ -1647,6 +2469,19 @@ async function revertOrderStock(orderId) {
             if (restoreQty > 0) {
               await window.INVENTORY_SERVICE.restoreStock(techItem.id, restoreQty);
             }
+          }
+
+          // 4. Restore label stock if label used
+          let labelId = null;
+          if (dispatchMeta && Array.isArray(dispatchMeta.items_meta)) {
+            const matchFn = (window.UTILS && window.UTILS.matchOrderItemWithMeta) || matchOrderItemWithMeta;
+            const metaIt = matchFn ? matchFn(it, dispatchMeta.items_meta) : null;
+            if (metaIt && metaIt.label_inventory_id) {
+              labelId = parseInt(metaIt.label_inventory_id, 10);
+            }
+          }
+          if (labelId && qty > 0) {
+            await window.INVENTORY_SERVICE.restoreStock(labelId, qty);
           }
         }
       }
@@ -1701,7 +2536,10 @@ async function insertOrderItemsAndSyncStock(orderId, items, orderNo, allowBackor
       total_volume: packCalc.totalVolumeLitres,
       box_inventory_id: boxInventoryId,
       box_name: boxName,
-      outer_boxes_consumed: outerBoxes
+      outer_boxes_consumed: outerBoxes,
+      label_inventory_id: it.label_inventory_id || null,
+      label_name: it.label_name || null,
+      label_owner: currentOrderLabelOwner || 'AAC'
     };
   });
 
@@ -1722,23 +2560,53 @@ async function insertOrderItemsAndSyncStock(orderId, items, orderNo, allowBackor
     };
   });
 
+  let insertedRows = [];
   if (itemRows.length > 0) {
     const stampedRows = window.TENANT_CONTEXT ? window.TENANT_CONTEXT.stamp(itemRows) : itemRows;
-    const { error: insErr } = await window.dbClient.from('order_items').insert(stampedRows);
-    if (insErr) throw insErr;
+    const { data: insData, error: insErr } = await window.dbClient.from('order_items').insert(stampedRows).select();
+    if (insErr) {
+      const { error: insErr2 } = await window.dbClient.from('order_items').insert(stampedRows);
+      if (insErr2) throw insErr2;
+    } else if (Array.isArray(insData)) {
+      insertedRows = insData;
+    }
+    if (!insertedRows.length) {
+      try {
+        const { data: fetchedItems } = await window.dbClient.from('order_items').select('*').eq('order_id', orderId).order('id', { ascending: true });
+        if (Array.isArray(fetchedItems)) insertedRows = fetchedItems;
+      } catch (_) {}
+    }
   }
 
   // Persist dispatch & packaging metadata into orders.notes as DISPATCH_META
   try {
-    const { data: currentOrder } = await window.dbClient.from('orders').select('notes').eq('id', orderId).maybeSingle();
+    const { data: currentOrder } = await window.dbClient.from('orders').select('notes, order_no').eq('id', orderId).maybeSingle();
     const cleanNotes = extractUserNotes(currentOrder?.notes || '');
-    const packagingMeta = {
-      items_meta: processedItems.map(it => ({
+    let existingMeta = {};
+    if (currentOrder?.notes && /(?:DISPATCH_META|Dispatch_meta):/i.test(currentOrder.notes)) {
+      try {
+        const jsonStr = currentOrder.notes.replace(/^[\s\S]*?(?:DISPATCH_META|Dispatch_meta):/i, '').trim();
+        existingMeta = JSON.parse(jsonStr);
+      } catch (_) {}
+    }
+
+    const itemsMeta = processedItems.map((it, idx) => {
+      const realDbItem = insertedRows[idx] || null;
+      const realDbId = realDbItem?.id || it.id;
+      const matchFn = (window.UTILS && window.UTILS.matchOrderItemWithMeta) || matchOrderItemWithMeta;
+      const prevMatch = matchFn ? matchFn(it, existingMeta.items_meta, idx) : null;
+      const prevDisp = prevMatch ? (parseInt(prevMatch.dispatched_units, 10) || 0) : 0;
+      const totalUnits = it.total_units || it.quantity;
+      const packSize = it.packaging_size || it.packing_size;
+      return {
+        id: realDbId,
+        order_item_id: realDbId,
         product_id: it.product_id,
         product_name: it.product_name,
-        packing_size: it.packaging_size || it.packing_size,
+        packing_size: packSize,
+        packaging_size: packSize,
         quantity: it.quantity,
-        total_units: it.total_units || it.quantity,
+        total_units: totalUnits,
         bottle_inventory_id: it.bottle_inventory_id,
         box_inventory_id: it.box_inventory_id,
         box_name: it.box_name,
@@ -1746,121 +2614,190 @@ async function insertOrderItemsAndSyncStock(orderId, items, orderNo, allowBackor
         box_quantity: it.box_quantity,
         loose_quantity: it.loose_quantity,
         outer_boxes_consumed: it.outer_boxes_consumed,
-        ordered_units: it.total_units || it.quantity,
-        dispatched_units: 0,
-        remaining_units: it.total_units || it.quantity
-      }))
+        ordered_units: totalUnits,
+        dispatched_units: prevDisp,
+        remaining_units: Math.max(0, totalUnits - prevDisp),
+        label_inventory_id: it.label_inventory_id || null,
+        label_name: it.label_name || null,
+        label_owner: currentOrderLabelOwner || 'AAC'
+      };
+    });
+
+    // Update existing dispatches so their line items reflect the newly edited packaging sizes and product names
+    const dispatches = Array.isArray(existingMeta.dispatches) ? existingMeta.dispatches : [];
+    dispatches.forEach(d => {
+      if (Array.isArray(d.items)) {
+        d.items.forEach(dit => {
+          const matchFn = (window.UTILS && window.UTILS.matchOrderItemWithMeta) || matchOrderItemWithMeta;
+          const matchedItem = matchFn ? matchFn(dit, itemsMeta) : null;
+          if (matchedItem) {
+            dit.packaging_size = matchedItem.packing_size;
+            dit.packing_size = matchedItem.packing_size;
+            dit.product_name = matchedItem.product_name;
+            if (matchedItem.id) dit.order_item_id = matchedItem.id;
+          }
+        });
+      }
+    });
+
+    const packagingMeta = {
+      ...existingMeta,
+      label_owner: currentOrderLabelOwner || 'AAC',
+      items_meta: itemsMeta,
+      dispatches: dispatches
     };
+
     const finalNotes = cleanNotes
       ? `${cleanNotes}\n\nDISPATCH_META: ${JSON.stringify(packagingMeta)}`
       : `DISPATCH_META: ${JSON.stringify(packagingMeta)}`;
     await window.dbClient.from('orders').update({ notes: finalNotes }).eq('id', orderId);
+
+    // Also synchronize local storage tables so cached dispatch records immediately show updated packing sizes
+    try {
+      const matchDigits = String(currentOrder?.order_no || orderNo || `O-${orderId}`).match(/\d+/);
+      const orderDigits = matchDigits ? matchDigits[0].padStart(2, '0') : String(orderId).padStart(2, '0');
+      const baseNo = `DSP-${orderDigits}`;
+
+      const localDispatches = JSON.parse(localStorage.getItem('order_dispatches') || '[]');
+      let dispChanged = false;
+      localDispatches.forEach(ld => {
+        if (String(ld.order_id) === String(orderId)) {
+          if (!ld.dispatch_no || /^DSP-\d{4,}$/.test(ld.dispatch_no)) {
+            ld.dispatch_no = baseNo;
+            dispChanged = true;
+          }
+          if (Array.isArray(ld.items)) {
+            ld.items.forEach(dit => {
+              const matchedItem = itemsMeta.find(im => (dit.order_item_id && im.id == dit.order_item_id) || (im.product_id && dit.product_id && String(im.product_id) === String(dit.product_id)) || (im.product_name && dit.product_name && String(im.product_name).toLowerCase().trim() === String(dit.product_name).toLowerCase().trim()));
+              if (matchedItem) {
+                dit.packaging_size = matchedItem.packing_size;
+                dit.packing_size = matchedItem.packing_size;
+                dit.product_name = matchedItem.product_name;
+                dispChanged = true;
+              }
+            });
+          }
+        }
+      });
+      if (dispChanged) {
+        localStorage.setItem('order_dispatches', JSON.stringify(localDispatches));
+      }
+
+      const localDItems = JSON.parse(localStorage.getItem('dispatch_items') || '[]');
+      let dItemsChanged = false;
+      localDItems.forEach(dit => {
+        const matchedItem = itemsMeta.find(im => (dit.order_item_id && im.id == dit.order_item_id) || (im.product_id && dit.product_id && String(im.product_id) === String(dit.product_id)) || (im.product_name && dit.product_name && String(im.product_name).toLowerCase().trim() === String(dit.product_name).toLowerCase().trim()));
+        if (matchedItem) {
+          dit.packaging_size = matchedItem.packing_size;
+          dit.packing_size = matchedItem.packing_size;
+          dit.product_name = matchedItem.product_name;
+          dItemsChanged = true;
+        }
+      });
+      if (dItemsChanged) {
+        localStorage.setItem('dispatch_items', JSON.stringify(localDItems));
+      }
+    } catch (_) {}
   } catch (mErr) {
     console.warn('Failed to update order DISPATCH_META:', mErr);
   }
 
-  // Deduct stock using authoritative FIFO engine
-  for (const it of processedItems) {
-    const qty = parseFloat(it.total_units || it.quantity) || 0;
-    const packMl = (window.INVENTORY_CORE && window.INVENTORY_CORE.parsePackagingSize)
-      ? window.INVENTORY_CORE.parsePackagingSize(it.packaging_size || it.packing_size).volumeMl
-      : (UTILS.parsePackSizeInMl(it.packaging_size || it.packing_size) || 1000);
-    const volumeLiters = (packMl / 1000) * qty;
-
-    // 1. Deduct bottle stock if selected
-    if (it.bottle_inventory_id && qty > 0) {
-      const bottleId = parseInt(it.bottle_inventory_id, 10);
-      if (window.INVENTORY_SERVICE && window.INVENTORY_SERVICE.deductStockFIFO) {
-        await window.INVENTORY_SERVICE.deductStockFIFO({
-          itemId: bottleId,
-          quantity: qty,
-          movementType: 'DISPATCH_BOTTLES',
-          referenceType: 'orders',
-          referenceId: orderId,
-          referenceNo: orderNo,
-          idempotencyKey: `ord-${orderId}-btl-${bottleId}`,
-          allowNegative: allowBackorder
-        });
-      } else {
-        await window.INVENTORY_SERVICE.deductStock(bottleId, qty);
-      }
-    }
-
-    // 2. Deduct outer box stock if configured
-    if (it.box_inventory_id && it.outer_boxes_consumed > 0) {
-      const boxId = parseInt(it.box_inventory_id, 10);
-      if (window.INVENTORY_SERVICE && window.INVENTORY_SERVICE.deductStockFIFO) {
-        await window.INVENTORY_SERVICE.deductStockFIFO({
-          itemId: boxId,
-          quantity: it.outer_boxes_consumed,
-          movementType: 'DISPATCH_BOXES',
-          referenceType: 'orders',
-          referenceId: orderId,
-          referenceNo: orderNo,
-          idempotencyKey: `ord-${orderId}-box-${boxId}`,
-          allowNegative: allowBackorder
-        });
-      } else {
-        await window.INVENTORY_SERVICE.deductStock(boxId, it.outer_boxes_consumed);
-      }
-    }
-
-    // 3. Deduct Technical bulk stock
-    let techItem = null;
-    if (window.INVENTORY_SERVICE && window.INVENTORY_SERVICE.resolveTechnicalItem) {
-      techItem = await window.INVENTORY_SERVICE.resolveTechnicalItem(it.product_id, it.product_name);
-    }
-    if (!techItem && it.inventory_item_id) {
-      const { data: invRow } = await window.dbClient.from('inventory_items').select('id, unit').eq('id', it.inventory_item_id).maybeSingle();
-      techItem = invRow;
-    }
-
-    if (techItem) {
-      let deductQty = volumeLiters;
-      if (techItem.unit) {
-        deductQty = UTILS.convertUnit(volumeLiters, 'Litre', techItem.unit);
-      }
-      if (deductQty > 0) {
-        if (window.INVENTORY_SERVICE && window.INVENTORY_SERVICE.deductStockFIFO) {
-          await window.INVENTORY_SERVICE.deductStockFIFO({
-            itemId: techItem.id,
-            quantity: deductQty,
-            movementType: 'DISPATCH',
-            referenceType: 'orders',
-            referenceId: orderId,
-            referenceNo: orderNo,
-            idempotencyKey: `ord-${orderId}-tech-${techItem.id}`,
-            allowNegative: allowBackorder
-          });
-        } else {
-          await window.INVENTORY_SERVICE.deductStock(techItem.id, deductQty);
-        }
-      }
-    }
-  }
+  // OPTION A (ERP STANDARD): Zero stock deduction at order placement time.
+  // Placing an order records customer request & line items without reducing physical stock.
+  // Authoritative physical stock deduction is executed exclusively upon Gate Exit / Dispatch
+  // from the selected source warehouse (e.g., Gas Godown or Main Plant).
 }
 
 async function deleteOrder(id) {
-  APP.showConfirm('Delete this order and its items?', async () => {
+  if (!id) {
+    console.warn('deleteOrder: invalid id', id);
+    return false;
+  }
+  return new Promise((resolve) => {
+    APP.showConfirm('Delete this order and its items?', async () => {
     try {
-      // 1. Revert stock
-      await revertOrderStock(id);
+      const targetOrder = (window.allOrders || []).find(o => String(o.id) === String(id));
+      const orderNo = targetOrder?.order_no || `O-${id}`;
 
-      // 2. Delete order items & order
+      // 1. Authoritative Dispatch & Stock Reversal (restores origin warehouse batches, cleans up godown batches, dispatches & invoices)
+      let dispatchHandled = false;
+      if (window.DISPATCH_SERVICE && typeof window.DISPATCH_SERVICE.deleteOrderDispatches === 'function') {
+        const dspRes = await window.DISPATCH_SERVICE.deleteOrderDispatches(window.dbClient, id, orderNo);
+        if (dspRes && dspRes.success) {
+          dispatchHandled = true;
+        }
+      } else {
+        ['order_dispatches', 'erp_order_dispatches', 'dispatch_items', 'erp_dispatch_items', 'gate_passes', 'erp_gate_passes'].forEach(k => {
+          try {
+            const raw = localStorage.getItem(k);
+            if (raw) {
+              const list = JSON.parse(raw);
+              if (Array.isArray(list)) {
+                const cleaned = list.filter(d => String(d.order_id) !== String(id) && d.order_no !== orderNo);
+                localStorage.setItem(k, JSON.stringify(cleaned));
+              }
+            }
+          } catch (_) {}
+        });
+      }
+
+      // 2. Revert any additional order stock only if NOT handled authoritatively by deleteOrderDispatches
+      if (!dispatchHandled) {
+        await revertOrderStock(id);
+      }
+
+      // 3. Delete order items & order from Supabase
       await window.dbClient.from('order_items').delete().eq('order_id', id);
       const { error } = await window.dbClient.from('orders').delete().eq('id', id);
       if (error) throw error;
       
-      APP.showToast('Order deleted and stock restored!', 'success');
-      setTimeout(() => loadOrders(), 100);
+      // 4. Update in-memory state immediately for instant responsive UI (0ms latency)
+      window.allOrders = (window.allOrders || []).filter(o => String(o.id) !== String(id));
+      allOrders = window.allOrders;
+      window.allDetailedItems = (window.allDetailedItems || []).filter(it => String(it.order_id) !== String(id));
+      allDetailedItems = window.allDetailedItems;
+
+      if (window.allOrders.length === 0) {
+        window.allDispatches = [];
+        if (window.DISPATCH_SERVICE && typeof window.DISPATCH_SERVICE.clearAllDispatches === 'function') {
+          window.DISPATCH_SERVICE.clearAllDispatches();
+        }
+        if (window.DISPATCH_UI) {
+          if (typeof window.DISPATCH_UI.setAllDispatches === 'function') {
+            window.DISPATCH_UI.setAllDispatches([]);
+          }
+          if (typeof window.DISPATCH_UI.renderDispatchesTable === 'function') {
+            window.DISPATCH_UI.renderDispatchesTable();
+          }
+        }
+      } else if (window.DISPATCH_UI) {
+        if (typeof window.DISPATCH_UI.setAllDispatches === 'function') {
+          const cur = window.DISPATCH_UI.getAllDispatches() || [];
+          window.DISPATCH_UI.setAllDispatches(cur.filter(d => String(d.order_id) !== String(id) && d.order_no !== orderNo));
+        } else if (Array.isArray(window.allDispatches)) {
+          window.allDispatches = window.allDispatches.filter(d => String(d.order_id) !== String(id) && d.order_no !== orderNo);
+        }
+        if (typeof window.DISPATCH_UI.renderDispatchesTable === 'function') {
+          window.DISPATCH_UI.renderDispatchesTable();
+        }
+      }
+
+      applyFiltersAndRender();
+      APP.showToast('Order and associated dispatch data deleted. Stock restored.', 'success');
+
+      // 5. Silent background re-sync
+      setTimeout(() => loadOrders(), 200);
+      resolve({ success: true });
     } catch (err) {
       console.error(err);
       APP.showToast('Failed to delete order: ' + err.message, 'error');
+      resolve({ success: false, error: err });
     }
+  });
   });
 }
 
-// Tab Switching Listener
+// Tab Switching Listener (Instant responsive tabs without blanking)
 document.querySelectorAll('.tabs .tab-btn').forEach(btn => {
   btn.addEventListener('click', e => {
     document.querySelectorAll('.tabs .tab-btn').forEach(b => b.classList.remove('active'));
@@ -1869,7 +2806,6 @@ document.querySelectorAll('.tabs .tab-btn').forEach(btn => {
 
     const ordersWrap = document.getElementById('orders-table-wrap');
     const itemsWrap = document.getElementById('order-items-table-wrap');
-
     const dispWrap = document.getElementById('dispatches-table-wrap');
 
     if (activeOrderTab === 'Orders') {
@@ -1886,7 +2822,26 @@ document.querySelectorAll('.tabs .tab-btn').forEach(btn => {
       if (ordersWrap) ordersWrap.style.display = 'none';
       if (itemsWrap) itemsWrap.style.display = 'none';
       if (dispWrap) dispWrap.style.display = '';
-      if (window.DISPATCH_UI) window.DISPATCH_UI.loadDispatches();
+      if (window.DISPATCH_UI) {
+        if (Array.isArray(window.allOrders) && window.allOrders.length === 0) {
+          window.allDispatches = [];
+          if (typeof window.DISPATCH_UI.setAllDispatches === 'function') window.DISPATCH_UI.setAllDispatches([]);
+          window.DISPATCH_UI.renderDispatchesTable();
+        } else if (Array.isArray(window.allDispatches) && window.allDispatches.length > 0) {
+          window.DISPATCH_UI.renderDispatchesTable();
+          // Silent background revalidation
+          if (typeof window.DISPATCH_SERVICE?.getDispatches === 'function') {
+            window.DISPATCH_SERVICE.getDispatches(window.dbClient).then(fresh => {
+              if (Array.isArray(fresh)) {
+                window.allDispatches = fresh;
+                if (activeOrderTab === 'Dispatches') window.DISPATCH_UI.renderDispatchesTable();
+              }
+            }).catch(() => {});
+          }
+        } else {
+          window.DISPATCH_UI.loadDispatches();
+        }
+      }
     }
   });
 });

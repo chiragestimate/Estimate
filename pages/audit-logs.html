@@ -26,7 +26,6 @@
   <link rel="stylesheet" href="../assets/css/forms.css?v=1792044203582">
   <link rel="stylesheet" href="../assets/css/tables.css?v=1792044203582">
   <link rel="stylesheet" href="../assets/css/responsive.css?v=1792044203582">
-  <link rel="stylesheet" href="../assets/css/components/search-select.css?v=1792044203582">
   <link rel="icon" type="image/png" href="../assets/images/logo.png">
 </head>
 <body>
@@ -77,6 +76,10 @@
             </div>
             <button type="button" class="btn btn-secondary btn-sm" id="btn-clear-audit-filters" onclick="clearAuditFilters()" style="display:none;height:38px;padding:0 12px;font-size:12px;">
               Clear Filters
+            </button>
+            <button type="button" class="btn btn-secondary btn-sm" id="btn-clear-audit-trail" onclick="clearAuditTrail()" style="height:38px;padding:0 12px;font-size:12px;display:inline-flex;align-items:center;gap:6px;color:var(--danger,#ef4444);border-color:rgba(239,68,68,0.3);" title="Wipe locally recorded audit logs for testing">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px;"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+              Clear Logs
             </button>
           </div>
           <div class="table-toolbar-right audit-toolbar-filter">
@@ -129,6 +132,7 @@
 <script src="../assets/js/database.js?v=1792044203582"></script>
 <script src="../assets/js/utils.js?v=1792044203582"></script>
 <script src="../assets/js/app.js?v=1792044203582"></script>
+<script src="../assets/js/audit-logger.js?v=1792044203582"></script>
 <script src="../assets/js/audit-logs.js?v=1792044203582"></script>
 </body>
 </html>

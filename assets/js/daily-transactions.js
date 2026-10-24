@@ -26,7 +26,9 @@ function getLocalItemStock(id) {
 
 function formatInventoryOption(item) {
   const stock = getLocalItemStock(item.id);
-  return `${item.name} (${item.category || 'Item'} | ${item.unit || 'Unit'} | Stock: ${UTILS.fmtNumber(stock)})`;
+  const cName = (typeof UTILS !== 'undefined' && UTILS.cleanItemName) ? UTILS.cleanItemName(item.name) : item.name;
+  const cUnit = (typeof UTILS !== 'undefined' && UTILS.cleanUnitLabel) ? UTILS.cleanUnitLabel(item.unit || 'Unit') : (item.unit || 'Unit');
+  return `${cName} (${item.category || 'Item'} | ${cUnit} | Stock: ${UTILS.fmtNumber(stock)})`;
 }
 
 function getAllowedUnits(baseUnit) {
@@ -43,7 +45,7 @@ function buildMaterialSummary(materials) {
   if (!Array.isArray(materials) || !materials.length) return 'No materials recorded';
   return materials
     .slice(0, 3)
-    .map(m => `<span class="purchase-item-tag"><span class="purchase-item-name">${m.item_name}</span><span class="purchase-item-qty">(${UTILS.fmtNumber(m.quantity)} ${m.unit})</span></span>`)
+    .map(m => `<span class="purchase-item-tag"><span class="purchase-item-name">${(typeof UTILS !== 'undefined' && UTILS.cleanItemName) ? UTILS.cleanItemName(m.item_name) : m.item_name}</span><span class="purchase-item-qty">(${UTILS.fmtNumber(m.quantity)} ${(typeof UTILS !== 'undefined' && UTILS.cleanUnitLabel) ? UTILS.cleanUnitLabel(m.unit) : m.unit})</span></span>`)
     .join(', ') + (materials.length > 3 ? ` <span class="purchase-item-qty">+${materials.length - 3} more</span>` : '');
 }
 
@@ -500,9 +502,9 @@ function renderMaterialsList() {
       return `
         <div class="material-row">
           <div class="material-item-meta">
-            <div class="material-item-name">${item.item_name}</div>
+            <div class="material-item-name">${(typeof UTILS !== 'undefined' && UTILS.cleanItemName) ? UTILS.cleanItemName(item.item_name) : item.item_name}</div>
             <div class="material-item-sub">
-              <span>Base unit: ${item.base_unit || item.unit}</span>
+              <span>Base unit: ${(typeof UTILS !== 'undefined' && UTILS.cleanUnitLabel) ? UTILS.cleanUnitLabel(item.base_unit || item.unit) : (item.base_unit || item.unit)}</span>
             </div>
           </div>
           <div class="material-cell-category">
@@ -511,7 +513,7 @@ function renderMaterialsList() {
           </div>
           <div class="material-cell-stock">
             <span class="mobile-label">Stock</span>
-            <span style="font-weight:600; font-size:12.5px;">${UTILS.fmtNumber(stock)} ${item.base_unit || item.unit}</span>
+            <span style="font-weight:600; font-size:12.5px;">${UTILS.fmtNumber(stock)} ${(typeof UTILS !== 'undefined' && UTILS.cleanUnitLabel) ? UTILS.cleanUnitLabel(item.base_unit || item.unit) : (item.base_unit || item.unit)}</span>
           </div>
           <div class="material-cell-qty">
             <span class="mobile-label">Quantity</span>

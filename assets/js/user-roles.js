@@ -159,7 +159,15 @@ async function loadInitialData() {
       }
     }
 
-    allApprovalRequests = reqRes.data || [];
+    let localApprovals = [];
+    try {
+      const rawAppr = localStorage.getItem('erp_approval_requests');
+      if (rawAppr) localApprovals = JSON.parse(rawAppr);
+    } catch(e){}
+
+    allApprovalRequests = (reqRes && reqRes.data && reqRes.data.length > 0)
+      ? reqRes.data
+      : (localApprovals && localApprovals.length > 0 ? localApprovals : []);
 
     updateStats();
     renderUsersTable(allAssignments);
@@ -248,28 +256,33 @@ function renderRolesTable() {
           </div>
         </td>
         <td class="cell-role-code">
+          <span class="role-mobile-label">Code:</span>
           <code class="role-code-badge">${safeEscape(r.code)}</code>
         </td>
         <td class="cell-domain">
           <div class="domain-description-text">${safeEscape(r.domain || '')}</div>
         </td>
         <td class="cell-scope">
+          <span class="role-mobile-label">Scope:</span>
           <span class="badge badge-brand scope-badge-pill" title="${safeEscape(r.scope)}">${safeEscape(r.scope)}</span>
         </td>
         <td class="cell-assigned">
+          <span class="role-mobile-label">Users:</span>
           ${countBadge}
         </td>
         <td class="cell-actions" style="text-align:right;">
           <div class="row-actions">
-            <button class="btn-role-action btn-assign" onclick="assignUserToRole('${r.code}')" title="Assign a user to ${safeEscape(r.name)}" aria-label="Assign" style="color:#ffffff !important; background:#0C3925 !important; border:1px solid #0C3925 !important;">
-              <svg viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.5" style="width:12px;height:12px;color:#ffffff !important;stroke:#ffffff !important;"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-              <span style="color:#ffffff !important; font-weight:600;">Assign</span>
+            <button class="btn-role-action btn-assign" onclick="assignUserToRole('${r.code}')" title="Assign a user to ${safeEscape(r.name)}" aria-label="Assign" style="color:#ffffff !important;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.5" style="width:13px;height:13px;stroke:#ffffff;"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              <span style="color:#ffffff !important;">Assign</span>
             </button>
             <button class="btn-role-action btn-edit-role" onclick="editRole('${r.code}')" title="Edit role ${safeEscape(r.name)}" aria-label="Edit Role">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px;"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              <span class="role-btn-text">Edit</span>
             </button>
             <button class="btn-role-action btn-delete-role" onclick="deleteRole('${r.code}')" title="Delete role ${safeEscape(r.name)}" aria-label="Delete Role">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px;"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+              <span class="role-btn-text">Delete</span>
             </button>
           </div>
         </td>
@@ -858,13 +871,14 @@ const MODULE_DISPLAY_LIST = [
 
 function loadPermissionMatrix(roleCode) {
   const tbody = document.getElementById('matrix-tbody');
-  if (!tbody || !window.RBAC) return;
+  const mobileCardsWrap = document.getElementById('matrix-mobile-cards');
+  if (!window.RBAC) return;
 
   const role = roleCode || 'super_admin';
   const isSuper = (role === 'super_admin');
   const isOwner = (role === 'company_owner');
 
-  tbody.innerHTML = MODULE_DISPLAY_LIST.map(m => {
+  const matrixData = MODULE_DISPLAY_LIST.map(m => {
     // Determine permissions for this module from RBAC defaults
     const view = isSuper || isOwner ? true : window.RBAC.hasPermission(m.code, 'view');
     const create = isSuper || isOwner ? true : window.RBAC.hasPermission(m.code, 'create');
@@ -875,24 +889,75 @@ function loadPermissionMatrix(roleCode) {
     const cancel = isSuper || isOwner ? true : window.RBAC.hasPermission(m.code, 'cancel');
     const exp = isSuper || isOwner ? true : window.RBAC.hasPermission(m.code, 'export');
 
-    const checkIcon = (val) => val
-      ? `<span style="color:#16a34a;font-weight:bold;font-size:16px;">✔</span>`
-      : `<span style="color:#ef4444;opacity:0.3;font-size:14px;">✖</span>`;
+    return {
+      module: m,
+      perms: { view, create, edit, del, approve, reject, cancel, exp }
+    };
+  });
 
-    return `
+  const checkIcon = (val) => val
+    ? `<span style="color:#16a34a;font-weight:bold;font-size:16px;" title="Granted">✔</span>`
+    : `<span style="color:#ef4444;opacity:0.3;font-size:14px;" title="Restricted">✖</span>`;
+
+  if (tbody) {
+    tbody.innerHTML = matrixData.map(({ module: m, perms: p }) => `
       <tr>
         <td style="font-weight:600;color:var(--text-primary);">${m.name}</td>
-        <td style="text-align:center">${checkIcon(view)}</td>
-        <td style="text-align:center">${checkIcon(create)}</td>
-        <td style="text-align:center">${checkIcon(edit)}</td>
-        <td style="text-align:center">${checkIcon(del)}</td>
-        <td style="text-align:center">${checkIcon(approve)}</td>
-        <td style="text-align:center">${checkIcon(reject)}</td>
-        <td style="text-align:center">${checkIcon(cancel)}</td>
-        <td style="text-align:center">${checkIcon(exp)}</td>
+        <td style="text-align:center">${checkIcon(p.view)}</td>
+        <td style="text-align:center">${checkIcon(p.create)}</td>
+        <td style="text-align:center">${checkIcon(p.edit)}</td>
+        <td style="text-align:center">${checkIcon(p.del)}</td>
+        <td style="text-align:center">${checkIcon(p.approve)}</td>
+        <td style="text-align:center">${checkIcon(p.reject)}</td>
+        <td style="text-align:center">${checkIcon(p.cancel)}</td>
+        <td style="text-align:center">${checkIcon(p.exp)}</td>
       </tr>
-    `;
-  }).join('');
+    `).join('');
+  }
+
+  if (mobileCardsWrap) {
+    mobileCardsWrap.innerHTML = matrixData.map(({ module: m, perms: p }) => `
+      <div class="matrix-module-card">
+        <div class="matrix-module-card-header">
+          <div class="matrix-module-name">${m.name}</div>
+        </div>
+        <div class="matrix-module-permissions-grid">
+          <div class="matrix-perm-badge ${p.view ? 'perm-allowed' : 'perm-denied'}">
+            <span class="matrix-perm-icon">${p.view ? '✔' : '✖'}</span>
+            <span class="matrix-perm-label">View</span>
+          </div>
+          <div class="matrix-perm-badge ${p.create ? 'perm-allowed' : 'perm-denied'}">
+            <span class="matrix-perm-icon">${p.create ? '✔' : '✖'}</span>
+            <span class="matrix-perm-label">Create</span>
+          </div>
+          <div class="matrix-perm-badge ${p.edit ? 'perm-allowed' : 'perm-denied'}">
+            <span class="matrix-perm-icon">${p.edit ? '✔' : '✖'}</span>
+            <span class="matrix-perm-label">Edit</span>
+          </div>
+          <div class="matrix-perm-badge ${p.del ? 'perm-allowed' : 'perm-denied'}">
+            <span class="matrix-perm-icon">${p.del ? '✔' : '✖'}</span>
+            <span class="matrix-perm-label">Delete</span>
+          </div>
+          <div class="matrix-perm-badge ${p.approve ? 'perm-allowed' : 'perm-denied'}">
+            <span class="matrix-perm-icon">${p.approve ? '✔' : '✖'}</span>
+            <span class="matrix-perm-label">Approve</span>
+          </div>
+          <div class="matrix-perm-badge ${p.reject ? 'perm-allowed' : 'perm-denied'}">
+            <span class="matrix-perm-icon">${p.reject ? '✔' : '✖'}</span>
+            <span class="matrix-perm-label">Reject</span>
+          </div>
+          <div class="matrix-perm-badge ${p.cancel ? 'perm-allowed' : 'perm-denied'}">
+            <span class="matrix-perm-icon">${p.cancel ? '✔' : '✖'}</span>
+            <span class="matrix-perm-label">Cancel</span>
+          </div>
+          <div class="matrix-perm-badge ${p.exp ? 'perm-allowed' : 'perm-denied'}">
+            <span class="matrix-perm-icon">${p.exp ? '✔' : '✖'}</span>
+            <span class="matrix-perm-label">Export</span>
+          </div>
+        </div>
+      </div>
+    `).join('');
+  }
 }
 
 // ----------------------------------------------------------------------------
@@ -900,25 +965,29 @@ function loadPermissionMatrix(roleCode) {
 // ----------------------------------------------------------------------------
 function renderApprovalsTable(requests) {
   const tbody = document.getElementById('approvals-tbody');
+  const mobileCardsWrap = document.getElementById('approvals-mobile-cards');
   if (!tbody) return;
 
   if (requests.length === 0) {
     tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--text-muted)">No approval requests found</td></tr>`;
+    if (mobileCardsWrap) {
+      mobileCardsWrap.innerHTML = `<div style="text-align:center;padding:24px;color:var(--text-muted);background:#ffffff;border:1px solid #e2e8f0;border-radius:12px;">No approval requests found</div>`;
+    }
     return;
   }
 
   tbody.innerHTML = requests.map(r => `
     <tr>
-      <td><strong>${r.request_type}</strong></td>
-      <td><code>${r.reference_code || '#' + r.reference_id}</code></td>
-      <td>${r.requested_by}</td>
+      <td><strong>${safeEscape(r.request_type)}</strong></td>
+      <td><code>${safeEscape(r.reference_code || '#' + r.reference_id)}</code></td>
+      <td>${safeEscape(r.requested_by)}</td>
       <td><span class="badge badge-secondary">${r.required_role_id === 6 ? 'QC Officer' : 'Owner / Manager'}</span></td>
       <td>
         <span class="badge ${r.status === 'Approved' ? 'badge-success' : r.status === 'Rejected' ? 'badge-danger' : 'badge-warning'}">
-          ${r.status}
+          ${safeEscape(r.status)}
         </span>
       </td>
-      <td>${r.decision_notes || '<span style="color:var(--text-muted)">-</span>'}</td>
+      <td>${safeEscape(r.decision_notes) || '<span style="color:var(--text-muted)">-</span>'}</td>
       <td style="text-align:right">
         ${r.status === 'Pending' ? `
           <button class="btn btn-sm btn-primary" onclick="decideApproval(${r.id}, 'Approved')" style="padding:4px 8px;font-size:11px;">Approve</button>
@@ -929,6 +998,51 @@ function renderApprovalsTable(requests) {
       </td>
     </tr>
   `).join('');
+
+  if (mobileCardsWrap) {
+    mobileCardsWrap.innerHTML = requests.map(r => `
+      <div class="approval-mobile-card">
+        <div class="approval-mobile-top">
+          <div class="approval-mobile-title">
+            <strong style="color:#0f172a;font-size:14px;">${safeEscape(r.request_type)}</strong>
+            <code style="font-size:11px;background:#f1f5f9;border:1px solid #cbd5e1;padding:2px 6px;border-radius:4px;">${safeEscape(r.reference_code || '#' + r.reference_id)}</code>
+          </div>
+          <span class="badge ${r.status === 'Approved' ? 'badge-success' : r.status === 'Rejected' ? 'badge-danger' : 'badge-warning'}">
+            ${safeEscape(r.status)}
+          </span>
+        </div>
+        <div class="approval-mobile-meta">
+          <div class="approval-meta-row">
+            <span class="approval-meta-label">Requested By:</span>
+            <span class="approval-meta-val">${safeEscape(r.requested_by)}</span>
+          </div>
+          <div class="approval-meta-row">
+            <span class="approval-meta-label">Required Role:</span>
+            <span class="badge badge-secondary" style="font-size:11px;">${r.required_role_id === 6 ? 'QC Officer' : 'Owner / Manager'}</span>
+          </div>
+          ${r.decision_notes ? `
+          <div class="approval-meta-row">
+            <span class="approval-meta-label">Notes:</span>
+            <span class="approval-meta-val" style="font-style:italic;">${safeEscape(r.decision_notes)}</span>
+          </div>` : ''}
+        </div>
+        <div class="approval-mobile-actions">
+          ${r.status === 'Pending' ? `
+            <button class="btn btn-primary" onclick="decideApproval(${r.id}, 'Approved')" style="flex:1;min-height:38px;font-size:13px;font-weight:600;display:inline-flex;align-items:center;justify-content:center;gap:6px;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:14px;height:14px;"><polyline points="20 6 9 17 4 12"/></svg>
+              Approve
+            </button>
+            <button class="btn btn-secondary" onclick="decideApproval(${r.id}, 'Rejected')" style="flex:1;min-height:38px;font-size:13px;font-weight:600;color:var(--danger,#ef4444);border-color:rgba(239,68,68,0.4);display:inline-flex;align-items:center;justify-content:center;gap:6px;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:14px;height:14px;"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              Reject
+            </button>
+          ` : `
+            <span style="font-size:12px;color:var(--text-muted);font-weight:600;padding:4px 0;">Decision recorded</span>
+          `}
+        </div>
+      </div>
+    `).join('');
+  }
 }
 
 async function decideApproval(id, decision) {
@@ -950,6 +1064,15 @@ async function decideApproval(id, decision) {
   } catch (err) {
     APP.showToast('Failed to update request: ' + err.message, 'error');
   }
+}
+
+function loadApprovalRequests() {
+  const filterStatus = document.getElementById('filter-approval-status')?.value || '';
+  let filtered = allApprovalRequests;
+  if (filterStatus) {
+    filtered = filtered.filter(r => r.status === filterStatus);
+  }
+  renderApprovalsTable(filtered);
 }
 
 async function deleteRole(roleCode) {
@@ -1352,6 +1475,7 @@ if (typeof window !== 'undefined') {
   window.loadPermissionMatrix = loadPermissionMatrix;
   window.switchRbacTab = switchRbacTab;
   window.filterUsersTable = filterUsersTable;
+  window.loadApprovalRequests = loadApprovalRequests;
   window.decideApproval = decideApproval;
   window.renderRolesTable = renderRolesTable;
   window.openRoleMatrix = openRoleMatrix;

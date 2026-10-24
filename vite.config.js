@@ -2,6 +2,7 @@ import { defineConfig } from 'vite';
 import { resolve } from 'path';
 
 export default defineConfig({
+  base: './',
   plugins: [
     {
       name: 'html-cache-buster',
@@ -20,18 +21,14 @@ export default defineConfig({
     }
   ],
   server: {
-    host: true,        // listen on 0.0.0.0 — accessible from phone on same WiFi
+    host: '0.0.0.0',
     port: 5174,
     strictPort: true,
     headers: {
       'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
       'Pragma': 'no-cache',
       'Expires': '0'
-    },
-    hmr: {
-      // Use the computer's LAN IP so mobile browsers can connect the HMR WebSocket
-      host: '192.168.1.7',
-    },
+    }
   },
   build: {
     rollupOptions: {

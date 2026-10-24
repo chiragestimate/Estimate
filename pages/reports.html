@@ -36,40 +36,301 @@
   <link rel="apple-touch-icon" href="../assets/images/logo.png">
   <style>
     .report-filter-bar {
-      background: var(--surface, #13241b);
-      border: 1px solid var(--border, rgba(255,255,255,0.08));
-      border-radius: 10px;
-      padding: 16px;
+      background: var(--surface, #ffffff);
+      border: 1px solid var(--border, #e2e8f0);
+      border-radius: 12px;
+      padding: 16px 20px;
       margin-bottom: 24px;
       display: flex;
       flex-direction: column;
       gap: 14px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    }
+    .report-filter-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border, #f1f5f9);
+    }
+    .report-filter-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13.5px;
+      font-weight: 700;
+      color: #0f172a;
+      letter-spacing: -0.01em;
+    }
+    .report-active-range-badge {
+      display: inline-flex;
+      align-items: center;
+      font-size: 11.5px;
+      font-weight: 600;
+      color: #0C3925;
+      background: #eaf2ec;
+      border: 1px solid #c2decb;
+      padding: 3px 10px;
+      border-radius: 999px;
+      white-space: nowrap;
     }
     .preset-pill-row {
       display: flex;
       flex-wrap: wrap;
       align-items: center;
       gap: 8px;
+      width: 100%;
     }
-    .filter-inputs-grid {
+    .preset-pill-row .cat-pill {
+      height: 36px;
+      padding: 0 14px;
+      border-radius: 6px;
+      border: 1px solid var(--border, #cbd5e1);
+      background: #ffffff;
+      color: #334155;
+      font-size: 12px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      white-space: nowrap;
+      box-sizing: border-box;
+    }
+    .preset-pill-row .cat-pill:hover:not(.active) {
+      background: #f8fafc;
+      border-color: #94a3b8;
+      color: #0f172a;
+    }
+    .preset-pill-row .cat-pill.active {
+      background: #0C3925 !important;
+      color: #ffffff !important;
+      border-color: #0C3925 !important;
+      font-weight: 700 !important;
+      box-shadow: 0 2px 4px rgba(12, 57, 37, 0.2) !important;
+    }
+    .report-dates-row {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      grid-template-columns: 1fr 1fr;
       gap: 12px;
-      align-items: end;
+      width: 100%;
+    }
+    .filter-input-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
     }
     .filter-input-group label {
       display: block;
       font-size: 11px;
       font-weight: 700;
-      color: var(--text-muted);
+      color: var(--text-muted, #64748b);
       text-transform: uppercase;
-      margin-bottom: 4px;
+      letter-spacing: 0.04em;
+      margin-bottom: 2px;
     }
-    .filter-actions {
+    .filter-input-group .form-input,
+    .filter-input-group .form-select {
+      width: 100%;
+      height: 38px;
+      padding: 0 10px;
+      font-size: 12.5px;
+      border-radius: 6px;
+      border: 1px solid var(--border, #cbd5e1);
+      box-sizing: border-box;
+      background: #ffffff;
+      color: #0f172a;
+    }
+    .advanced-filters-section {
+      width: 100%;
+      border-top: 1px dashed var(--border, #e2e8f0);
+      padding-top: 12px;
+    }
+    .advanced-filters-toggle-btn {
+      width: 100%;
       display: flex;
-      gap: 8px;
+      justify-content: space-between;
       align-items: center;
+      padding: 8px 12px;
+      background: #f8fafc;
+      border: 1px solid var(--border, #e2e8f0);
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      font-size: 12px;
+      font-weight: 600;
+      color: #334155;
+      box-sizing: border-box;
     }
+    .advanced-filters-toggle-btn:hover {
+      background: #f1f5f9;
+      color: #0f172a;
+    }
+    .toggle-btn-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .filter-icon {
+      width: 14px;
+      height: 14px;
+      color: #0C3925;
+    }
+    .chevron-icon {
+      width: 16px;
+      height: 16px;
+      color: #64748b;
+      transition: transform 0.2s ease;
+    }
+    .active-filters-count-badge {
+      font-size: 10.5px;
+      font-weight: 700;
+      background: #0C3925;
+      color: #ffffff;
+      padding: 1px 7px;
+      border-radius: 999px;
+      line-height: 1.3;
+    }
+    .advanced-filters-body {
+      margin-top: 12px;
+    }
+    .advanced-filters-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 12px;
+      width: 100%;
+    }
+    .report-filter-actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      padding-top: 4px;
+    }
+    .report-filter-actions .btn {
+      height: 38px;
+      padding: 0 16px;
+      font-size: 12.5px;
+      font-weight: 600;
+      border-radius: 6px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-sizing: border-box;
+    }
+    .report-filter-actions .btn-primary {
+      background: #0C3925;
+      border: 1px solid #0C3925;
+      color: #ffffff;
+      flex: 1;
+    }
+    .report-filter-actions .btn-secondary {
+      background: #ffffff;
+      border: 1px solid var(--border, #cbd5e1);
+      color: #334155;
+    }
+    .report-filter-actions .btn-secondary:hover {
+      background: #f8fafc;
+      color: #0f172a;
+    }
+
+    /* Reports Tabs */
+    .reports-tabs,
+    #reports-tabs {
+      display: flex !important;
+      gap: 10px !important;
+      flex-wrap: wrap !important;
+      width: 100% !important;
+      margin-bottom: 20px !important;
+      border-bottom: none !important;
+      padding-bottom: 0 !important;
+    }
+    .reports-tabs .tab-btn,
+    #reports-tabs .tab-btn {
+      flex: 0 0 190px !important;
+      width: 190px !important;
+      min-width: 190px !important;
+      max-width: 190px !important;
+      height: 42px !important;
+      min-height: 42px !important;
+      max-height: 42px !important;
+      padding: 4px 8px !important;
+      font-size: 12.5px !important;
+      font-weight: 600 !important;
+      line-height: 1.25 !important;
+      text-align: center !important;
+      justify-content: center !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      white-space: normal !important;
+      word-break: break-word !important;
+      overflow-wrap: break-word !important;
+      box-sizing: border-box !important;
+      border-radius: 8px !important;
+      border: 1px solid var(--border, #cbd5e1) !important;
+      background: #ffffff !important;
+      color: #475569 !important;
+      cursor: pointer !important;
+      transition: all 0.15s ease !important;
+      margin: 0 !important;
+    }
+    .reports-tabs .tab-btn:hover:not(.active),
+    #reports-tabs .tab-btn:hover:not(.active) {
+      background: #f8fafc !important;
+      color: #0f172a !important;
+      border-color: #94a3b8 !important;
+    }
+    .reports-tabs .tab-btn.active,
+    #reports-tabs .tab-btn.active {
+      background: #0C3925 !important;
+      color: #ffffff !important;
+      border-color: #0C3925 !important;
+      font-weight: 700 !important;
+    }
+
+    /* Top Summary Products & Clients Left-Aligned Stack */
+    .top-product-info,
+    .top-client-info {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      text-align: left;
+      gap: 3px;
+      width: 100%;
+    }
+    .top-product-name,
+    .top-client-name {
+      font-weight: 600;
+      color: #0f172a;
+      line-height: 1.35;
+      text-align: left;
+      word-break: break-word;
+      font-size: 12.5px;
+    }
+    .top-product-pack {
+      display: inline-block;
+      font-size: 10.5px;
+      font-weight: 500;
+      color: #475569;
+      background: #f1f5f9;
+      border: 1px solid #cbd5e1;
+      border-radius: 4px;
+      padding: 1px 6px;
+      text-align: left;
+      align-self: flex-start;
+      line-height: 1.3;
+    }
+    .top-client-city {
+      display: inline-block;
+      font-size: 11px;
+      color: var(--text-muted, #64748b);
+      text-align: left;
+      line-height: 1.3;
+    }
+
     .sku-pill {
       display: inline-block;
       font-size: 11px;
@@ -90,6 +351,98 @@
       align-items: center;
       gap: 6px;
       font-weight: 600;
+    }
+
+    /* Mobile Responsive Overrides */
+    @media (max-width: 768px) {
+      .page-body {
+        padding-bottom: 80px !important;
+      }
+      .report-filter-bar {
+        padding: 14px !important;
+        gap: 12px !important;
+      }
+      .preset-pill-row,
+      #report-date-presets {
+        display: grid !important;
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        gap: 8px !important;
+        width: 100% !important;
+      }
+      .preset-pill-row .cat-pill,
+      #report-date-presets .cat-pill {
+        width: 100% !important;
+        height: 38px !important;
+        min-height: 38px !important;
+        padding: 0 4px !important;
+        font-size: 11.5px !important;
+        text-align: center !important;
+        justify-content: center !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+        white-space: nowrap !important;
+        box-sizing: border-box !important;
+      }
+      .report-dates-row {
+        grid-template-columns: 1fr 1fr !important;
+        gap: 10px !important;
+      }
+      .advanced-filters-grid {
+        grid-template-columns: 1fr !important;
+        gap: 10px !important;
+      }
+      .report-filter-actions {
+        display: grid !important;
+        grid-template-columns: 1fr 1fr !important;
+        gap: 10px !important;
+        width: 100% !important;
+      }
+      .report-filter-actions .btn {
+        width: 100% !important;
+        height: 40px !important;
+        min-height: 40px !important;
+      }
+      .reports-tabs,
+      #reports-tabs {
+        display: grid !important;
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        gap: 8px !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+        overflow-x: visible !important;
+        margin-bottom: 18px !important;
+        border-bottom: none !important;
+        padding-bottom: 0 !important;
+      }
+      .reports-tabs .tab-btn,
+      #reports-tabs .tab-btn {
+        flex: none !important;
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: 100% !important;
+        height: 46px !important;
+        min-height: 46px !important;
+        max-height: 46px !important;
+        padding: 4px 6px !important;
+        font-size: 11.5px !important;
+        font-weight: 600 !important;
+        line-height: 1.25 !important;
+        text-align: center !important;
+        justify-content: center !important;
+        display: flex !important;
+        align-items: center !important;
+        white-space: normal !important;
+        word-break: break-word !important;
+        overflow-wrap: break-word !important;
+        hyphens: auto !important;
+        box-sizing: border-box !important;
+        border-radius: 8px !important;
+        margin: 0 !important;
+      }
+      .reports-tabs .tab-btn:last-child,
+      #reports-tabs .tab-btn:last-child {
+        grid-column: 1 / -1 !important;
+      }
     }
   </style>
 </head>
@@ -122,88 +475,122 @@
 
       <!-- COMPREHENSIVE FILTER & DATE PRESET BAR -->
       <div class="report-filter-bar">
-        <!-- Presets Row -->
-        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
-          <div class="preset-pill-row" id="report-date-presets">
-            <span style="font-size:12px; font-weight:700; color:var(--text-muted); text-transform:uppercase; margin-right:4px;">Date Range:</span>
-            <button type="button" class="cat-pill" data-preset="today" onclick="selectDatePreset('today')">Today</button>
-            <button type="button" class="cat-pill" data-preset="week" onclick="selectDatePreset('week')">This Week</button>
-            <button type="button" class="cat-pill" data-preset="month" onclick="selectDatePreset('month')">This Month</button>
-            <button type="button" class="cat-pill" data-preset="quarter" onclick="selectDatePreset('quarter')">This Quarter</button>
-            <button type="button" class="cat-pill active" data-preset="financial_year" onclick="selectDatePreset('financial_year')">Financial Year (FY)</button>
-            <button type="button" class="cat-pill" data-preset="calendar_year" onclick="selectDatePreset('calendar_year')">Calendar Year (CY)</button>
-            <button type="button" class="cat-pill" data-preset="last_12_months" onclick="selectDatePreset('last_12_months')">Last 12 Months</button>
-            <button type="button" class="cat-pill" data-preset="custom" onclick="selectDatePreset('custom')">Custom</button>
+        <!-- Filter Header: Section title and active range badge -->
+        <div class="report-filter-header">
+          <div class="report-filter-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;color:var(--primary,#0C3925);flex-shrink:0;"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            <span>Report Date Range & Filters</span>
           </div>
-          <div id="active-range-label" style="font-size:12px; font-weight:600; color:var(--accent);"></div>
+          <div id="active-range-label" class="report-active-range-badge"></div>
         </div>
 
-        <!-- Inputs Grid -->
-        <div class="filter-inputs-grid">
+        <!-- Presets Row (Balanced 2-column grid on mobile, inline row on desktop) -->
+        <div class="preset-pill-row" id="report-date-presets">
+          <button type="button" class="cat-pill" data-preset="today" onclick="selectDatePreset('today')">Today</button>
+          <button type="button" class="cat-pill" data-preset="week" onclick="selectDatePreset('week')">This Week</button>
+          <button type="button" class="cat-pill" data-preset="month" onclick="selectDatePreset('month')">This Month</button>
+          <button type="button" class="cat-pill" data-preset="quarter" onclick="selectDatePreset('quarter')">This Quarter</button>
+          <button type="button" class="cat-pill active" data-preset="financial_year" onclick="selectDatePreset('financial_year')">Financial Year (FY)</button>
+          <button type="button" class="cat-pill" data-preset="calendar_year" onclick="selectDatePreset('calendar_year')">Calendar Year (CY)</button>
+          <button type="button" class="cat-pill" data-preset="last_12_months" onclick="selectDatePreset('last_12_months')">Last 12 Months</button>
+          <button type="button" class="cat-pill" data-preset="custom" onclick="selectDatePreset('custom')">Custom</button>
+        </div>
+
+        <!-- Primary Date Inputs (2-column grid on mobile) -->
+        <div class="report-dates-row">
           <div class="filter-input-group">
-            <label>Date From</label>
+            <label for="date-from">Date From</label>
             <input class="form-input" type="date" id="date-from">
           </div>
           <div class="filter-input-group">
-            <label>Date To</label>
+            <label for="date-to">Date To</label>
             <input class="form-input" type="date" id="date-to">
           </div>
-          <div class="filter-input-group">
-            <label>Customer</label>
-            <select class="form-select" id="filter-client">
-              <option value="">All Customers</option>
-            </select>
+        </div>
+
+        <!-- Collapsible Advanced Business Filters Section -->
+        <div class="advanced-filters-section">
+          <button type="button" class="advanced-filters-toggle-btn" id="toggle-advanced-filters-btn" onclick="toggleAdvancedFilters()" aria-expanded="false">
+            <div class="toggle-btn-left">
+              <svg class="filter-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
+              </svg>
+              <span>Advanced Business Filters</span>
+              <span class="active-filters-count-badge" id="active-filters-count" style="display:none;">0 active</span>
+            </div>
+            <svg class="chevron-icon" id="advanced-filters-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+          </button>
+
+          <div class="advanced-filters-body" id="advanced-filters-body" style="display:none;">
+            <div class="advanced-filters-grid">
+              <div class="filter-input-group">
+                <label for="filter-client">Customer</label>
+                <select class="form-select" id="filter-client">
+                  <option value="">All Customers</option>
+                </select>
+              </div>
+              <div class="filter-input-group">
+                <label for="filter-company">Company / Entity</label>
+                <select class="form-select" id="filter-company">
+                  <option value="">All Authorized Companies</option>
+                </select>
+              </div>
+              <div class="filter-input-group">
+                <label for="filter-product">Product Formulation</label>
+                <select class="form-select" id="filter-product">
+                  <option value="">All Products</option>
+                </select>
+              </div>
+              <div class="filter-input-group">
+                <label for="filter-sku">SKU / Packaging Size</label>
+                <select class="form-select" id="filter-sku">
+                  <option value="">All Pack Sizes</option>
+                  <option value="100 ml">100 ml</option>
+                  <option value="250 ml">250 ml</option>
+                  <option value="500 ml">500 ml</option>
+                  <option value="1 Litre">1 Litre</option>
+                  <option value="5 Litre">5 Litre</option>
+                </select>
+              </div>
+              <div class="filter-input-group">
+                <label for="filter-order-status">Order Status</label>
+                <select class="form-select" id="filter-order-status">
+                  <option value="">All Order Statuses</option>
+                  <option value="Completed">Completed</option>
+                  <option value="Pending">Pending</option>
+                  <option value="Cancelled">Cancelled</option>
+                </select>
+              </div>
+              <div class="filter-input-group">
+                <label for="filter-dispatch-status">Dispatch Status</label>
+                <select class="form-select" id="filter-dispatch-status">
+                  <option value="">All Dispatch Statuses</option>
+                  <option value="Fully Dispatched">Fully Dispatched</option>
+                  <option value="Partially Dispatched">Partially Dispatched</option>
+                  <option value="Pending Verification">Pending Verification</option>
+                </select>
+              </div>
+            </div>
           </div>
-          <div class="filter-input-group">
-            <label>Company / Entity</label>
-            <select class="form-select" id="filter-company">
-              <option value="">All Authorized Companies</option>
-            </select>
-          </div>
-          <div class="filter-input-group">
-            <label>Product Formulation</label>
-            <select class="form-select" id="filter-product">
-              <option value="">All Products</option>
-            </select>
-          </div>
-          <div class="filter-input-group">
-            <label>SKU / Packaging Size</label>
-            <select class="form-select" id="filter-sku">
-              <option value="">All Pack Sizes</option>
-              <option value="100 ml">100 ml</option>
-              <option value="250 ml">250 ml</option>
-              <option value="500 ml">500 ml</option>
-              <option value="1 Litre">1 Litre</option>
-              <option value="5 Litre">5 Litre</option>
-            </select>
-          </div>
-          <div class="filter-input-group">
-            <label>Order Status</label>
-            <select class="form-select" id="filter-order-status">
-              <option value="">All Order Statuses</option>
-              <option value="Completed">Completed</option>
-              <option value="Pending">Pending</option>
-              <option value="Cancelled">Cancelled</option>
-            </select>
-          </div>
-          <div class="filter-input-group">
-            <label>Dispatch Status</label>
-            <select class="form-select" id="filter-dispatch-status">
-              <option value="">All Dispatch Statuses</option>
-              <option value="Fully Dispatched">Fully Dispatched</option>
-              <option value="Partially Dispatched">Partially Dispatched</option>
-              <option value="Pending Verification">Pending Verification</option>
-            </select>
-          </div>
-          <div class="filter-actions">
-            <button class="btn btn-primary" onclick="applyReportFilters()" style="flex:1;">Apply Filters</button>
-            <button class="btn btn-ghost" onclick="resetReportFilters()" title="Reset All Filters">Reset</button>
-          </div>
+        </div>
+
+        <!-- Filter Actions -->
+        <div class="report-filter-actions">
+          <button type="button" class="btn btn-primary" onclick="applyReportFilters()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:15px;height:15px;margin-right:6px;"><polyline points="20 6 9 17 4 12"/></svg>
+            Apply Filters
+          </button>
+          <button type="button" class="btn btn-secondary" onclick="resetReportFilters()" title="Reset All Filters">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:15px;height:15px;margin-right:6px;"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+            Reset
+          </button>
         </div>
       </div>
 
       <!-- WORKSPACE TABS -->
-      <div class="tabs" style="margin-bottom:20px;">
+      <div class="tabs reports-tabs" id="reports-tabs" style="margin-bottom:20px;">
         <button class="tab-btn active" data-tab="Overview" onclick="switchReportTab('Overview')">Executive Overview</button>
         <button class="tab-btn" data-tab="CustomerSales" onclick="switchReportTab('CustomerSales')">Customer-Wise Annual Report</button>
         <button class="tab-btn" data-tab="ProductSales" onclick="switchReportTab('ProductSales')">Product & SKU Sales</button>

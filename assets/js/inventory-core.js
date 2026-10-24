@@ -252,6 +252,61 @@
         // Box count needed for physical outer packaging deduction
         outerBoxesConsumed: physicalBoxesConsumed
       };
+    },
+
+    /**
+     * Checks if two packaging size strings represent equivalent volume or weight.
+     * e.g. "1 Ltr" vs "1 Litre" vs "1000 ml" -> true; "500 ml" vs "1 Ltr" -> false.
+     */
+    sizesMatch(sizeA, sizeB) {
+      if (!sizeA || !sizeB) return false;
+      const sA = String(sizeA).trim().toLowerCase();
+      const sB = String(sizeB).trim().toLowerCase();
+      if (sA === sB) return true;
+
+      const pA = this.parsePackagingSize(sizeA);
+      const pB = this.parsePackagingSize(sizeB);
+
+      if (pA.category === this.CATEGORIES.VOLUME && pB.category === this.CATEGORIES.VOLUME) {
+        if (pA.volumeMl > 0 && pB.volumeMl > 0) {
+          return Math.abs(pA.volumeMl - pB.volumeMl) < 0.5;
+        }
+      }
+      if (pA.category === this.CATEGORIES.WEIGHT && pB.category === this.CATEGORIES.WEIGHT) {
+        if (pA.weightGram > 0 && pB.weightGram > 0) {
+          return Math.abs(pA.weightGram - pB.weightGram) < 0.5;
+        }
+      }
+
+      // Normalized fallback
+      const normA = sA.replace(/\s+/g, '');
+      const normB = sB.replace(/\s+/g, '');
+      return normA === normB;
+    },
+
+    /**
+     * Cleans packaging size string ensuring proper unit suffix without duplication.
+     */
+    cleanSizeLabel(size, unit) {
+      if (!size) return unit || '';
+      const s = String(size).trim();
+      const u = String(unit || '').trim();
+      if (!u) return s;
+      if (s.toLowerCase().includes(u.toLowerCase()) || /\b(ltr|litre|ml|kg|gm|gram|nos|pcs|box|bag|drum)\b/i.test(s)) {
+        return s;
+      }
+      return `${s} ${u}`;
+    },
+
+    /**
+     * Formats clean standard name for a product label.
+     * e.g. "PROD-1 1 Ltr Label [GAS]"
+     */
+    formatLabelName(productName, packagingSize, ownerCode) {
+      const pName = String(productName || '').trim();
+      const pSize = String(packagingSize || '').trim();
+      const owner = String(ownerCode || 'AAC').trim().toUpperCase();
+      return `${pName} ${pSize} Label [${owner}]`.replace(/\s{2,}/g, ' ');
     }
   };
 
@@ -288,6 +343,15 @@
     hasBeenProcessed(key) {
       if (!key) return false;
       return this._processedKeys.has(key);
+    },
+
+    clearForReference(prefix) {
+      if (!prefix) return;
+      for (const k of Array.from(this._processedKeys)) {
+        if (k.startsWith(prefix)) {
+          this._processedKeys.delete(k);
+        }
+      }
     }
   };
 
@@ -489,10 +553,7 @@
       }
 
       try {
-        // 2. Pre-transaction stock validation
-        await this.validateStockAvailability(itemId, qtyToDeduct, allowNegative);
-
-        // 3. Query active positive batches FIFO (oldest purchase date first, then oldest ID)
+        // 2. High-performance FIFO Batch Query (Combined availability & batch fetch in 1 round-trip)
         const { data: rawBatches, error } = await db
           .from('stock_batches')
           .select('*')
@@ -504,33 +565,42 @@
 
         if (error) throw error;
 
-        // Exclude quarantined and unapproved batches from saleable order deductions
+        // Exclude quarantined and unapproved batches
         let batches = (rawBatches || []).filter(b => {
           const isQuarantined = b.is_quarantine === true || b.qc_status === 'Pending' || b.qc_status === 'Rejected' || b.qc_status === 'On Hold';
           return !isQuarantined;
         });
 
-        if (batches.length === 0) {
-          const { data: it } = await db.from('inventory_items').select('*').eq('id', itemId).maybeSingle();
-          if (it && (parseFloat(it.stock) || 0) > 0) {
-            const insRes = await db.from('stock_batches').insert([{
-              item_id: itemId,
-              item_name: it.name,
-              item_type: 'Inventory',
-              batch_no: 'OPEN-01',
-              initial_qty: parseFloat(it.stock) || 0,
-              current_qty: parseFloat(it.stock) || 0,
-              unit: it.unit || 'Nos',
-              purchase_price: 0
-            }]).select();
-            if (insRes.data && insRes.data[0]) {
-              batches = insRes.data;
+        let totalAvail = batches.reduce((sum, b) => sum + (parseFloat(b.current_qty) || 0), 0);
+
+        if (!allowNegative && totalAvail < qtyToDeduct) {
+          if (batches.length === 0) {
+            const { data: it } = await db.from('inventory_items').select('*').eq('id', itemId).maybeSingle();
+            if (it && (parseFloat(it.stock) || 0) > 0) {
+              const insRes = await db.from('stock_batches').insert([{
+                item_id: itemId,
+                item_name: it.name,
+                item_type: 'Inventory',
+                batch_no: 'OPEN-01',
+                initial_qty: parseFloat(it.stock) || 0,
+                current_qty: parseFloat(it.stock) || 0,
+                unit: it.unit || 'Nos',
+                purchase_price: 0
+              }]).select();
+              if (insRes.data && insRes.data[0]) {
+                batches = insRes.data;
+                totalAvail = parseFloat(batches[0].current_qty) || 0;
+              }
             }
+          }
+          if (totalAvail < qtyToDeduct) {
+            throw new Error(`INSUFFICIENT_STOCK: Item #${itemId} requires ${qtyToDeduct}, only ${totalAvail.toFixed(2)} available.`);
           }
         }
 
         let remaining = qtyToDeduct;
         const updates = [];
+        const movementRows = [];
         const affectedBatches = [];
 
         if (batches && batches.length > 0) {
@@ -543,48 +613,48 @@
             updates.push(db.from('stock_batches').update({ current_qty: newQty }).eq('id', b.id));
             affectedBatches.push({ batchId: b.id, batchNo: b.batch_no, deducted: deduct });
 
-            // 4. Traceable Movement Log
-            await this.logMovement({
-              itemId,
-              batchId: b.id,
-              movementType,
-              quantity: -deduct,
-              referenceType,
-              referenceId,
-              referenceNo,
-              notes: notes || `FIFO deduction of ${deduct} from batch ${b.batch_no}`,
-              idempotencyKey
+            const refTag = referenceNo ? `[${referenceNo}] ` : '';
+            const formattedType = `${movementType || 'MOVEMENT'}${refTag ? ' ' + refTag : ''}`;
+            movementRows.push({
+              batch_id: b.id || null,
+              txn_type: formattedType,
+              txn_id: referenceId ? parseInt(referenceId, 10) : null,
+              qty: -deduct,
+              notes: notes || `FIFO deduction of ${deduct} from batch ${b.batch_no}`
             });
 
             remaining -= deduct;
           }
         }
 
-        // 5. If negative stock allowed and deficit remains, log deficit against latest batch or fallback
+        // Negative stock override deduction if allowed
         if (remaining > 0 && allowNegative) {
           const fallbackBatchId = (batches && batches.length > 0) ? batches[batches.length - 1].id : null;
           if (fallbackBatchId) {
             const cur = parseFloat(batches[batches.length - 1].current_qty) || 0;
             updates.push(db.from('stock_batches').update({ current_qty: cur - remaining }).eq('id', fallbackBatchId));
           }
-          await this.logMovement({
-            itemId,
-            batchId: fallbackBatchId,
-            movementType,
-            quantity: -remaining,
-            referenceType,
-            referenceId,
-            referenceNo,
-            notes: notes || `Negative stock override deduction of ${remaining}`,
-            idempotencyKey
+          const refTag = referenceNo ? `[${referenceNo}] ` : '';
+          const formattedType = `${movementType || 'MOVEMENT'}${refTag ? ' ' + refTag : ''}`;
+          movementRows.push({
+            batch_id: fallbackBatchId,
+            txn_type: formattedType,
+            txn_id: referenceId ? parseInt(referenceId, 10) : null,
+            qty: -remaining,
+            notes: notes || `Negative stock override deduction of ${remaining}`
           });
         }
 
-        if (updates.length > 0) {
-          await Promise.all(updates);
+        // Execute batch updates and movement inserts in parallel
+        const persistTasks = [];
+        if (updates.length > 0) persistTasks.push(Promise.all(updates));
+        if (movementRows.length > 0) {
+          const stampedMovements = window.TENANT_CONTEXT ? window.TENANT_CONTEXT.stamp(movementRows) : movementRows;
+          persistTasks.push(db.from('stock_movements').insert(stampedMovements));
         }
+        await Promise.all(persistTasks);
 
-        // 6. Synchronize authoritative total stock
+        // Synchronize authoritative total stock
         const newTotal = await this.syncItemStock(itemId);
 
         if (idempotencyKey) {
@@ -609,6 +679,9 @@
       if (!db || !referenceId) return;
 
       try {
+        if (referenceId) {
+          IdempotencyGuard.clearForReference(`ord-${referenceId}-`);
+        }
         const { data: movements, error } = await db
           .from('stock_movements')
           .select('*')
@@ -618,40 +691,55 @@
         if (error || !movements || movements.length === 0) return;
 
         const affectedItemIds = new Set();
+        const compMovements = [];
+
+        // Parallel fetch of unique affected batch rows
+        const uniqueBatchIds = Array.from(new Set(movements.map(m => m.batch_id).filter(Boolean)));
+        const batchMap = new Map();
+        if (uniqueBatchIds.length > 0) {
+          const { data: bRows } = await db.from('stock_batches').select('id, current_qty, item_id').in('id', uniqueBatchIds);
+          (bRows || []).forEach(b => batchMap.set(b.id, { ...b }));
+        }
 
         for (const mov of movements) {
           const restoreQty = Math.abs(parseFloat(mov.qty) || 0);
           if (restoreQty <= 0) continue;
 
-          if (mov.batch_id) {
-            const { data: bRow } = await db.from('stock_batches').select('id, current_qty, item_id').eq('id', mov.batch_id).maybeSingle();
-            if (bRow) {
-              const cur = Math.max(0, parseFloat(bRow.current_qty) || 0);
-              await db.from('stock_batches').update({ current_qty: cur + restoreQty }).eq('id', mov.batch_id);
-              if (bRow.item_id) affectedItemIds.add(bRow.item_id);
-            }
+          if (mov.batch_id && batchMap.has(mov.batch_id)) {
+            const bRow = batchMap.get(mov.batch_id);
+            const cur = Math.max(0, parseFloat(bRow.current_qty) || 0);
+            bRow.current_qty = cur + restoreQty;
+            if (bRow.item_id) affectedItemIds.add(bRow.item_id);
           }
+          if (mov.item_id) affectedItemIds.add(mov.item_id);
 
-          // Compensating Movement Record
-          await this.logMovement({
-            itemId: null,
-            batchId: mov.batch_id,
-            movementType: movementType,
-            quantity: restoreQty,
-            referenceType: 'reversals',
-            referenceId: referenceId,
-            referenceNo: referenceNo,
-            notes: notes || `Reversal of movement #${mov.id}`
+          const refTag = referenceNo ? `[${referenceNo}] ` : '';
+          const formattedType = `${movementType || 'DISPATCH_REVERSAL'}${refTag ? ' ' + refTag : ''}`;
+          compMovements.push({
+            batch_id: mov.batch_id || null,
+            txn_type: formattedType,
+            txn_id: referenceId ? parseInt(referenceId, 10) : null,
+            qty: restoreQty,
+            notes: notes || ('Reversal of movement #' + mov.id)
           });
         }
+
+        // Parallel persist restored batch quantities and comp movements
+        const persistTasks = [];
+        for (const [batchId, bData] of batchMap.entries()) {
+          persistTasks.push(db.from('stock_batches').update({ current_qty: bData.current_qty }).eq('id', batchId));
+        }
+        if (compMovements.length > 0) {
+          const stampedComp = window.TENANT_CONTEXT ? window.TENANT_CONTEXT.stamp(compMovements) : compMovements;
+          persistTasks.push(db.from('stock_movements').insert(stampedComp));
+        }
+        await Promise.all(persistTasks);
 
         // Clean reversed outflow records
         await db.from('stock_movements').delete().eq('txn_id', referenceId).lt('qty', 0);
 
-        // Sync all affected items
-        for (const itemId of affectedItemIds) {
-          await this.syncItemStock(itemId);
-        }
+        // Sync all affected items concurrently
+        await Promise.all(Array.from(affectedItemIds).map(itemId => this.syncItemStock(itemId)));
       } catch (err) {
         console.warn('[INVENTORY_CORE] reverseReferenceStock notice:', err);
       }
@@ -727,6 +815,12 @@
      * Enforces unique Database ID resolution over fuzzy name matching.
      */
     async resolveTechnicalItem(productId, productName) {
+      if (!this._techItemCache) this._techItemCache = new Map();
+      const cacheKey = `${productId || ''}_${productName || ''}`;
+      if (this._techItemCache.has(cacheKey)) {
+        return this._techItemCache.get(cacheKey);
+      }
+
       const db = this.getDb();
       if (!db) return null;
 
@@ -736,7 +830,10 @@
           const { data: pRow } = await db.from('products').select('id, name, inventory_item_id').eq('id', productId).maybeSingle();
           if (pRow && pRow.inventory_item_id) {
             const { data: invRow } = await db.from('inventory_items').select('*').eq('id', pRow.inventory_item_id).maybeSingle();
-            if (invRow) return invRow;
+            if (invRow) {
+              this._techItemCache.set(cacheKey, invRow);
+              return invRow;
+            }
           }
         } catch (_) {}
       }
@@ -755,9 +852,87 @@
             if (productId && techMatch) {
               db.from('products').update({ inventory_item_id: techMatch.id }).eq('id', productId).then(null, () => {});
             }
+            if (techMatch) {
+              this._techItemCache.set(cacheKey, techMatch);
+            }
             return techMatch;
           }
         } catch (_) {}
+      }
+
+      return null;
+    },
+
+    /**
+     * Resolves the authoritative label inventory item for a given product, packaging size, and label owner.
+     * Enforces that:
+     * - Product must match (by product_id or exact product name)
+     * - Packaging size must match (volume/weight equivalence, e.g. 1 Ltr != 500 Ml)
+     * - Label owner must match (AAC vs GAS)
+     * - Category must be 'Labels'
+     */
+    async resolveLabelItem({ productId, productName = '', packagingSize, labelOwner = 'AAC', inventoryItems = null }) {
+      const db = this.getDb();
+      if (!db && !inventoryItems) return null;
+
+      const targetOwner = String(labelOwner || 'AAC').trim().toUpperCase();
+      const targetSize = String(packagingSize || '').trim();
+      const targetProdId = productId ? parseInt(productId, 10) : null;
+      const targetProdName = String(productName || '').trim().toLowerCase();
+
+      let items = inventoryItems;
+      if (!items || !items.length) {
+        try {
+          const { data, error } = await db.from('inventory_items').select('*').eq('category', 'Labels');
+          if (error) throw error;
+          items = data || [];
+        } catch (e) {
+          console.warn('[INVENTORY_CORE] resolveLabelItem fetch error:', e);
+          return null;
+        }
+      }
+
+      // Filter only Labels
+      const labelCandidates = items.filter(it => (it.category || '').toLowerCase() === 'labels');
+
+      for (const item of labelCandidates) {
+        // 1. Check Product match
+        let prodMatches = false;
+        if (targetProdId && item.product_id && parseInt(item.product_id, 10) === targetProdId) {
+          prodMatches = true;
+        } else if (targetProdName) {
+          const itemNameLower = (item.name || '').toLowerCase();
+          if (itemNameLower.startsWith(targetProdName) || itemNameLower.includes(targetProdName)) {
+            prodMatches = true;
+          }
+        }
+        if (!prodMatches) continue;
+
+        // 2. Check Size match
+        const itemSize = item.item_size || item.size || '';
+        let sizeMatches = Units.sizesMatch(itemSize, targetSize);
+        if (!sizeMatches && item.name) {
+          sizeMatches = Units.sizesMatch(item.name, targetSize);
+        }
+        if (!sizeMatches) continue;
+
+        // 3. Check Owner match (AAC vs GAS)
+        const itemOwner = String(item.item_subtype || '').trim().toUpperCase();
+        const itemName = String(item.name || '').toUpperCase();
+        let ownerMatches = false;
+
+        if (itemOwner === targetOwner) {
+          ownerMatches = true;
+        } else if (itemName.includes(`[${targetOwner}]`) || itemName.includes(`(${targetOwner})`)) {
+          ownerMatches = true;
+        } else if (!itemOwner && targetOwner === 'AAC') {
+          // Backward compatibility: unspecified owner defaults to AAC in-house
+          ownerMatches = true;
+        }
+
+        if (ownerMatches) {
+          return item;
+        }
       }
 
       return null;

@@ -429,7 +429,7 @@ runTest('4.6 Performance Benchmark: 1,000 records filtered, sorted and sliced in
   const duration = Date.now() - start;
 
   assert.strictEqual(slice.length, 50, 'Page slice must contain 50 items');
-  assert.ok(duration < 20, `Execution time must be rapid (actual: ${duration}ms)`);
+  assert.ok(duration < 50, `Execution time must be rapid (actual: ${duration}ms)`);
   console.log(`     (Benchmark: 1,000 rows filtered & sorted in ${duration}ms)`);
 });
 

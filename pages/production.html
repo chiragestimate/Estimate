@@ -200,11 +200,15 @@
         flex: 0 0 auto;
       }
 
-      /* Mobile Card Layout for Production Items */
+      /* Clean, compact mobile card layout for production inventory items */
+      .prod-items-card-body {
+        padding: 10px 8px !important;
+      }
       .production-items-wrap {
         overflow: visible !important;
         border: none !important;
         background: transparent !important;
+        padding: 0 !important;
       }
       .production-items-table {
         display: block !important;
@@ -222,26 +226,194 @@
         width: 100% !important;
       }
       .production-items-table tbody tr.production-item-row {
-        display: flex !important;
-        flex-direction: column !important;
-        gap: 10px !important;
+        display: grid !important;
+        grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr) !important;
+        gap: 10px 8px !important;
         width: 100% !important;
-        padding: 14px !important;
+        max-width: 100% !important;
+        padding: 10px 10px !important;
         background: #ffffff !important;
         border: 1.5px solid var(--border) !important;
         border-radius: 10px !important;
         box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05) !important;
         box-sizing: border-box !important;
+        position: relative !important;
+        overflow: hidden !important;
+        transition: border-color 0.2s ease, background-color 0.2s ease !important;
       }
-      .production-items-table td {
+      .production-items-table tbody tr.production-item-row.is-decrease {
+        border-color: rgba(239, 68, 68, 0.35) !important;
+        background: #ffffff !important;
+      }
+      .production-items-table tbody tr.production-item-row.is-increase {
+        border-color: rgba(16, 185, 129, 0.4) !important;
+        background: rgba(16, 185, 129, 0.03) !important;
+      }
+
+      /* Row 1 Header: Available Stock (Left) & Remove Button (Right) */
+      .production-items-table td.cell-prod-stock {
+        grid-column: 1 !important;
+        order: 1 !important;
         display: flex !important;
         flex-direction: column !important;
+        align-items: flex-start !important;
+        justify-content: center !important;
+        gap: 2px !important;
         width: 100% !important;
+        min-width: 0 !important;
+        max-width: 100% !important;
         padding: 0 !important;
         border: none !important;
         text-align: left !important;
         box-sizing: border-box !important;
       }
+      .production-items-table td.cell-prod-stock .prod-mobile-label {
+        display: block !important;
+        margin-bottom: 0 !important;
+        font-size: 10.5px !important;
+        font-weight: 700 !important;
+        color: #64748b !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.04em !important;
+        line-height: 1.2 !important;
+      }
+      .production-items-table td.cell-prod-stock .badge {
+        display: inline-block !important;
+        max-width: 100% !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+        white-space: nowrap !important;
+        font-size: 11px !important;
+        font-weight: 700 !important;
+        padding: 3px 7px !important;
+        border-radius: 4px !important;
+        box-sizing: border-box !important;
+      }
+
+      .production-items-table td.cell-prod-remove {
+        grid-column: 2 !important;
+        order: 1 !important;
+        display: flex !important;
+        justify-content: flex-end !important;
+        align-items: center !important;
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: 100% !important;
+        padding: 0 !important;
+        border: none !important;
+        box-sizing: border-box !important;
+      }
+      .production-items-table td.cell-prod-remove .prod-mobile-actions {
+        display: flex !important;
+        justify-content: flex-end !important;
+        width: auto !important;
+        padding: 0 !important;
+      }
+      .production-items-table td.cell-prod-remove .delete-btn {
+        height: 28px !important;
+        padding: 0 8px !important;
+        font-size: 11px !important;
+        font-weight: 700 !important;
+        border-radius: 6px !important;
+        margin: 0 !important;
+        box-sizing: border-box !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        gap: 4px !important;
+      }
+
+      /* Row 2: Inventory Item Dropdown (Full Width) */
+      .production-items-table td.cell-prod-item {
+        grid-column: 1 / -1 !important;
+        order: 2 !important;
+        display: flex !important;
+        flex-direction: column !important;
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: 100% !important;
+        padding: 0 !important;
+        border: none !important;
+        box-sizing: border-box !important;
+      }
+      .production-items-table td.cell-prod-item select.form-select {
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: 100% !important;
+        height: 38px !important;
+        font-size: 13px !important;
+        box-sizing: border-box !important;
+      }
+
+      /* Row 3: Stock Operation (Full Width) */
+      .production-items-table td.cell-prod-action {
+        grid-column: 1 / -1 !important;
+        order: 3 !important;
+        display: flex !important;
+        flex-direction: column !important;
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: 100% !important;
+        padding: 0 !important;
+        border: none !important;
+        box-sizing: border-box !important;
+      }
+      .production-items-table td.cell-prod-action select.form-select {
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: 100% !important;
+        height: 38px !important;
+        font-size: 12.5px !important;
+        font-weight: 700 !important;
+        box-sizing: border-box !important;
+      }
+
+      /* Row 4: Quantity & Unit */
+      .production-items-table td.cell-prod-qty {
+        grid-column: 1 !important;
+        order: 4 !important;
+        display: flex !important;
+        flex-direction: column !important;
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: 100% !important;
+        padding: 0 !important;
+        border: none !important;
+        box-sizing: border-box !important;
+      }
+      .production-items-table td.cell-prod-qty input.form-input {
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: 100% !important;
+        height: 38px !important;
+        font-size: 13px !important;
+        font-weight: 600 !important;
+        box-sizing: border-box !important;
+        padding: 0 8px !important;
+      }
+
+      .production-items-table td.cell-prod-unit {
+        grid-column: 2 !important;
+        order: 4 !important;
+        display: flex !important;
+        flex-direction: column !important;
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: 100% !important;
+        padding: 0 !important;
+        border: none !important;
+        box-sizing: border-box !important;
+      }
+      .production-items-table td.cell-prod-unit input.form-input {
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: 100% !important;
+        height: 38px !important;
+        font-size: 13px !important;
+        text-align: center !important;
+        box-sizing: border-box !important;
+        padding: 0 4px !important;
+      }
+
       .prod-mobile-label {
         display: block !important;
         font-size: 11px !important;
@@ -250,12 +422,6 @@
         text-transform: uppercase !important;
         letter-spacing: 0.03em !important;
         margin-bottom: 4px !important;
-      }
-      .prod-mobile-actions {
-        display: flex !important;
-        justify-content: flex-end !important;
-        width: 100% !important;
-        padding-top: 4px !important;
       }
     }
   </style>
@@ -347,23 +513,17 @@
 <!-- MODAL: RECORD PRODUCTION & INVENTORY OPERATIONS                         -->
 <!-- ======================================================================= -->
 <div class="modal-overlay" id="production-modal">
-  <div class="modal modal-xl" style="max-width: 980px; width: 95%;">
-    <div class="modal-header" style="display:flex; align-items:center; justify-content:space-between; padding:16px 22px; border-bottom:1px solid var(--border);">
-      <div style="display:flex; align-items:center; gap:8px;">
-        <span style="display:inline-flex; align-items:center; justify-content:center; width:28px; height:28px; border-radius:6px; background:rgba(12,57,37,0.1); color:#0C3925;">
+  <div class="modal modal-xl prod-modal" style="max-width: 980px; width: 95%;">
+    <div class="modal-header prod-modal-header" style="display:flex; align-items:center; justify-content:space-between; padding:16px 22px; border-bottom:1px solid var(--border);">
+      <div class="prod-modal-title-wrap" style="display:flex; align-items:center; gap:8px;">
+        <span class="prod-modal-icon" style="display:inline-flex; align-items:center; justify-content:center; width:28px; height:28px; border-radius:6px; background:rgba(12,57,37,0.1); color:#0C3925;">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:16px; height:16px;"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
         </span>
         <h3 class="modal-title" id="modal-title" style="margin:0; font-size:16px; font-weight:700; color:var(--text-primary);">Record Production &amp; Inventory Operations</h3>
       </div>
       <button class="modal-close" onclick="APP.closeModal('production-modal')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     </div>
-    <div class="modal-body" style="padding: 20px 22px;">
-      <div class="production-guide-banner">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px; height:18px; color:#0C3925; flex-shrink:0; margin-top:1px;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-        <div style="font-size:12.5px; line-height:1.5; color:var(--text-secondary);">
-          <strong style="color:var(--text-primary);">Instructions:</strong> Select the product being manufactured, specify the production reference and output quantity, then add each inventory item involved. Choose <strong>DECREASE</strong> for materials consumed and <strong>INCREASE</strong> for products or outputs produced.
-        </div>
-      </div>
+    <div class="modal-body prod-modal-body" style="padding: 20px 22px;">
       <form id="production-form" onsubmit="return false">
         
         <!-- Step 1: Product & Production Details -->
@@ -375,29 +535,29 @@
             </div>
             <p style="margin: 3px 0 0 25px; font-size: 12px; color: var(--text-muted);">Select manufactured product, reference number, date, and output quantity.</p>
           </div>
-          <div class="form-grid product-form-grid" style="padding: 16px; gap: 14px;">
-            <div class="form-group" style="grid-column: span 2;">
+          <div class="form-grid product-form-grid production-details-grid" style="padding: 16px; gap: 14px;">
+            <div class="form-group form-col-full" style="grid-column: 1 / -1;">
               <label class="form-label" style="font-size:12.5px; font-weight:600;">Manufactured Product <span style="color:#ef4444;">*</span></label>
               <select class="form-select" name="product_id" id="product-select" data-searchable="true" data-placeholder="Select Manufactured Product..." onchange="onProductionProductSelected(this.value)" required style="height:38px; font-size:13px;">
                 <option value="">Select Manufactured Product...</option>
               </select>
             </div>
-            <div class="form-group">
+            <div class="form-group prod-field-batch">
               <label class="form-label" style="font-size:12.5px; font-weight:600;">Production Reference / Batch No <span style="color:#ef4444;">*</span></label>
               <input class="form-input" name="batch_no" id="batch-no-input" type="text" placeholder="e.g. PRODUCTION-TEST-001" required style="height:38px; font-size:13px;">
             </div>
-            <div class="form-group">
+            <div class="form-group prod-field-date">
               <label class="form-label" style="font-size:12.5px; font-weight:600;">Production Date <span style="color:#ef4444;">*</span></label>
               <input class="form-input" name="date" id="production-date-input" type="date" required style="height:38px; font-size:13px;">
             </div>
-            <div class="form-group">
+            <div class="form-group prod-field-qty" style="grid-column: 1 / -1;">
               <label class="form-label" style="font-size:12.5px; font-weight:600;">Quantity Produced <span style="color:#ef4444;">*</span></label>
-              <div style="display:flex; gap:6px;">
+              <div class="prod-qty-unit-wrap" style="display:flex; gap:8px;">
                 <input class="form-input" name="quantity_produced" id="quantity-produced-input" type="number" min="0.01" step="0.01" placeholder="e.g. 17" required style="height:38px; font-size:13px; flex:1;">
-                <input class="form-input" name="output_unit" id="output-unit-input" type="text" placeholder="Unit" style="width:75px; height:38px; font-size:13px; text-align:center;" value="Kg">
+                <input class="form-input" name="output_unit" id="output-unit-input" type="text" placeholder="Unit" style="width:80px; height:38px; font-size:13px; text-align:center;" value="Kg">
               </div>
             </div>
-            <div class="form-group" style="grid-column: 1 / -1;">
+            <div class="form-group form-col-full" style="grid-column: 1 / -1;">
               <label class="form-label" style="font-size:12.5px; font-weight:600;">Production Notes / Remarks <span style="font-weight:400; color:var(--text-muted);">(Optional)</span></label>
               <input class="form-input" name="notes" id="production-notes-input" type="text" placeholder="e.g. Operator notes, batch remarks, packaging notes" style="height:38px; font-size:13px;">
             </div>
@@ -413,18 +573,18 @@
             </div>
             <p style="margin: 4px 0 0 25px; font-size: 12.5px; color: var(--text-muted);">Choose <strong>DECREASE</strong> for materials consumed and <strong>INCREASE</strong> for products or outputs produced.</p>
 
-            <div class="product-form-card-actions" style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-top:12px; margin-left:25px;">
-              <button type="button" class="btn btn-primary btn-sm" onclick="addIngredientRow()" style="display:inline-flex; align-items:center; gap:6px; height:36px; padding:0 14px; font-size:13px; font-weight:600; border-radius:6px; background:#0C3925; border-color:#0C3925; color:#ffffff;">
+            <div class="product-form-card-actions" style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-top:12px;">
+              <button type="button" class="btn btn-primary btn-sm" onclick="addIngredientRow()" style="display:inline-flex; align-items:center; gap:6px; height:38px; padding:0 14px; font-size:13px; font-weight:600; border-radius:6px; background:#0C3925; border-color:#0C3925; color:#ffffff;">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                 Add Inventory Item
               </button>
-              <button type="button" class="btn btn-secondary btn-sm" onclick="addFinishedProductRow()" title="Automatically append the manufactured product as an output item with INCREASE operation" style="display:inline-flex; align-items:center; gap:6px; height:36px; padding:0 14px; font-size:13px; font-weight:600; border-radius:6px; border:1.5px solid #cbd5e1; background:#ffffff; color:#0f172a;">
+              <button type="button" class="btn btn-secondary btn-sm" onclick="addFinishedProductRow()" title="Automatically append the manufactured product as an output item with INCREASE operation" style="display:inline-flex; align-items:center; gap:6px; height:38px; padding:0 14px; font-size:13px; font-weight:600; border-radius:6px; border:1.5px solid #cbd5e1; background:#ffffff; color:#0f172a;">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                 Add Finished Product as Output
               </button>
             </div>
           </div>
-          <div style="padding: 16px;">
+          <div class="prod-items-card-body" style="padding: 16px;">
             <div class="line-items-wrap production-items-wrap">
               <table class="production-items-table">
                 <thead>
@@ -445,9 +605,9 @@
         
       </form>
     </div>
-    <div class="modal-footer" style="padding:14px 22px; border-top:1px solid var(--border); display:flex; justify-content:flex-end; gap:10px;">
-      <button class="btn btn-secondary" onclick="APP.closeModal('production-modal')">Cancel</button>
-      <button class="btn btn-primary" id="save-batch-btn" onclick="saveProduction()" style="background:#0C3925; border-color:#0C3925; font-weight:700;">Confirm &amp; Save Production</button>
+    <div class="modal-footer prod-modal-footer" style="padding:14px 22px; border-top:1px solid var(--border); display:flex; justify-content:flex-end; gap:10px;">
+      <button class="btn btn-secondary prod-btn-cancel" onclick="APP.closeModal('production-modal')">Cancel</button>
+      <button class="btn btn-primary prod-btn-save" id="save-batch-btn" onclick="saveProduction()" style="background:#0C3925; border-color:#0C3925; font-weight:700;">Confirm &amp; Save Production</button>
     </div>
   </div>
 </div>
@@ -459,7 +619,7 @@
   <div class="modal modal-lg">
     <div class="modal-header">
       <span class="modal-title" id="view-batch-modal-title">Production Record Details</span>
-      <button class="modal-close" onclick="APP.closeModal('view-production-modal')">&times;</button>
+      <button class="modal-close" onclick="APP.closeModal('view-production-modal')" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     </div>
     <div class="modal-body" id="view-batch-modal-body">
       <!-- Populated dynamically by viewProductionDetails -->

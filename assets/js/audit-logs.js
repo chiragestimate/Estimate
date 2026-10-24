@@ -27,20 +27,20 @@ document.addEventListener('DOMContentLoaded', async () => {
 async function loadAuditLogs() {
   const tbody = document.getElementById('audit-tbody');
   if (tbody) {
-    tbody.innerHTML = '<tr><td colspan="5" class="text-center" style="padding: 2rem;">Loading enterprise audit trail...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="5" class="text-center" style="padding: 2.5rem;color:var(--text-muted);"><div class="spinner" style="margin-bottom:8px;"></div>Loading enterprise audit trail...</td></tr>';
   }
 
   let dbLogs = [];
   try {
     if (window.dbClient) {
       // 1. Fetch from comprehensive audit_logs
-      const { data: fullLogs } = await window.dbClient
+      const { data: fullLogs, error: fullErr } = await window.dbClient
         .from('audit_logs')
         .select('*')
         .order('created_at', { ascending: false })
         .limit(150);
 
-      if (Array.isArray(fullLogs) && fullLogs.length > 0) {
+      if (!fullErr && Array.isArray(fullLogs) && fullLogs.length > 0) {
         dbLogs = fullLogs;
       } else {
         // Fallback to rbac_audit_logs
@@ -54,13 +54,13 @@ async function loadAuditLogs() {
             id: r.id,
             created_at: r.created_at,
             actor_email: r.actor_email,
-            action_category: r.action_type.includes('ROLE') ? 'PERMISSION_CHANGE' : 'SECURITY_EVENT',
+            action_category: (r.action_type && r.action_type.includes('ROLE')) ? 'PERMISSION_CHANGE' : (r.action_type && r.action_type.includes('APPROVAL')) ? 'APPROVAL_DECISION' : 'SECURITY_EVENT',
             action_name: r.action_type,
             table_name: 'user_role_assignments',
-            reference_no: r.target_user || '—',
-            before_values: null,
-            after_values: r.details,
-            metadata: r.details
+            reference_no: r.target_user || (r.details?.reference_code) || '—',
+            before_values: r.details?.before || null,
+            after_values: r.details?.after || r.details || null,
+            metadata: r.details || null
           }));
         }
       }
@@ -71,15 +71,50 @@ async function loadAuditLogs() {
 
   // 2. Fetch from window.AUDIT_LOGGER in-memory / local storage buffer
   let coreLogs = [];
-  if (window.AUDIT_LOGGER) {
+  if (window.AUDIT_LOGGER && typeof window.AUDIT_LOGGER.getLogs === 'function') {
     coreLogs = window.AUDIT_LOGGER.getLogs();
   }
+  if ((!coreLogs || coreLogs.length === 0) && typeof localStorage !== 'undefined') {
+    try {
+      const raw = localStorage.getItem('erp_comprehensive_audit_logs');
+      if (raw) coreLogs = JSON.parse(raw);
+    } catch (_) {}
+  }
 
-  // 3. No fallback seed logs: when testing from scratch, the audit trail starts completely clean
-  const combined = [...coreLogs, ...dbLogs];
+  // 2b. Fetch local RBAC audit logs from rbac-context buffer
+  let localRbacLogs = [];
+  if (typeof localStorage !== 'undefined') {
+    try {
+      const rawRbac = localStorage.getItem('rbac_local_audit_logs');
+      if (rawRbac) {
+        const parsedRbac = JSON.parse(rawRbac);
+        if (Array.isArray(parsedRbac)) {
+          localRbacLogs = parsedRbac.map((r, idx) => ({
+            id: r.id || ('rbac_local_' + (idx + 1)),
+            created_at: r.created_at || new Date().toISOString(),
+            actor_email: r.actor_email || 'admin@anjani.local',
+            action_category: (r.action_type && r.action_type.includes('ROLE')) ? 'PERMISSION_CHANGE' : (r.action_type && r.action_type.includes('APPROVAL')) ? 'APPROVAL_DECISION' : 'SECURITY_EVENT',
+            action_name: r.action_type || 'RBAC_EVENT',
+            table_name: 'user_role_assignments',
+            reference_no: r.target_user || (r.details?.reference_code) || (r.details?.roleCode) || '—',
+            before_values: r.details?.before || null,
+            after_values: r.details?.after || r.details || null,
+            metadata: r.details || null
+          }));
+        }
+      }
+    } catch (_) {}
+  }
+
+  // 3. Combine and deduplicate all log sources
+  const combined = [...(coreLogs || []), ...(dbLogs || []), ...(localRbacLogs || [])];
   const uniqueMap = new Map();
   combined.forEach(item => {
-    const key = `${item.created_at}_${item.action_category || item.action_type}_${item.reference_no}`;
+    if (!item || !item.created_at) return;
+    const cat = item.action_category || item.action_type || 'EVENT';
+    const act = item.action_name || item.action_type || '';
+    const ref = item.reference_no || item.record_id || '';
+    const key = `${item.created_at}_${cat}_${act}_${ref}`;
     if (!uniqueMap.has(key)) {
       uniqueMap.set(key, item);
     }
@@ -90,6 +125,7 @@ async function loadAuditLogs() {
   allAuditLogs.forEach((log, index) => {
     log._idx = index;
   });
+  window.allAuditLogs = allAuditLogs;
 
   renderAuditTable(allAuditLogs);
 }
@@ -178,11 +214,72 @@ function renderAuditSlice(logs) {
     } else if (category === 'DISPATCH_POSTING' && m.vehicleNo) {
       diffSummary = `Dispatched: <strong>${m.boxesDispatched || 0} bx + ${m.looseDispatched || 0} ls</strong> (Vehicle: <code>${m.vehicleNo}</code>)`;
     } else if (category === 'FINANCIAL_ADJUSTMENT' && m.amount) {
-      diffSummary = `Reversal of <strong>${refCode}</strong> (Amount: ₹${UTILS.fmtCurrency(m.amount)}. Reason: ${m.reason || 'Correction'})`;
-    } else if (action && action.includes('WAREHOUSE')) {
-      diffSummary = `Warehouse <strong>${m.warehouseName || refCode}</strong>: Status set to <span class="badge ${a.status === 'Active' ? 'badge-success' : (a.status === 'Archived' ? 'badge-warning' : 'badge-danger')}">${a.status || (a.deleted ? 'Deleted' : '')}</span>`;
+      diffSummary = `Reversal of <strong>${refCode}</strong> (Amount: ${UTILS.fmtCurrency(m.amount)}. Reason: ${m.reason || 'Correction'})`;
     } else if (action && action.includes('COMPANY')) {
-      diffSummary = `Company <strong>${m.companyName || refCode}</strong>: Status set to <span class="badge ${a.status === 'Active' ? 'badge-success' : (a.status === 'Archived' ? 'badge-warning' : 'badge-danger')}">${a.status || (a.deleted ? 'Deleted' : '')}</span>`;
+      const coName = m.companyName || a.companyName || b.companyName || refCode;
+      const coCode = m.companyCode || a.companyCode || b.companyCode || '';
+      const codeBadge = coCode && coCode !== '—' && coCode !== coName ? ` <code>(${escapeHtml(coCode)})</code>` : '';
+
+      if (action.includes('DELETED') || a.deleted) {
+        diffSummary = `Company <strong>${escapeHtml(coName)}</strong>: Status set to <span class="badge badge-danger">Deleted</span>`;
+      } else if (action.includes('ARCHIVED') || a.status === 'Archived') {
+        diffSummary = `Company <strong>${escapeHtml(coName)}</strong>: Status set to <span class="badge badge-warning">Archived</span>`;
+      } else if (action.includes('REACTIVATED')) {
+        diffSummary = `Company <strong>${escapeHtml(coName)}</strong>: Status set to <span class="badge badge-success">Active</span>`;
+      } else if (action.includes('CREATED')) {
+        const st = a.status || 'Active';
+        diffSummary = `Company <strong>${escapeHtml(coName)}</strong>: Status set to <span class="badge badge-success">${escapeHtml(st)}</span>${codeBadge}`;
+      } else if (action.includes('UPDATED')) {
+        diffSummary = `Company <strong>${escapeHtml(coName)}</strong>: Details <span class="badge badge-primary">Updated</span>${codeBadge}`;
+      } else if (a.status) {
+        const badgeCls = a.status === 'Active' ? 'badge-success' : (a.status === 'Archived' ? 'badge-warning' : 'badge-danger');
+        diffSummary = `Company <strong>${escapeHtml(coName)}</strong>: Status set to <span class="badge ${badgeCls}">${escapeHtml(a.status)}</span>`;
+      } else {
+        const cleanAct = action.replace(/^COMPANY_/, '').replace(/_/g, ' ');
+        diffSummary = `Company <strong>${escapeHtml(coName)}</strong>: <span class="badge badge-primary">${escapeHtml(cleanAct)}</span>${codeBadge}`;
+      }
+    } else if (action && action.includes('WAREHOUSE')) {
+      const whName = m.warehouseName || a.warehouseName || b.warehouseName || refCode;
+      const whCode = m.warehouseCode || a.warehouseCode || b.warehouseCode || '';
+      const codeBadge = whCode && whCode !== '—' && whCode !== whName ? ` <code>(${escapeHtml(whCode)})</code>` : '';
+
+      if (action.includes('DELETED') || a.deleted) {
+        diffSummary = `Warehouse <strong>${escapeHtml(whName)}</strong>: Status set to <span class="badge badge-danger">Deleted</span>`;
+      } else if (action.includes('ARCHIVED') || a.status === 'Archived') {
+        diffSummary = `Warehouse <strong>${escapeHtml(whName)}</strong>: Status set to <span class="badge badge-warning">Archived</span>`;
+      } else if (action.includes('REACTIVATED')) {
+        diffSummary = `Warehouse <strong>${escapeHtml(whName)}</strong>: Status set to <span class="badge badge-success">Active</span>`;
+      } else if (action.includes('CREATED')) {
+        const st = a.status || 'Active';
+        diffSummary = `Warehouse <strong>${escapeHtml(whName)}</strong>: Status set to <span class="badge badge-success">${escapeHtml(st)}</span>${codeBadge}`;
+      } else if (action.includes('UPDATED')) {
+        diffSummary = `Warehouse <strong>${escapeHtml(whName)}</strong>: Details <span class="badge badge-primary">Updated</span>${codeBadge}`;
+      } else if (a.status) {
+        const badgeCls = a.status === 'Active' ? 'badge-success' : (a.status === 'Archived' ? 'badge-warning' : 'badge-danger');
+        diffSummary = `Warehouse <strong>${escapeHtml(whName)}</strong>: Status set to <span class="badge ${badgeCls}">${escapeHtml(a.status)}</span>`;
+      } else {
+        const cleanAct = action.replace(/^WAREHOUSE_/, '').replace(/_/g, ' ');
+        diffSummary = `Warehouse <strong>${escapeHtml(whName)}</strong>: <span class="badge badge-primary">${escapeHtml(cleanAct)}</span>${codeBadge}`;
+      }
+    } else if (action && action.includes('BRANCH')) {
+      const brName = m.branchName || a.branchName || b.branchName || refCode;
+      const brCode = m.branchCode || a.branchCode || b.branchCode || '';
+      const codeBadge = brCode && brCode !== '—' && brCode !== brName ? ` <code>(${escapeHtml(brCode)})</code>` : '';
+
+      if (action.includes('DELETED') || a.deleted) {
+        diffSummary = `Branch <strong>${escapeHtml(brName)}</strong>: Status set to <span class="badge badge-danger">Deleted</span>`;
+      } else if (action.includes('CREATED')) {
+        const st = a.status || 'Active';
+        diffSummary = `Branch <strong>${escapeHtml(brName)}</strong>: Status set to <span class="badge badge-success">${escapeHtml(st)}</span>${codeBadge}`;
+      } else if (action.includes('UPDATED')) {
+        diffSummary = `Branch <strong>${escapeHtml(brName)}</strong>: Details <span class="badge badge-primary">Updated</span>${codeBadge}`;
+      } else if (a.status) {
+        const badgeCls = a.status === 'Active' ? 'badge-success' : (a.status === 'Archived' ? 'badge-warning' : 'badge-danger');
+        diffSummary = `Branch <strong>${escapeHtml(brName)}</strong>: Status set to <span class="badge ${badgeCls}">${escapeHtml(a.status)}</span>`;
+      } else {
+        const cleanAct = action.replace(/^BRANCH_/, '').replace(/_/g, ' ');
+        diffSummary = `Branch <strong>${escapeHtml(brName)}</strong>: <span class="badge badge-primary">${escapeHtml(cleanAct)}</span>${codeBadge}`;
+      }
     } else if (category === 'PERMISSION_CHANGE') {
       diffSummary = `Role: <span class="badge badge-gray">${b.role || 'None'}</span> → <span class="badge badge-primary">${a.role || 'Revoked'}</span>`;
     } else {
@@ -325,7 +422,7 @@ function filterAuditTableReal() {
 
   if (searchTerm) {
     filtered = filtered.filter(log => {
-      const str = `${log.actor_email} ${log.action_category} ${log.action_name} ${log.action_type} ${log.reference_no} ${log.table_name} ${JSON.stringify(log.before_values || {})} ${JSON.stringify(log.after_values || {})}`.toLowerCase();
+      const str = `${log.actor_email || ''} ${log.action_category || ''} ${log.action_name || ''} ${log.action_type || ''} ${log.reference_no || ''} ${log.table_name || ''} ${JSON.stringify(log.before_values || {})} ${JSON.stringify(log.after_values || {})} ${JSON.stringify(log.metadata || {})}`.toLowerCase();
       return str.includes(searchTerm);
     });
   }
@@ -501,10 +598,10 @@ function formatAuditValue(key, val) {
   if (lower === 'posted' || lower === 'approved' || lower === 'completed' || lower === 'active' || lower === 'packing approved') {
     return `<span class="badge badge-success" style="font-size:11.5px;padding:3px 8px;font-weight:700;">${escapeHtml(str)}</span>`;
   }
-  if (lower === 'reversed' || lower === 'cancelled' || lower === 'rejected' || lower === 'inactive' || lower === 'blocked') {
+  if (lower === 'reversed' || lower === 'cancelled' || lower === 'rejected' || lower === 'inactive' || lower === 'blocked' || lower === 'deleted') {
     return `<span class="badge badge-danger" style="font-size:11.5px;padding:3px 8px;font-weight:700;">${escapeHtml(str)}</span>`;
   }
-  if (lower === 'pending' || lower === 'in production' || lower === 'packing in progress' || lower === 'draft') {
+  if (lower === 'pending' || lower === 'in production' || lower === 'packing in progress' || lower === 'draft' || lower === 'archived') {
     return `<span class="badge badge-warning" style="font-size:11.5px;padding:3px 8px;font-weight:700;">${escapeHtml(str)}</span>`;
   }
   if (lower.includes('quarantine')) {
@@ -842,6 +939,31 @@ function escapeHtml(str) {
     .replace(/'/g, '&#039;');
 }
 
+function clearAuditTrail() {
+  APP.showConfirm(
+    'Are you sure you want to clear the audit trail?<br><br>All locally recorded audit events will be wiped to give you a clean slate for testing.',
+    () => {
+      if (window.AUDIT_LOGGER && window.AUDIT_LOGGER.clearMemoryBuffer) {
+        window.AUDIT_LOGGER.clearMemoryBuffer();
+      }
+      try {
+        localStorage.removeItem('erp_comprehensive_audit_logs');
+        localStorage.removeItem('rbac_local_audit_logs');
+      } catch (_) {}
+      allAuditLogs = [];
+      renderAuditTable([]);
+      APP.showToast('Audit trail cleared successfully.', 'success');
+    },
+    {
+      title: 'Clear Audit Trail',
+      confirmText: 'Clear Logs',
+      isDanger: true
+    }
+  );
+}
+
+window.clearAuditTrail = clearAuditTrail;
+window.clearAuditFilters = clearAuditFilters;
 window.loadAuditLogs = loadAuditLogs;
 window.filterAuditTable = filterAuditTable;
 window.viewAuditDetails = viewAuditDetails;

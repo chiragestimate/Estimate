@@ -88,7 +88,7 @@ function populateAccountDropdowns() {
   if (filterSelect) {
     const curVal = filterSelect.value;
     filterSelect.innerHTML = '<option value="">All Accounts</option>' + 
-      allAccounts.map(a => `<option value="${a.id}" ${curVal == a.id ? 'selected' : ''}>${a.name} (₹${(a.net_balance || 0).toLocaleString('en-IN', {minimumFractionDigits: 2})})</option>`).join('');
+      allAccounts.map(a => `<option value="${a.id}" ${curVal == a.id ? 'selected' : ''}>${a.name} (${UTILS.fmtCurrency(a.net_balance || 0)})</option>`).join('');
   }
 
   const formSelect = document.getElementById('txn-account-select');
@@ -126,7 +126,7 @@ function renderTable(data) {
   const countEl = document.getElementById('total-info');
   if (countEl) countEl.textContent = `${data.length} transaction${data.length !== 1 ? 's' : ''}`;
   if (!data.length) {
-    tbody.innerHTML = `<tr><td colspan="9"><div class="empty-state"><span aria-hidden="true" style="font-size:28px;font-weight:800;line-height:1;color:var(--accent)">₹</span><h3>No transactions</h3><p>Record your first payment or receipt.</p></div></td></tr>`;
+    tbody.innerHTML = `<tr class="empty-row"><td colspan="9" class="empty-cell"><div class="empty-state"><span aria-hidden="true" style="font-size:28px;font-weight:800;line-height:1;color:var(--accent)">₹</span><h3>No transactions</h3><p>Record your first payment or receipt.</p></div></td></tr>`;
     const pag = document.querySelector('#txn-table-wrap .pagination');
     if (pag) pag.style.display = 'none';
     return;
@@ -375,7 +375,7 @@ function renderAccountsTable() {
   if (!tbody) return;
 
   if (allAccounts.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="6"><div class="empty-state">No accounts found. Add your first account.</div></td></tr>';
+    tbody.innerHTML = '<tr class="empty-row"><td colspan="6" class="empty-cell"><div class="empty-state">No accounts found. Add your first account.</div></td></tr>';
     return;
   }
 
@@ -566,10 +566,10 @@ async function loadGeneralLedger() {
       const sEl = document.getElementById('gl-balance-status');
       const diffEl = document.getElementById('gl-diff-text');
 
-      if (dEl) dEl.textContent = '₹' + UTILS.fmtCurrency(tb.totalDebits);
-      if (cEl) cEl.textContent = '₹' + UTILS.fmtCurrency(tb.totalCredits);
+      if (dEl) dEl.textContent = UTILS.fmtCurrency(tb.totalDebits);
+      if (cEl) cEl.textContent = UTILS.fmtCurrency(tb.totalCredits);
       if (sEl) {
-        sEl.textContent = tb.isBalanced ? 'Balanced (0.00 Diff)' : `Discrepancy: ₹${tb.difference}`;
+        sEl.textContent = tb.isBalanced ? 'Balanced (0.00 Diff)' : `Discrepancy: ${UTILS.fmtCurrency(tb.difference)}`;
         sEl.style.color = tb.isBalanced ? '#10B981' : '#EF4444';
       }
       if (diffEl) {
@@ -643,7 +643,7 @@ function renderGlSlice(list) {
           <div style="font-size:11px; color:var(--text-secondary);">${e.credit_account_name}</div>
         </td>
         <td class="cell-bold">${e.party_name || '—'}</td>
-        <td class="cell-amount font-bold">₹${UTILS.fmtCurrency(e.amount)}</td>
+        <td class="cell-amount font-bold">${UTILS.fmtCurrency(e.amount)}</td>
         <td>${statusBadge}</td>
         <td>
           ${(!isRev && !isReversed) ? `
@@ -655,6 +655,10 @@ function renderGlSlice(list) {
       </tr>
     `;
   }).join('');
+
+  if (typeof UTILS !== 'undefined' && UTILS.applyMobileTableLabels) {
+    UTILS.applyMobileTableLabels('gl-table');
+  }
 }
 
 function renderGlTable(list) {
@@ -664,7 +668,7 @@ function renderGlTable(list) {
   if (!tbody) return;
 
   if (list.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="9"><div class="empty-state"><h3>No journal entries</h3><p>Recorded transactions and operations will generate double-entry journals here.</p></div></td></tr>';
+    tbody.innerHTML = '<tr class="empty-row"><td colspan="9" class="empty-cell"><div class="empty-state"><h3>No journal entries</h3><p>Recorded transactions and operations will generate double-entry journals here.</p></div></td></tr>';
     const pag = document.querySelector('#gl-table-wrap .pagination');
     if (pag) pag.style.display = 'none';
     return;
@@ -691,7 +695,7 @@ function openReversalModal(entryId) {
   const e = allGlEntries.find(x => x.id === entryId);
   if (!e) return;
   document.getElementById('reversal-entry-id').value = e.id;
-  document.getElementById('reversal-entry-target').value = `${e.entry_no} (${e.ref_type.replace(/_/g, ' ')} - ₹${UTILS.fmtCurrency(e.amount)})`;
+  document.getElementById('reversal-entry-target').value = `${e.entry_no} (${e.ref_type.replace(/_/g, ' ')} - ${UTILS.fmtCurrency(e.amount)})`;
   document.getElementById('reversal-reason').value = '';
   APP.openModal('reversal-modal');
 }
@@ -759,7 +763,7 @@ async function onTxnLinkTypeChange() {
         sel.innerHTML = '<option value="">Select Purchase Bill...</option>' + 
           pendingPurchasesList.map(p => {
             const due = (parseFloat(p.total_amount) || 0) - (parseFloat(p.paid_amount) || 0);
-            return `<option value="${p.id}">${p.purchase_no || 'PO-' + p.id} - ${p.supplier_name || 'Vendor'} (Due: ₹${due > 0 ? UTILS.fmtCurrency(due) : '0'})</option>`;
+            return `<option value="${p.id}">${p.purchase_no || 'PO-' + p.id} - ${p.supplier_name || 'Vendor'} (Due: ${due > 0 ? UTILS.fmtCurrency(due) : '₹0.00'})</option>`;
           }).join('');
       }
     } catch (e) {
@@ -778,7 +782,7 @@ async function onTxnLinkTypeChange() {
         sel.innerHTML = '<option value="">Select Sales Order...</option>' + 
           pendingOrdersList.map(o => {
             const due = (parseFloat(o.total_amount) || 0) - (parseFloat(o.paid_amount) || 0);
-            return `<option value="${o.id}">${o.order_no || 'ORD-' + o.id} - ${o.client_name || 'Client'} (Due: ₹${due > 0 ? UTILS.fmtCurrency(due) : '0'})</option>`;
+            return `<option value="${o.id}">${o.order_no || 'ORD-' + o.id} - ${o.client_name || 'Client'} (Due: ${due > 0 ? UTILS.fmtCurrency(due) : '₹0.00'})</option>`;
           }).join('');
       }
     } catch (e) {

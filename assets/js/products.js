@@ -561,7 +561,7 @@ function renderProductsTable(data) {
 
     return `<tr>
       <td class="cell-bold">${p.name}</td>
-      <td class="cell-mono">${p.batch_no || '—'}</td>
+
       <td>${p.brand || '—'}</td>
       <td><span class="badge badge-purple">${UTILS.formatCategoryLabel(p.category) || '—'}</span></td>
       <td>${toxBadge}</td>
@@ -919,7 +919,7 @@ function renderPackagingOptionsContainer() {
           <div class="packaging-card-fields" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
             <div class="packaging-field packaging-field-size" style="grid-column: span 2;">
               <label style="font-size:11px; color:var(--text-secondary); font-weight:700; display:block; margin-bottom:6px; text-transform:uppercase; letter-spacing:0.04em;">Packaging Size <span style="color:var(--danger)">*</span></label>
-              <select class="form-select" onchange="onPackagingSizeChange(${idx}, this.value)" style="font-size: 13px; padding: 10px 12px; width: 100%; height:42px; box-sizing:border-box;">
+              <select class="form-select packaging-size-select" data-searchable="true" onchange="onPackagingSizeChange(${idx}, this.value)" style="width: 100%;">
                 <option value="">Select size...</option>
                 ${availableSizes.map(size => `<option value="${size}" ${opt.packaging_size === size ? 'selected' : ''}>${size}</option>`).join('')}
                 ${(opt.packaging_size && !availableSizes.includes(opt.packaging_size)) ? `<option value="${opt.packaging_size}" selected>${opt.packaging_size} (Custom)</option>` : ''}
@@ -970,7 +970,7 @@ function renderPackagingOptionsContainer() {
                   </td>
                   <td style="padding: 8px 12px;">
                     <div style="display:flex; gap:6px; align-items:center;">
-                      <select class="form-select" onchange="onPackagingSizeChange(${idx}, this.value)" style="font-size: 12px; padding: 6px 8px; flex:1;">
+                      <select class="form-select packaging-size-select" data-searchable="true" onchange="onPackagingSizeChange(${idx}, this.value)" style="width: 100%;">
                         <option value="">Select size...</option>
                         ${availableSizes.map(size => `<option value="${size}" ${opt.packaging_size === size ? 'selected' : ''}>${size}</option>`).join('')}
                         ${(opt.packaging_size && !availableSizes.includes(opt.packaging_size)) ? `<option value="${opt.packaging_size}" selected>${opt.packaging_size} (Custom)</option>` : ''}
@@ -1008,7 +1008,9 @@ function renderPackagingOptionsContainer() {
     `;
   }
   setTimeout(() => {
-    if (window.UTILS?.initAllAutocompleteSelects) {
+    if (window.UniversalSearchSelect) {
+      window.UniversalSearchSelect.initAll(container);
+    } else if (window.UTILS?.initAllAutocompleteSelects) {
       UTILS.initAllAutocompleteSelects();
     }
   }, 10);

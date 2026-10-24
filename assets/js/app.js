@@ -17,10 +17,9 @@ if ('caches' in window) {
 
 // Clean-slate reset for testing from scratch: clear stale mock/buffered data keys from localStorage
 (function() {
-  const WIPE_VERSION = 'wipe_2026_10_16_clean_slate_v3';
+  const WIPE_VERSION = 'wipe_2026_10_20_clean_slate_v5';
   if (typeof localStorage !== 'undefined' && localStorage.getItem('erp_last_wipe_version') !== WIPE_VERSION) {
     const keysToRemove = [
-      'erp_comprehensive_audit_logs',
       'erp_system_notifications',
       'packagingUnits',
       'deletedPackagingUnits',
@@ -31,7 +30,9 @@ if ('caches' in window) {
       'erp_intercompany_transfers',
       'erp_intercompany_transfer_items',
       'erp_intercompany_relationships',
-      'rbac_local_audit_logs'
+      'erp_active_company_id',
+      'erp_active_company_name',
+      'erp_active_company_code'
     ];
     keysToRemove.forEach(k => {
       try { localStorage.removeItem(k); } catch (_) {}
@@ -330,6 +331,11 @@ function openModal(id) {
   // Safety delayed scrolls to cover transition and rendering delay
   setTimeout(() => resetModalScroll(overlay), 50);
   setTimeout(() => resetModalScroll(overlay), 150);
+  setTimeout(() => {
+    if (window.UniversalSearchSelect) {
+      window.UniversalSearchSelect.initAll(overlay);
+    }
+  }, 80);
 }
 
 function closeModal(id) {

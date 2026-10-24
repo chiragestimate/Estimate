@@ -167,12 +167,31 @@
       if (this._initialized) return this;
 
       try {
+        // Self-Healing Guard: Root super_admin can NEVER be permanently deleted
+        try {
+          const rawDel = localStorage.getItem(DELETED_ROLES_STORAGE_KEY);
+          if (rawDel) {
+            let delList = JSON.parse(rawDel);
+            if (delList.includes('super_admin')) {
+              delList = delList.filter(c => c !== 'super_admin');
+              localStorage.setItem(DELETED_ROLES_STORAGE_KEY, JSON.stringify(delList));
+            }
+          }
+        } catch (e) {}
+
         const userEmail = localStorage.getItem('admin_user') || 'admin@afield.local';
         this._currentUser = { email: userEmail };
 
         // 1. Check for manual role switch override (for administrative preview / testing)
-        const storedRole = localStorage.getItem(STORAGE_KEY_ACTIVE_ROLE);
+        let storedRole = localStorage.getItem(STORAGE_KEY_ACTIVE_ROLE);
         const available = this.getAvailableRoles();
+
+        // If stored role is invalid or was deleted by mistake, safely fallback to super_admin
+        if (!storedRole || !available.some(r => r.code === storedRole)) {
+          storedRole = 'super_admin';
+          try { localStorage.setItem(STORAGE_KEY_ACTIVE_ROLE, 'super_admin'); } catch(e){}
+        }
+
         if (storedRole && available.some(r => r.code === storedRole)) {
           this._setRole(storedRole);
         } else {
@@ -227,6 +246,12 @@
         if (raw) deleted = JSON.parse(raw);
       } catch (e) {}
 
+      // Self-Healing Guard: Root super_admin can NEVER be in deleted list
+      if (deleted.includes('super_admin')) {
+        deleted = deleted.filter(c => c !== 'super_admin');
+        try { localStorage.setItem(DELETED_ROLES_STORAGE_KEY, JSON.stringify(deleted)); } catch (e) {}
+      }
+
       let updated = {};
       try {
         const raw = localStorage.getItem(UPDATED_ROLES_STORAGE_KEY);
@@ -252,6 +277,20 @@
           });
         }
       });
+
+      // Emergency self-heal if all roles got wiped
+      if (list.length === 0) {
+        try { localStorage.removeItem(DELETED_ROLES_STORAGE_KEY); } catch(e){}
+        Object.keys(DEFAULT_ROLE_PERMISSIONS).forEach(code => {
+          const def = DEFAULT_ROLE_PERMISSIONS[code];
+          list.push({
+            code,
+            name: def.name,
+            badge: def.badge || def.name,
+            is_system: true
+          });
+        });
+      }
 
       if (Array.isArray(custom)) {
         custom.forEach(c => {
@@ -348,6 +387,10 @@
     },
 
     getRoleCode() {
+      return this._activeRoleCode;
+    },
+
+    getActiveRole() {
       return this._activeRoleCode;
     },
 

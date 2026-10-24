@@ -57,6 +57,12 @@ function loadRolesCatalog() {
     if (raw) deleted = JSON.parse(raw);
   } catch (e) {}
 
+  // Protection & Auto-Heal: Root 'super_admin' can NEVER be deleted
+  if (deleted.includes('super_admin')) {
+    deleted = deleted.filter(c => c !== 'super_admin');
+    try { localStorage.setItem(DELETED_ROLES_STORAGE_KEY, JSON.stringify(deleted)); } catch (e) {}
+  }
+
   let custom = [];
   try {
     const raw = localStorage.getItem(CUSTOM_ROLES_STORAGE_KEY);
@@ -73,6 +79,12 @@ function loadRolesCatalog() {
     .filter(r => !deleted.includes(r.code))
     .map(r => updated[r.code] ? { ...r, ...updated[r.code] } : r);
 
+  // If user accidentally deleted all roles or got locked out, auto-heal
+  if (SYSTEM_ROLES_CATALOG.length === 0) {
+    try { localStorage.removeItem(DELETED_ROLES_STORAGE_KEY); } catch (e) {}
+    SYSTEM_ROLES_CATALOG = [...BASE_SYSTEM_ROLES];
+  }
+
   if (Array.isArray(custom)) {
     custom.forEach(cr => {
       if (!deleted.includes(cr.code) && !SYSTEM_ROLES_CATALOG.some(r => r.code === cr.code)) {
@@ -86,6 +98,25 @@ function loadRolesCatalog() {
     });
   }
 }
+
+window.restoreDefaultRoles = function() {
+  try {
+    localStorage.removeItem(DELETED_ROLES_STORAGE_KEY);
+    localStorage.removeItem(CUSTOM_ROLES_STORAGE_KEY);
+    localStorage.removeItem(UPDATED_ROLES_STORAGE_KEY);
+    localStorage.setItem('erp_active_role', 'super_admin');
+    localStorage.setItem('erp_active_role_override', 'super_admin');
+  } catch (e) {}
+  loadRolesCatalog();
+  if (window.RBAC && window.RBAC.reloadRoles) {
+    window.RBAC.reloadRoles();
+  }
+  updateStats();
+  renderRolesTable();
+  if (typeof APP !== 'undefined' && APP.showToast) {
+    APP.showToast('All 10 standard system roles and administrator permissions have been successfully restored!', 'success');
+  }
+};
 
 async function loadInitialData() {
   try {
@@ -1095,6 +1126,16 @@ async function deleteRole(roleCode) {
       APP.showToast(`Cannot delete role "${role.name}": ${activeAssignments.length} active user assignment(s) exist. Please reassign or revoke active users first.`, 'warning');
     } else {
       alert(`Cannot delete role "${role.name}" because active users are assigned to it.`);
+    }
+    return;
+  }
+
+  const activeRole = (window.RBAC && window.RBAC.getActiveRole) ? window.RBAC.getActiveRole() : 'super_admin';
+  if (roleCode === 'super_admin' || roleCode === activeRole) {
+    if (typeof APP !== 'undefined' && APP.showToast) {
+      APP.showToast(`Security Guard: You cannot delete your active administrator role (${role.name}). To prevent system lockout, this role is protected.`, 'error');
+    } else {
+      alert(`Security Guard: You cannot delete your active administrator role (${role.name}).`);
     }
     return;
   }

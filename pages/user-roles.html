@@ -45,8 +45,12 @@
         </div>
         <div class="page-header-right" style="display:flex;gap:8px;">
           <button class="btn btn-secondary" onclick="window.location.href='audit-logs.html'">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 16 14"/></svg>
             Audit Trail
+          </button>
+          <button class="btn btn-secondary" onclick="restoreDefaultRoles()" title="Restore all standard system roles">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+            Restore Roles
           </button>
           <button class="btn btn-primary" onclick="openAssignUserModal()">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -138,6 +142,10 @@
             <p style="margin:0;font-size:13px;color:var(--text-muted);">Standard and custom RBAC security personas defined in the ERP. You can inspect permissions, assign users, or manage roles.</p>
           </div>
           <div class="roles-header-actions" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <button class="btn btn-secondary btn-sm" onclick="restoreDefaultRoles()" title="Restore all 10 standard system roles and permissions" style="display:inline-flex;align-items:center;gap:5px;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+              Restore Standard Roles
+            </button>
             <button class="btn btn-secondary btn-sm" onclick="openCustomRoleModal()" id="btn-create-role" style="display:inline-flex;align-items:center;gap:5px;">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
               Create Role

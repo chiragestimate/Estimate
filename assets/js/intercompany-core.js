@@ -176,56 +176,94 @@
         const { data, error } = query && query.select ? await query.select() : await query;
         if (error) {
           if (isTableMissingError(error)) {
-            const table = getLocalTable(tableName);
-            const inserted = records.map(r => {
-              const item = { id: Date.now() + Math.floor(Math.random() * 1000), created_at: new Date().toISOString(), ...r };
-              table.unshift(item);
-              return item;
-            });
-            saveLocalTable(tableName, table);
-            return inserted;
+            return await this._cloudBridgeInsert(client, tableName, records);
           }
           throw error;
         }
         return data;
       } catch (err) {
         if (isTableMissingError(err)) {
-          const table = getLocalTable(tableName);
-          const inserted = records.map(r => {
-            const item = { id: Date.now() + Math.floor(Math.random() * 1000), created_at: new Date().toISOString(), ...r };
-            table.unshift(item);
-            return item;
-          });
-          saveLocalTable(tableName, table);
-          return inserted;
+          return await this._cloudBridgeInsert(client, tableName, records);
         }
         throw err;
       }
+    },
+
+    async _cloudBridgeInsert(client, tableName, records) {
+      const table = getLocalTable(tableName);
+      const inserted = records.map(r => {
+        const item = { id: Date.now() + Math.floor(Math.random() * 1000), created_at: new Date().toISOString(), ...r };
+        table.unshift(item);
+        return item;
+      });
+      saveLocalTable(tableName, table);
+
+      // Persist to Supabase cloud bridge so ALL devices (Laptop & Mobile) see the exact same transfers
+      if (client && client.from) {
+        for (const item of inserted) {
+          try {
+            const safeIntId = Math.floor((item.id || Date.now()) / 1000) % 2000000000;
+            await client.from('stock_movements').insert([{
+              txn_type: 'ICT_TRANSFER_SYNC_' + tableName,
+              txn_id: safeIntId,
+              notes: JSON.stringify(item),
+              company_id: item.from_company_id || item.company_id || 623
+            }]);
+          } catch (cloudErr) {
+            console.warn('[Intercompany Cloud Bridge] Sync insert notice:', cloudErr);
+          }
+        }
+      }
+      return inserted;
     },
 
     async _safeUpdate(client, tableName, updates, filterKey, filterVal) {
       try {
         const { data, error } = await client.from(tableName).update(updates).eq(filterKey, filterVal);
         if (error && isTableMissingError(error)) {
-          const table = getLocalTable(tableName);
-          table.forEach(r => {
-            if (r[filterKey] === filterVal) Object.assign(r, updates);
-          });
-          saveLocalTable(tableName, table);
-          return { data: 1, error: null };
+          return await this._cloudBridgeUpdate(client, tableName, updates, filterKey, filterVal);
         }
         return { data, error };
       } catch (err) {
         if (isTableMissingError(err)) {
-          const table = getLocalTable(tableName);
-          table.forEach(r => {
-            if (r[filterKey] === filterVal) Object.assign(r, updates);
-          });
-          saveLocalTable(tableName, table);
-          return { data: 1, error: null };
+          return await this._cloudBridgeUpdate(client, tableName, updates, filterKey, filterVal);
         }
         throw err;
       }
+    },
+
+    async _cloudBridgeUpdate(client, tableName, updates, filterKey, filterVal) {
+      const table = getLocalTable(tableName);
+      table.forEach(r => {
+        if (r[filterKey] === filterVal) Object.assign(r, updates);
+      });
+      saveLocalTable(tableName, table);
+
+      if (client && client.from) {
+        try {
+          const { data: matches } = await client
+            .from('stock_movements')
+            .select('*')
+            .eq('txn_type', 'ICT_TRANSFER_SYNC_' + tableName);
+
+          if (matches && matches.length > 0) {
+            for (const m of matches) {
+              try {
+                const current = JSON.parse(m.notes);
+                if (current[filterKey] === filterVal) {
+                  Object.assign(current, updates);
+                  await client.from('stock_movements').update({
+                    notes: JSON.stringify(current)
+                  }).eq('id', m.id);
+                }
+              } catch (_) {}
+            }
+          }
+        } catch (cloudErr) {
+          console.warn('[Intercompany Cloud Bridge] Sync update notice:', cloudErr);
+        }
+      }
+      return { data: 1, error: null };
     },
 
     async _safeSelectOne(client, tableName, filterKey, filterVal) {
@@ -233,15 +271,15 @@
         const q = client.from(tableName).select('*').eq(filterKey, filterVal);
         const { data, error } = await (q && q.maybeSingle ? q.maybeSingle() : q);
         if (error && isTableMissingError(error)) {
-          const table = getLocalTable(tableName);
-          return table.find(r => r[filterKey] === filterVal) || null;
+          const list = await this._cloudBridgeSelect(client, tableName, filterKey, filterVal);
+          return list.find(r => r[filterKey] === filterVal) || null;
         }
         const record = Array.isArray(data) ? data[0] : data;
         return record || null;
       } catch (err) {
         if (isTableMissingError(err)) {
-          const table = getLocalTable(tableName);
-          return table.find(r => r[filterKey] === filterVal) || null;
+          const list = await this._cloudBridgeSelect(client, tableName, filterKey, filterVal);
+          return list.find(r => r[filterKey] === filterVal) || null;
         }
         throw err;
       }
@@ -255,23 +293,53 @@
         }
         const { data, error } = await (q.then ? q : q.select('*'));
         if (error && isTableMissingError(error)) {
-          const table = getLocalTable(tableName);
-          if (filterKey && filterVal !== undefined) {
-            return table.filter(r => r[filterKey] === filterVal);
-          }
-          return table;
+          return await this._cloudBridgeSelect(client, tableName, filterKey, filterVal);
         }
         return Array.isArray(data) ? data : [];
       } catch (err) {
         if (isTableMissingError(err)) {
-          const table = getLocalTable(tableName);
-          if (filterKey && filterVal !== undefined) {
-            return table.filter(r => r[filterKey] === filterVal);
-          }
-          return table;
+          return await this._cloudBridgeSelect(client, tableName, filterKey, filterVal);
         }
         throw err;
       }
+    },
+
+    async _cloudBridgeSelect(client, tableName, filterKey, filterVal) {
+      if (client && client.from) {
+        try {
+          const { data: cloudData, error: cloudErr } = await client
+            .from('stock_movements')
+            .select('*')
+            .eq('txn_type', 'ICT_TRANSFER_SYNC_' + tableName)
+            .order('id', { ascending: false });
+
+          if (!cloudErr && Array.isArray(cloudData) && cloudData.length > 0) {
+            const remoteItems = cloudData.map(cd => {
+              try {
+                const parsed = JSON.parse(cd.notes);
+                return { ...parsed, _cloud_id: cd.id };
+              } catch (_) { return null; }
+            }).filter(Boolean);
+
+            if (remoteItems.length > 0) {
+              saveLocalTable(tableName, remoteItems);
+              if (filterKey && filterVal !== undefined) {
+                return remoteItems.filter(r => r[filterKey] === filterVal);
+              }
+              return remoteItems;
+            }
+          }
+        } catch (cloudErr) {
+          console.warn('[Intercompany Cloud Bridge] Sync select notice:', cloudErr);
+        }
+      }
+
+      // Offline fallback to local storage cache
+      const table = getLocalTable(tableName);
+      if (filterKey && filterVal !== undefined) {
+        return table.filter(r => r[filterKey] === filterVal);
+      }
+      return table;
     },
 
     /**

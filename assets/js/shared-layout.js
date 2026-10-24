@@ -61,9 +61,17 @@ function getLogoUrl() {
 function getActiveCompanyName() {
   if (window.TENANT_CONTEXT && window.TENANT_CONTEXT.getActiveCompany) {
     const act = window.TENANT_CONTEXT.getActiveCompany();
-    if (act && act.name) return act.name;
+    if (act && act.name) {
+      if (act.name === 'Anjani Agri Care') act.name = 'Afield Crop Care';
+      return act.name;
+    }
   }
-  return localStorage.getItem('erp_active_company_name') || 'Afield Crop Care';
+  const stored = localStorage.getItem('erp_active_company_name');
+  if (stored === 'Anjani Agri Care' || !stored) {
+    localStorage.setItem('erp_active_company_name', 'Afield Crop Care');
+    return 'Afield Crop Care';
+  }
+  return stored;
 }
 
 function getActiveCompanyCode() {
@@ -748,12 +756,23 @@ async function initCompanySwitcher() {
 
   // Populate companies list
   const updateDropdown = () => {
-    const active = (window.TENANT_CONTEXT && window.TENANT_CONTEXT.getActiveCompany)
+    let active = (window.TENANT_CONTEXT && window.TENANT_CONTEXT.getActiveCompany)
       ? window.TENANT_CONTEXT.getActiveCompany()
       : { id: getActiveCompanyId(), name: getActiveCompanyName(), code: getActiveCompanyCode(), is_manufacturing: true };
+    if (active && (active.name === 'Anjani Agri Care' || !active.name)) {
+      active.name = 'Afield Crop Care';
+      if (localStorage.getItem('erp_active_company_name') === 'Anjani Agri Care') {
+        localStorage.setItem('erp_active_company_name', 'Afield Crop Care');
+      }
+    }
     const companies = (window.TENANT_CONTEXT && window.TENANT_CONTEXT.getAuthorizedCompanies)
       ? window.TENANT_CONTEXT.getAuthorizedCompanies()
       : [active];
+    if (companies && Array.isArray(companies)) {
+      companies.forEach(c => {
+        if (c.name === 'Anjani Agri Care') c.name = 'Afield Crop Care';
+      });
+    }
 
     const nameEl = document.getElementById('topbar-company-name');
     const codeEl = document.getElementById('topbar-company-code');

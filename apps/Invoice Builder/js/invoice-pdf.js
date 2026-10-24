@@ -1094,39 +1094,31 @@
     pdf.setLineWidth(0.3);
     pdf.line(margin, footerY, rightEdge, footerY);
 
-    // 7A. Left: Payment Details (Only rendered if details are provided)
-    const hasBank = Boolean((bankName && bankName.trim()) || (bankAcc && bankAcc.trim()) || (bankIfsc && bankIfsc.trim()));
-    if (hasBank) {
+    // 7A. Left: Payment Details (Headings always drawn as requested; values empty/dashed if not provided)
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(8.5);
+    pdf.setTextColor(...C_DARK_GREEN);
+    pdf.text('Payment Details', margin, footerY + 5.5);
+
+    const bankLines = [
+      { label: 'Bank: ', val: bankName || '—' },
+      { label: 'A/C No.: ', val: bankAcc || '—' },
+      { label: 'IFSC: ', val: bankIfsc || '—' },
+      { label: 'UPI: ', val: bankUpi || '—' }
+    ];
+
+    let bLineY = footerY + 10.0;
+    bankLines.forEach(bl => {
       pdf.setFont('helvetica', 'bold');
-      pdf.setFontSize(8.5);
-      pdf.setTextColor(...C_DARK_GREEN);
-      pdf.text('Payment Details', margin, footerY + 5.5);
-
-      const bankLines = [
-        bankName ? { label: 'Bank: ', val: bankName } : null,
-        bankAcc ? { label: 'A/C No.: ', val: bankAcc } : null,
-        bankIfsc ? { label: 'IFSC: ', val: bankIfsc } : null,
-        bankUpi ? { label: 'UPI: ', val: bankUpi } : null
-      ].filter(Boolean);
-
-      let bLineY = footerY + 10.0;
-      bankLines.forEach(bl => {
-        pdf.setFont('helvetica', 'bold');
-        pdf.setFontSize(7.5);
-        pdf.setTextColor(...C_TEXT_MAIN);
-        pdf.text(bl.label, margin, bLineY);
-
-        const lblW = pdf.getTextWidth(bl.label);
-        pdf.setFont('helvetica', 'normal');
-        pdf.text(bl.val || '—', margin + lblW + 1, bLineY);
-        bLineY += 4.0;
-      });
-    } else {
-      pdf.setFont('helvetica', 'normal');
       pdf.setFontSize(7.5);
-      pdf.setTextColor(...C_TEXT_MUTED);
-      pdf.text('Thank you for your business.', margin, footerY + 10.0);
-    }
+      pdf.setTextColor(...C_TEXT_MAIN);
+      pdf.text(bl.label, margin, bLineY);
+
+      const lblW = pdf.getTextWidth(bl.label);
+      pdf.setFont('helvetica', 'normal');
+      pdf.text(bl.val, margin + lblW + 1, bLineY);
+      bLineY += 4.0;
+    });
 
     // 7B. Center: QR Code (if enabled)
     if (showQr && bankUpi && bankUpi.trim()) {

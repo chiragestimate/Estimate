@@ -960,7 +960,7 @@ async function populateLabelFormSelects(selectedProdId = null, selectedSize = nu
       } catch (_) {}
 
       // Fallback defaults
-      if (!companies.some(c => c.code === 'AAC')) companies.unshift({ id: 1, name: 'Anjani Agri Care', code: 'AAC' });
+      if (!companies.some(c => c.code === 'AAC')) companies.unshift({ id: 1, name: 'Afield Crop Care', code: 'AAC' });
       if (!companies.some(c => c.code === 'GAS')) companies.push({ id: 2, name: 'Greenfield Agro Solutions', code: 'GAS' });
 
       const activeCode = (window.TENANT_CONTEXT && window.TENANT_CONTEXT.getActiveCompany) 

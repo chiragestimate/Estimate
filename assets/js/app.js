@@ -1,3 +1,14 @@
+// Immediate company branding normalization
+(function() {
+  if (typeof localStorage !== 'undefined') {
+    if (localStorage.getItem('erp_active_company_name') === 'Anjani Agri Care' || !localStorage.getItem('erp_active_company_name')) {
+      localStorage.setItem('erp_active_company_name', 'Afield Crop Care');
+    }
+    if (localStorage.getItem('active_company_name') === 'Anjani Agri Care') {
+      localStorage.setItem('active_company_name', 'Afield Crop Care');
+    }
+  }
+})();
 /* ─── app.js ──────────────────────────────────────────── */
 /* Sidebar, Topbar, Toast, Modal, Spinner, Navigation      */
 

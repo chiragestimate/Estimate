@@ -954,9 +954,7 @@ const SYNC_MAP = {
 };
 
 function updateBillFromPreview() {
-  const bankBlock = $('bank-block');
-  const hasBankData = Boolean(($('s-bank-name')?.value || '').trim() || ($('s-bank-acc')?.value || '').trim());
-  if (bankBlock) bankBlock.style.display = hasBankData ? '' : 'none';
+  
   const compName = $('s-company')?.value || 'Afield Crop Care';
   let addr = $('s-address')?.value || '';
   const state = $('s-company-state')?.value || 'Gujarat';

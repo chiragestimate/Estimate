@@ -2771,11 +2771,16 @@
             </div>
 
 
-            <!-- Footer: Signature (Bank details removed) -->
-            <div style="display:flex; justify-content:space-between; border-top:2px solid #0C3925; padding-top:14px; margin-top:14px; align-items:flex-end;">
-              <div style="font-size:11.5px; color:#64748b; line-height:1.5;">
-                <div style="font-weight:600; color:#0C3925;">Thank you for your business!</div>
-                <div style="font-size:10px; color:#94a3b8; margin-top:2px;">This is a computer-generated commercial tax invoice.</div>
+                        <!-- Footer: Bank Details (Headings Preserved) + Signature -->
+            <div style="display:grid; grid-template-columns:1fr auto; gap:20px; border-top:2px solid #0C3925; padding-top:14px; margin-top:14px; align-items:flex-end;">
+              <div>
+                <div style="font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:1px; color:#0C3925; margin-bottom:5px;">Payment Details</div>
+                <div style="font-size:11.5px; line-height:1.5; color:#1e293b;">
+                  <div><strong>Bank:</strong> <span id="modal-bank-name">—</span></div>
+                  <div><strong>A/C No.:</strong> <span id="modal-bank-acc">—</span></div>
+                  <div><strong>IFSC:</strong> <span id="modal-bank-ifsc">—</span></div>
+                  <div><strong>UPI:</strong> <span id="modal-bank-upi">—</span></div>
+                </div>
               </div>
               <div style="text-align:center; min-width:160px;">
                 <div style="font-size:9.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.8px; color:#64748b; margin-bottom:4px;">Authorized Signature</div>
@@ -2786,6 +2791,8 @@
               </div>
             </div>
           </div>
+        </div>
+          </div>
         `;
 
         if (typeof window.QRCode === 'function') {
@@ -2794,7 +2801,7 @@
             try {
               qrCanvasContainer.innerHTML = '';
               new window.QRCode(qrCanvasContainer, {
-                text: `upi://pay?pa=9427213943m@pnb&pn=${encodeURIComponent('Anjani Agri Care')}`,
+                text: `upi://pay?pa=9427213943m@pnb&pn=${encodeURIComponent('Afield Crop Care')}`,
                 width: 90,
                 height: 90,
                 colorDark: '#000000',

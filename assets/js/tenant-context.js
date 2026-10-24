@@ -70,7 +70,10 @@
         }
 
         this._hasMultiCompanySchema = true;
-        this._authorizedCompanies = (companies && companies.length > 0) ? companies : [];
+        this._authorizedCompanies = (companies && companies.length > 0) ? companies.map(c => ({
+          ...c,
+          name: c.name === 'Anjani Agri Care' ? 'Afield Crop Care' : c.name
+        })) : [];
 
         // 2. Determine active company from localStorage, validated against authorized list
         const storedCompanyId = parseInt(localStorage.getItem(STORAGE_KEY_COMPANY), 10);
@@ -82,9 +85,12 @@
           localStorage.setItem(STORAGE_KEY_COMPANY, matched.id);
         }
 
+        if (matched && matched.name === 'Anjani Agri Care') {
+          matched.name = 'Afield Crop Care';
+        }
         this._activeCompany = matched || {
           id: 1,
-          name: (typeof localStorage !== 'undefined' && localStorage.getItem('erp_active_company_name')) || 'Afield Crop Care',
+          name: (typeof localStorage !== 'undefined' && (localStorage.getItem('erp_active_company_name') === 'Anjani Agri Care' ? 'Afield Crop Care' : (localStorage.getItem('erp_active_company_name') || 'Afield Crop Care'))),
           code: (typeof localStorage !== 'undefined' && localStorage.getItem('erp_active_company_code')) || 'ACC',
           is_manufacturing: true,
           currency: 'INR'
@@ -111,7 +117,7 @@
     _fallbackInit() {
       const defaultCompany = {
         id: 1,
-        name: (typeof localStorage !== 'undefined' && localStorage.getItem('erp_active_company_name')) || 'Afield Crop Care',
+        name: (typeof localStorage !== 'undefined' && (localStorage.getItem('erp_active_company_name') === 'Anjani Agri Care' ? 'Afield Crop Care' : (localStorage.getItem('erp_active_company_name') || 'Afield Crop Care'))),
         code: (typeof localStorage !== 'undefined' && localStorage.getItem('erp_active_company_code')) || 'ACC',
         is_manufacturing: true,
         currency: 'INR'

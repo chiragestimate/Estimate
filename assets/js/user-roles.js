@@ -100,7 +100,7 @@ async function loadInitialData() {
     ]);
 
     allCompanies = compRes.data || [
-      { id: 1, name: 'Anjani Agri Care', code: 'ACC' },
+      { id: 1, name: 'Afield Crop Care', code: 'ACC' },
       { id: 2, name: 'Company A (Agro Retail)', code: 'CO-A' },
       { id: 3, name: 'Company B (Crop Solutions)', code: 'CO-B' },
       { id: 4, name: 'Company C (Kisan Kendra)', code: 'CO-C' }
@@ -367,7 +367,7 @@ function renderUsersSlice(assignments) {
   if (!tbody) return;
 
   tbody.innerHTML = assignments.map(a => {
-    const company = allCompanies.find(c => c.id === a.company_id) || { name: 'Anjani Agri Care', code: 'ACC' };
+    const company = allCompanies.find(c => c.id === a.company_id) || { name: 'Afield Crop Care', code: 'ACC' };
     const branch = allBranches.find(b => b.id === a.branch_id);
     const warehouse = allWarehouses.find(w => w.id === a.warehouse_id);
     const roleCode = a.roles?.code || 'super_admin';
@@ -509,7 +509,7 @@ function openAssignUserModal(assignment = null) {
     (c.status || 'Active') === 'Active' || (assignment && String(assignment.company_id) === String(c.id))
   );
   if (availableCompanies.length === 0) {
-    availableCompanies = [{ id: assignment?.company_id || 1, name: 'Anjani Agri Care', code: 'ACC' }];
+    availableCompanies = [{ id: assignment?.company_id || 1, name: 'Afield Crop Care', code: 'ACC' }];
   }
 
   if (companySelect) {

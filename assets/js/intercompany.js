@@ -190,23 +190,23 @@ function renderTransfersSlice(data) {
 
     if (st === 'Draft' || st === 'Pending Approval') {
       actionsHtml += `
-        <button class="btn btn-sm btn-primary" onclick="openApproveTransfer(${t.id})" style="padding:2px 8px;font-size:11px;">Approve</button>
-        <button class="btn btn-sm btn-secondary" onclick="cancelTransfer(${t.id})" style="padding:2px 8px;font-size:11px;color:var(--danger,#ef4444);" title="Cancel Transfer">Cancel</button>
+        <button class="btn btn-sm btn-primary" onclick="openApproveTransfer(${t.id})">Approve</button>
+        <button class="btn btn-sm btn-secondary btn-danger-text" onclick="cancelTransfer(${t.id})" title="Cancel Transfer">Cancel</button>
       `;
     } else if (st === 'Approved') {
       actionsHtml += `
-        <button class="btn btn-sm btn-success" onclick="openDispatchTransfer(${t.id})" style="padding:2px 8px;font-size:11px;background:#16a34a;color:#fff;">Dispatch</button>
-        <button class="btn btn-sm btn-secondary" onclick="cancelTransfer(${t.id})" style="padding:2px 8px;font-size:11px;color:var(--danger,#ef4444);" title="Cancel Transfer">Cancel</button>
+        <button class="btn btn-sm btn-success" onclick="openDispatchTransfer(${t.id})">Dispatch</button>
+        <button class="btn btn-sm btn-secondary btn-danger-text" onclick="cancelTransfer(${t.id})" title="Cancel Transfer">Cancel</button>
       `;
     } else if (st === 'In Transit' || st === 'Partially Received') {
       actionsHtml += `
-        <button class="btn btn-sm btn-primary" onclick="openReceiveTransfer(${t.id})" style="padding:2px 8px;font-size:11px;">Receive</button>
-        <button class="btn btn-sm btn-secondary" onclick="openRejectTransfer(${t.id})" style="padding:2px 8px;font-size:11px;color:var(--danger,#ef4444);">Reject</button>
+        <button class="btn btn-sm btn-primary" onclick="openReceiveTransfer(${t.id})">Receive</button>
+        <button class="btn btn-sm btn-secondary btn-danger-text" onclick="openRejectTransfer(${t.id})">Reject</button>
       `;
     } else if (st === 'Received') {
-      actionsHtml += `<button class="btn btn-sm btn-secondary" onclick="openReturnTransfer(${t.id})" style="padding:2px 8px;font-size:11px;color:var(--danger,#ef4444);">Return</button>`;
+      actionsHtml += `<button class="btn btn-sm btn-secondary btn-danger-text" onclick="openReturnTransfer(${t.id})">Return</button>`;
     } else if (st === 'Rejected') {
-      actionsHtml += `<button class="btn btn-sm btn-secondary" onclick="resubmitTransfer(${t.id})" style="padding:2px 8px;font-size:11px;" title="Reopen as Draft">Resubmit</button>`;
+      actionsHtml += `<button class="btn btn-sm btn-secondary" onclick="resubmitTransfer(${t.id})" title="Reopen as Draft">Resubmit</button>`;
     }
 
     const pkgBreakdown = UTILS.formatPackagingBreakdown({
@@ -223,29 +223,37 @@ function renderTransfersSlice(data) {
     return `
       <tr>
         <td class="col-transfer-no">
-          <div class="transfer-primary-no">${t.transfer_no}</div>
-          <div class="transfer-sub-date">${dateStr}</div>
+          <div class="transfer-primary-meta">
+            <div class="transfer-primary-no">${t.transfer_no}</div>
+            <div class="transfer-sub-date">${dateStr}</div>
+          </div>
           ${vehicleBadge}
         </td>
         <td class="col-arrangement">${supplyBadge}</td>
         <td class="col-from">
-          <div class="co-name-from">${fromCo?.name || 'Company #'+t.from_company_id}</div>
-          <div class="wh-name-sub">${fromWh?.name || 'Warehouse #'+t.from_warehouse_id}</div>
+          <div class="cell-entity-stack">
+            <div class="co-name-from">${fromCo?.name || 'Company #'+t.from_company_id}</div>
+            <div class="wh-name-sub">${fromWh?.name || 'Warehouse #'+t.from_warehouse_id}</div>
+          </div>
         </td>
         <td class="col-to">
-          <div class="co-name-to">${toCo?.name || 'Company #'+t.to_company_id}</div>
-          <div class="wh-name-sub">${toWh?.name || 'Warehouse #'+t.to_warehouse_id}</div>
+          <div class="cell-entity-stack">
+            <div class="co-name-to">${toCo?.name || 'Company #'+t.to_company_id}</div>
+            <div class="wh-name-sub">${toWh?.name || 'Warehouse #'+t.to_warehouse_id}</div>
+          </div>
         </td>
         <td class="col-items">
-          <div class="items-units-bold">${t.total_dispatched_units || t.total_ordered_units || 0} Units</div>
-          <div class="items-boxes-sub">${pkgBreakdown}</div>
+          <div class="cell-qty-stack">
+            <div class="items-units-bold">${t.total_dispatched_units || t.total_ordered_units || 0} Units</div>
+            <div class="items-boxes-sub">${pkgBreakdown}</div>
+          </div>
         </td>
         <td class="col-amount cell-amount">
           <div class="amount-val">${UTILS.fmtCurrency(t.total_amount)}</div>
         </td>
         <td class="col-status">${statusBadge}</td>
         <td class="col-actions">
-          <div class="row-actions" style="gap:4px;justify-content:center;">${actionsHtml}</div>
+          <div class="row-actions">${actionsHtml}</div>
         </td>
       </tr>
     `;

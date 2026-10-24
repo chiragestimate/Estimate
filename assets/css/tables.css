@@ -251,31 +251,48 @@
 }
 
 /* ─── RECIPIENT COMPANY SUPPLY MATRIX (INTERCOMPANY) ─────── */
-#recon-recipients-table {
-  table-layout: fixed !important;
+#recon-recipients-table-wrap {
   width: 100% !important;
-  min-width: 0 !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+}
+
+#recon-recipients-table {
+  width: 100% !important;
+  min-width: 950px !important;
+  border-collapse: separate !important;
+  border-spacing: 0 !important;
 }
 
 #recon-recipients-table th {
-  white-space: normal !important;
-  word-break: normal !important;
-  overflow-wrap: break-word !important;
-  line-height: 1.3 !important;
+  white-space: nowrap !important;
   vertical-align: middle !important;
-  padding: 12px 10px !important;
+  padding: 12px 12px !important;
   font-size: 11px !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.04em !important;
+  color: var(--text-muted, #475569) !important;
+  background: var(--table-header-bg, #f8fafc) !important;
+  border-bottom: 1.5px solid var(--border, #e2e8f0) !important;
 }
 
 #recon-recipients-table td {
-  white-space: normal !important;
-  word-break: normal !important;
-  overflow-wrap: break-word !important;
-  line-height: 1.35 !important;
-  padding: 12px 10px !important;
+  padding: 12px 12px !important;
   font-size: 13px !important;
   vertical-align: middle !important;
+  border-bottom: 1px solid var(--border-subtle, #f1f5f9) !important;
 }
+
+#recon-recipients-table .col-recon-co { min-width: 170px; width: 22%; }
+#recon-recipients-table .col-recon-supplied { min-width: 110px; width: 13%; }
+#recon-recipients-table .col-recon-received { min-width: 110px; width: 13%; }
+#recon-recipients-table .col-recon-transit { min-width: 110px; width: 13%; }
+#recon-recipients-table .col-recon-consign { min-width: 150px; width: 16%; }
+#recon-recipients-table .col-recon-damage { min-width: 120px; width: 12%; }
+#recon-recipients-table .col-recon-status { min-width: 120px; width: 11%; text-align: center; }
 
 #recon-recipients-table th:last-child,
 #recon-recipients-table td:last-child {
@@ -289,6 +306,49 @@
   font-size: 11.5px !important;
   padding: 3px 8px !important;
 }
+
+/* ─── COMPANY TRADING MATRIX (TAB 3) ─────────────────────── */
+#relationships-table-wrap {
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+}
+
+#relationships-table {
+  width: 100% !important;
+  min-width: 850px !important;
+  border-collapse: separate !important;
+  border-spacing: 0 !important;
+}
+
+#relationships-table th {
+  white-space: nowrap !important;
+  vertical-align: middle !important;
+  padding: 12px 14px !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.04em !important;
+  color: var(--text-muted, #475569) !important;
+  background: var(--table-header-bg, #f8fafc) !important;
+  border-bottom: 1.5px solid var(--border, #e2e8f0) !important;
+}
+
+#relationships-table td {
+  padding: 12px 14px !important;
+  font-size: 13px !important;
+  vertical-align: middle !important;
+  border-bottom: 1px solid var(--border-subtle, #f1f5f9) !important;
+}
+
+#relationships-table .col-rel-supplier { min-width: 160px; width: 22%; }
+#relationships-table .col-rel-customer { min-width: 160px; width: 22%; }
+#relationships-table .col-rel-type { min-width: 140px; width: 18%; }
+#relationships-table .col-rel-tier { min-width: 120px; width: 14%; }
+#relationships-table .col-rel-sync { min-width: 90px; width: 10%; text-align: center; }
+#relationships-table .col-rel-actions { min-width: 110px; width: 14%; text-align: center; }
 
 /* ─── PACKAGING GROUPED ROWS ──────────────────────────── */
 .pkg-variant-stack {
@@ -4067,35 +4127,192 @@
   width: 100% !important;
   max-width: 100% !important;
   box-sizing: border-box !important;
-  overflow-x: hidden !important;
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+  background: var(--surface, #ffffff) !important;
+  border-radius: var(--radius-lg, 12px) !important;
 }
 
 #transfers-table {
   width: 100% !important;
-  max-width: 100% !important;
-  table-layout: fixed !important;
-  border-collapse: collapse !important;
+  min-width: 920px !important;
+  table-layout: auto !important;
+  border-collapse: separate !important;
+  border-spacing: 0 !important;
   box-sizing: border-box !important;
 }
 
-#transfers-table th,
-#transfers-table td {
-  padding: 10px 10px !important;
+#transfers-table th {
+  padding: 10px 8px !important;
   box-sizing: border-box !important;
   vertical-align: middle !important;
-  overflow: hidden !important;
-  text-overflow: ellipsis !important;
-  word-break: break-word !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.03em !important;
+  color: var(--text-muted, #475569) !important;
+  background: var(--table-header-bg, #f8fafc) !important;
+  border-bottom: 1.5px solid var(--border, #e2e8f0) !important;
+  white-space: nowrap !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
 }
 
-#transfers-table .col-transfer-no { width: 15% !important; }
-#transfers-table .col-arrangement { width: 12% !important; }
-#transfers-table .col-from { width: 18% !important; }
-#transfers-table .col-to { width: 18% !important; }
-#transfers-table .col-items { width: 14% !important; }
-#transfers-table .col-amount { width: 10% !important; text-align: right !important; }
-#transfers-table .col-status { width: 7% !important; text-align: center !important; }
-#transfers-table .col-actions { width: 6% !important; text-align: center !important; }
+#transfers-table td {
+  padding: 10px 8px !important;
+  box-sizing: border-box !important;
+  vertical-align: middle !important;
+  font-size: 12.5px !important;
+  border-bottom: 1px solid var(--border-subtle, #f1f5f9) !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+}
+
+#transfers-table .col-transfer-no {
+  min-width: 115px !important;
+  width: 13% !important;
+  white-space: nowrap !important;
+}
+
+#transfers-table .col-arrangement {
+  min-width: 115px !important;
+  width: 12% !important;
+  white-space: nowrap !important;
+}
+
+#transfers-table .col-from {
+  min-width: 140px !important;
+  width: 16% !important;
+  white-space: normal !important;
+  word-break: normal !important;
+}
+
+#transfers-table .col-to {
+  min-width: 140px !important;
+  width: 16% !important;
+  white-space: normal !important;
+  word-break: normal !important;
+}
+
+#transfers-table .col-items {
+  min-width: 110px !important;
+  width: 11% !important;
+  white-space: normal !important;
+}
+
+#transfers-table .col-amount {
+  min-width: 90px !important;
+  width: 9% !important;
+  text-align: right !important;
+  white-space: nowrap !important;
+}
+
+#transfers-table .col-status {
+  min-width: 75px !important;
+  width: 7% !important;
+  text-align: center !important;
+  white-space: nowrap !important;
+}
+
+#transfers-table .col-actions {
+  min-width: 140px !important;
+  width: 16% !important;
+  text-align: center !important;
+  white-space: nowrap !important;
+}
+
+#transfers-table .col-actions .row-actions {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 4px !important;
+  flex-wrap: nowrap !important;
+  min-width: 132px !important;
+  white-space: nowrap !important;
+}
+
+#transfers-table .col-actions .action-btn.view {
+  width: 26px !important;
+  height: 26px !important;
+  min-width: 26px !important;
+  padding: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 6px !important;
+  border: 1px solid var(--border, #cbd5e1) !important;
+  background: #ffffff !important;
+  color: #475569 !important;
+  cursor: pointer !important;
+  transition: all 0.15s ease !important;
+}
+
+#transfers-table .col-actions .action-btn.view:hover {
+  background: #f1f5f9 !important;
+  color: #0f172a !important;
+  border-color: #94a3b8 !important;
+}
+
+#transfers-table .col-actions .action-btn.view svg {
+  width: 14px !important;
+  height: 14px !important;
+}
+
+#transfers-table .col-actions .row-actions .btn {
+  height: 26px !important;
+  padding: 2px 8px !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  border-radius: 6px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  white-space: nowrap !important;
+  cursor: pointer !important;
+  line-height: 1.2 !important;
+  box-sizing: border-box !important;
+}
+
+#transfers-table .col-actions .btn-primary {
+  background: #0C3925 !important;
+  color: #ffffff !important;
+  border: none !important;
+}
+
+#transfers-table .col-actions .btn-primary:hover {
+  background: #14532d !important;
+}
+
+#transfers-table .col-actions .btn-success {
+  background: #15803d !important;
+  color: #ffffff !important;
+  border: none !important;
+}
+
+#transfers-table .col-actions .btn-success:hover {
+  background: #166534 !important;
+}
+
+#transfers-table .col-actions .btn-secondary {
+  background: #f8fafc !important;
+  border: 1px solid var(--border, #cbd5e1) !important;
+  color: var(--text, #334155) !important;
+}
+
+#transfers-table .col-actions .btn-secondary:hover {
+  background: #f1f5f9 !important;
+}
+
+#transfers-table .col-actions .btn-danger-text {
+  color: var(--danger, #ef4444) !important;
+  border-color: rgba(239, 68, 68, 0.3) !important;
+}
+
+#transfers-table .col-actions .btn-danger-text:hover {
+  background: #fef2f2 !important;
+  border-color: #ef4444 !important;
+  color: #b91c1c !important;
+}
 
 #transfers-table .transfer-primary-no {
   font-weight: 700;

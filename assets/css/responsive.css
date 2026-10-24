@@ -6663,7 +6663,53 @@ body { overflow-x: hidden; }
   }
 
   .wh-stock-modal-header {
-    padding: 12px 14px !important;
+    padding: 14px 14px 10px 14px !important;
+    gap: 8px !important;
+    position: relative !important;
+  }
+
+  .wh-modal-header-main {
+    gap: 6px !important;
+  }
+
+  .wh-modal-title-row {
+    gap: 8px !important;
+    padding-right: 32px !important;
+    display: flex !important;
+    align-items: center !important;
+    flex-wrap: wrap !important;
+  }
+
+  #warehouse-view-title {
+    font-size: 16px !important;
+    line-height: 1.3 !important;
+  }
+
+  .wh-stock-modal-header .modal-close {
+    position: absolute !important;
+    top: 12px !important;
+    right: 12px !important;
+    margin: 0 !important;
+    width: 32px !important;
+    height: 32px !important;
+  }
+
+  .wh-modal-meta-grid {
+    gap: 5px 12px !important;
+    font-size: 11.5px !important;
+  }
+
+  .wh-meta-item {
+    font-size: 11.5px !important;
+    white-space: normal !important;
+  }
+
+  .wh-meta-label {
+    font-size: 11px !important;
+  }
+
+  .wh-meta-val {
+    font-size: 11.5px !important;
   }
 
   .wh-modal-nav {
@@ -6672,8 +6718,24 @@ body { overflow-x: hidden; }
   }
 
   .wh-tab-btn {
-    padding: 6px 10px !important;
-    font-size: 11.5px !important;
+    padding: 7px 11px !important;
+    font-size: 12px !important;
+    gap: 5px !important;
+  }
+
+  .wh-tab-btn svg {
+    width: 14px !important;
+    height: 14px !important;
+  }
+
+  .wh-tab-btn .wh-tab-text,
+  .wh-tab-btn span {
+    font-size: 12px !important;
+  }
+
+  .wh-tab-btn .wh-tab-badge {
+    font-size: 10px !important;
+    padding: 1px 5px !important;
   }
 
   .wh-stock-modal-body {
@@ -6817,6 +6879,23 @@ body { overflow-x: hidden; }
 }
 
 @media (max-width: 480px) {
+  .wh-stock-modal-header {
+    padding: 12px 12px 8px 12px !important;
+  }
+
+  #warehouse-view-title {
+    font-size: 15px !important;
+  }
+
+  .wh-modal-meta-grid {
+    gap: 4px 10px !important;
+  }
+
+  .wh-tab-btn {
+    padding: 6px 9px !important;
+    font-size: 11.5px !important;
+  }
+
   .wh-summary-cards {
     grid-template-columns: 1fr 1fr !important;
     gap: 6px !important;

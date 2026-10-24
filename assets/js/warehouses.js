@@ -314,14 +314,26 @@ async function viewWarehouseDetails(id) {
   const subtitleEl = document.getElementById('warehouse-view-subtitle');
   if (subtitleEl) {
     subtitleEl.innerHTML = `
-      <span>Code: <strong>${escapeHtml(w.code)}</strong></span>
-      <span>•</span>
-      <span>Legal Entity: <strong>${comp ? escapeHtml(comp.name) : '—'}</strong></span>
-      <span>•</span>
-      <span>Branch: <strong>${br ? escapeHtml(br.name) : 'Company-wide'}</strong></span>
-      <span>•</span>
-      <span>Type: <strong>${escapeHtml(w.warehouse_type || 'General')}</strong></span>
-      ${w.is_default ? '<span>•</span><span class="badge badge-success" style="font-size:10px;padding:1px 5px;">DEFAULT</span>' : ''}
+      <div class="wh-meta-item">
+        <span class="wh-meta-label">Code:</span>
+        <span class="wh-meta-val wh-meta-mono">${escapeHtml(w.code)}</span>
+      </div>
+      <div class="wh-meta-item">
+        <span class="wh-meta-label">Legal Entity:</span>
+        <span class="wh-meta-val">${comp ? escapeHtml(comp.name) : '—'}</span>
+      </div>
+      <div class="wh-meta-item">
+        <span class="wh-meta-label">Branch:</span>
+        <span class="wh-meta-val">${br ? escapeHtml(br.name) : 'Company-wide'}</span>
+      </div>
+      <div class="wh-meta-item">
+        <span class="wh-meta-label">Type:</span>
+        <span class="wh-meta-val">${escapeHtml(w.warehouse_type || 'General')}</span>
+      </div>
+      ${w.is_default ? `
+      <div class="wh-meta-item">
+        <span class="badge badge-success wh-default-badge" style="font-size:10px;padding:2px 6px;">DEFAULT</span>
+      </div>` : ''}
     `;
   }
 

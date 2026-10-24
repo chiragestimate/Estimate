@@ -152,31 +152,31 @@
 <div class="modal-overlay" id="warehouse-view-modal">
   <div class="modal modal-xl wh-stock-modal" id="warehouse-view-dialog">
     <div class="modal-header wh-stock-modal-header">
-      <div class="wh-modal-header-info">
+      <div class="wh-modal-header-main">
         <div class="wh-modal-title-row">
-          <span class="modal-title" id="warehouse-view-title">Warehouse Inventory</span>
-          <span id="warehouse-view-status-badge"></span>
+          <h3 class="modal-title" id="warehouse-view-title">Warehouse Inventory</h3>
+          <div id="warehouse-view-status-badge"></div>
         </div>
-        <div class="wh-modal-subtitle" id="warehouse-view-subtitle"></div>
+        <div class="wh-modal-meta-grid" id="warehouse-view-subtitle"></div>
       </div>
       <button class="modal-close" onclick="APP.closeModal('warehouse-view-modal')" title="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     </div>
 
     <!-- Navigation Tabs in Modal Header -->
     <div class="wh-modal-nav">
-      <button class="wh-tab-btn active" id="wh-tab-stock-btn" onclick="switchWhModalTab('stock')">
+      <button type="button" class="wh-tab-btn active" id="wh-tab-stock-btn" onclick="switchWhModalTab('stock')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
-        <span>Stock Batches</span>
-        <span class="badge badge-pill badge-primary" id="wh-stock-tab-badge">0</span>
+        <span class="wh-tab-text">Stock Batches</span>
+        <span class="wh-tab-badge" id="wh-stock-tab-badge">0</span>
       </button>
-      <button class="wh-tab-btn" id="wh-tab-movements-btn" onclick="switchWhModalTab('movements')">
+      <button type="button" class="wh-tab-btn" id="wh-tab-movements-btn" onclick="switchWhModalTab('movements')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
-        <span>Stock Movements</span>
-        <span class="badge badge-pill badge-secondary" id="wh-movements-tab-badge">0</span>
+        <span class="wh-tab-text">Stock Movements</span>
+        <span class="wh-tab-badge" id="wh-movements-tab-badge">0</span>
       </button>
-      <button class="wh-tab-btn" id="wh-tab-info-btn" onclick="switchWhModalTab('info')">
+      <button type="button" class="wh-tab-btn" id="wh-tab-info-btn" onclick="switchWhModalTab('info')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-        <span>Location Info</span>
+        <span class="wh-tab-text">Location Info</span>
       </button>
     </div>
 

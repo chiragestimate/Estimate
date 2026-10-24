@@ -1179,6 +1179,13 @@ textarea {
   flex-shrink: 0;
 }
 
+#topbar-user-avatar {
+  font-size: 9.5px !important;
+  letter-spacing: -0.3px;
+  font-weight: 800;
+  line-height: 1;
+}
+
 .user-name {
   font-size: 13px;
   font-weight: 600;
@@ -1316,7 +1323,9 @@ textarea {
   .user-avatar-btn .user-avatar {
     width: 34px;
     height: 34px;
-    font-size: 13px;
+    font-size: 11px;
+    letter-spacing: -0.3px;
+    font-weight: 800;
   }
 
   .user-avatar-btn .user-name,

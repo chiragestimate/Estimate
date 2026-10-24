@@ -141,41 +141,6 @@ const SIDEBAR_HTML = (logoUrl = getLogoUrl()) => `
 </aside>
 <div class="sidebar-overlay" id="sidebar-overlay"></div>`;
 
-function renderRbacRoleOptionsHtml() {
-  if (typeof window !== 'undefined' && window.RBAC && typeof window.RBAC.getAvailableRoles === 'function') {
-    const roles = window.RBAC.getAvailableRoles();
-    const active = window.RBAC.getRoleCode();
-    if (roles.length === 0) {
-      return `<option value="" disabled selected>(No roles configured)</option>`;
-    }
-    return roles.map(r => `<option value="${r.code}" ${r.code === active ? 'selected' : ''}>${r.name}</option>`).join('');
-  }
-  let deleted = [];
-  try {
-    const raw = localStorage.getItem('erp_deleted_roles');
-    if (raw) deleted = JSON.parse(raw);
-  } catch (_) {}
-  const defaults = [
-    { code: 'super_admin', name: 'Software Super Admin' },
-    { code: 'company_owner', name: 'Company Owner / Director' },
-    { code: 'production_manager', name: 'Production Manager' },
-    { code: 'factory_operator', name: 'Factory Operator' },
-    { code: 'godown_operator', name: 'Packaging / Godown Operator' },
-    { code: 'qc_officer', name: 'QC Officer' },
-    { code: 'accountant', name: 'Accountant' },
-    { code: 'store_manager', name: 'Inventory / Store Manager' },
-    { code: 'sales_executive', name: 'Sales / Dispatch Executive' },
-    { code: 'viewer_auditor', name: 'Viewer / Auditor' }
-  ];
-  const remaining = defaults.filter(r => !deleted.includes(r.code));
-  if (remaining.length === 0) {
-    return `<option value="" disabled selected>(No roles configured)</option>`;
-  }
-  return remaining
-    .map(r => `<option value="${r.code}">${r.name}</option>`)
-    .join('');
-}
-
 const TOPBAR_HTML = (title, breadcrumb, logoUrl = getLogoUrl()) => `
 <header class="topbar" id="topbar">
   <div class="topbar-left">
@@ -276,23 +241,12 @@ const TOPBAR_HTML = (title, breadcrumb, logoUrl = getLogoUrl()) => `
 
     <div class="dropdown">
       <button class="user-avatar-btn" id="user-avatar-btn" type="button" aria-haspopup="menu" aria-expanded="false">
-        <div class="user-avatar" id="topbar-user-avatar">AP</div>
+        <div class="user-avatar" id="topbar-user-avatar">ACC</div>
         <span class="user-name" id="topbar-user-name">Admin</span>
         <span class="topbar-role-badge" id="topbar-role-badge" style="display:inline-block; margin-left:4px; font-size:10px; font-weight:700; padding:2px 7px; border-radius:12px; background:rgba(12,57,37,0.12); color:#0C3925; text-transform:uppercase;">Super Admin</span>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;color:var(--text-muted)"><polyline points="6 9 12 15 18 9"/></svg>
       </button>
-      <div class="dropdown-menu" id="user-dropdown" role="menu" aria-label="User menu" style="min-width: 230px;">
-        <button class="dropdown-item" id="user-profile-btn" type="button" role="menuitem" onclick="window.location.href='profile.html'">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> Profile
-        </button>
-        <div class="dropdown-divider"></div>
-        <div style="padding: 6px 12px; font-size: 10px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Active Role (Test / Preview)</div>
-        <div style="padding: 4px 12px 8px;">
-          <select id="rbac-role-select" class="form-select form-select-sm" style="width: 100%; font-size: 11px; padding: 4px 8px;" onchange="if(window.RBAC) window.RBAC.switchRole(this.value)">
-            ${renderRbacRoleOptionsHtml()}
-          </select>
-        </div>
-        <div class="dropdown-divider"></div>
+      <div class="dropdown-menu" id="user-dropdown" role="menu" aria-label="User menu" style="min-width: 140px; padding: 4px;">
         <button class="dropdown-item dropdown-item-danger" id="user-logout-btn" type="button" role="menuitem">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg> Logout
         </button>
@@ -327,7 +281,7 @@ const PROFILE_MODAL = `
     </div>
     <div class="modal-body">
       <div style="display:flex;align-items:center;gap:14px;margin-bottom:18px">
-        <div class="user-avatar" style="width:52px;height:52px;font-size:18px">AP</div>
+        <div class="user-avatar" style="width:52px;height:52px;font-size:16px">ACC</div>
         <div>
           <div style="font-size:18px;font-weight:800;color:var(--text-primary)">Admin</div>
           <div style="font-size:13px;color:var(--text-secondary)">System administrator</div>
@@ -947,15 +901,6 @@ function initUserDropdown() {
       btn.setAttribute('aria-expanded', 'false');
     }
   });
-
-  const profileBtn = document.getElementById('user-profile-btn');
-  if (profileBtn) {
-    profileBtn.onclick = (e) => {
-      e.stopPropagation();
-      menu.classList.remove('open');
-      window.location.href = 'profile.html';
-    };
-  }
 
   const logoutBtn = document.getElementById('user-logout-btn');
   if (logoutBtn) {

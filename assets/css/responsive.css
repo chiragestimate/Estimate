@@ -2431,8 +2431,9 @@ body { overflow-x: hidden; }
   .user-avatar-btn .user-avatar {
     width: 32px !important;
     height: 32px !important;
-    font-size: 12px !important;
-    font-weight: 700 !important;
+    font-size: 10px !important;
+    letter-spacing: -0.3px !important;
+    font-weight: 800 !important;
     border-radius: 50% !important;
   }
 

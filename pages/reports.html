@@ -666,12 +666,15 @@
       <!-- TAB 2: CUSTOMER-WISE ANNUAL REPORT -->
       <div id="tab-customersales" class="report-tab-pane" style="display:none;">
         <div class="card" style="padding:0; overflow:hidden;">
-          <div class="card-header" style="display:flex; justify-content:space-between; align-items:center; padding:16px 20px;">
+          <div class="card-header" style="display:flex; justify-content:space-between; align-items:center; padding:16px 20px; flex-wrap:wrap; gap:12px;">
             <div>
               <div class="card-title">Customer-Wise Annual Sales & Dispatch Register</div>
               <p style="font-size:12px; color:var(--text-muted); margin:2px 0 0;">Comprehensive breakdown of customer bookings, fulfilled boxes, pending quantities, and payment status.</p>
             </div>
-            <span class="badge badge-primary" id="customer-report-count-badge">0 Customers</span>
+            <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+              <input type="text" id="customer-report-search" class="form-input" placeholder="🔍 Search customer name or city..." style="width:240px; height:36px; font-size:12px; border-radius:6px;" oninput="filterCustomerReportTable(this.value)">
+              <span class="badge badge-primary" id="customer-report-count-badge">0 Customers</span>
+            </div>
           </div>
           <div class="table-wrap data-table-wrap-mobile" style="padding:0; border:none;">
             <table class="data-table" id="customer-sales-table">
@@ -824,6 +827,7 @@
 <script src="../assets/js/inventory-core.js"></script>
 <script src="../assets/js/reports-core.js"></script>
 <script src="../assets/js/utils.js"></script>
+<script src="../assets/js/components/search-select.js"></script>
 <script src="../assets/js/app.js"></script>
 <script src="../assets/js/reports.js"></script>
 </body>

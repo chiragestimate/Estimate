@@ -109,6 +109,14 @@ async function initReportFilters() {
       prodSel.innerHTML = '<option value="">All Products</option>' +
         cachedProducts.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
     }
+
+    // Initialize searchable select for quick typing of client names
+    setTimeout(() => {
+      if (typeof UTILS !== 'undefined' && typeof UTILS.initAllAutocompleteSelects === 'function') {
+        const bodyEl = document.getElementById('advanced-filters-body');
+        if (bodyEl) UTILS.initAllAutocompleteSelects(bodyEl);
+      }
+    }, 50);
   } catch (err) {
     console.warn('initReportFilters warning:', err);
   }
@@ -283,6 +291,7 @@ async function loadReports() {
       expensesByCategory,
       raw: { orders, orderItems, dispatches, dispatchItems, expenses, purchases, reversals }
     };
+    window.currentReportDataset = currentReportDataset;
 
     // Render Views
     renderExecutiveKPIs(customerReport.totals);
@@ -351,10 +360,16 @@ function renderCustomerSalesTable(customerReport) {
       <td class="cell-amount text-success">${UTILS.fmtCurrency(r.totalPaidAmount)}</td>
       <td class="cell-amount text-danger" style="font-weight:700;">${UTILS.fmtCurrency(r.outstandingBalance)}</td>
       <td>
-        <button class="btn btn-ghost btn-sm" onclick="openCustomerProfile(${r.clientId})" title="View 360° Profile & Order History" style="padding:4px 8px; font-size:12px;">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px;margin-right:4px;"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-          Profile
-        </button>
+        <div style="display:inline-flex; gap:4px; align-items:center;">
+          <button class="btn btn-ghost btn-sm" onclick="openCustomerProfile(${r.clientId})" title="View 360° Profile & Order History" style="padding:4px 8px; font-size:12px;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px;margin-right:4px;"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            Profile
+          </button>
+          <button class="btn btn-ghost btn-sm" onclick="exportSingleCustomerExcel(${r.clientId})" title="Download Excel Ledger for ${r.clientName}" style="padding:4px 8px; font-size:12px; color:var(--primary, #0C3925); font-weight:600;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px;margin-right:4px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Excel
+          </button>
+        </div>
       </td>
     </tr>`;
   }).join('');
@@ -377,6 +392,29 @@ function renderCustomerSalesTable(customerReport) {
 
   UTILS.applyMobileTableLabels('customer-sales-table');
 }
+
+/**
+ * Live search filter for Customer Sales Table
+ */
+function filterCustomerReportTable(query) {
+  const q = String(query || '').toLowerCase().trim();
+  const trs = document.querySelectorAll('#customer-sales-table tbody tr');
+  let visibleCount = 0;
+  trs.forEach(tr => {
+    const text = tr.innerText.toLowerCase();
+    if (!q || text.includes(q)) {
+      tr.style.display = '';
+      visibleCount++;
+    } else {
+      tr.style.display = 'none';
+    }
+  });
+  const countBadge = document.getElementById('customer-report-count-badge');
+  if (countBadge) {
+    countBadge.textContent = q ? `${visibleCount} Found` : `${trs.length} Customer${trs.length !== 1 ? 's' : ''}`;
+  }
+}
+window.filterCustomerReportTable = filterCustomerReportTable;
 
 /**
  * Render Tab 3: Product & SKU Sales Table
@@ -710,6 +748,8 @@ function openCustomerProfile(clientId) {
   }
 
   selectedProfileCustomer = cRow;
+  selectedProfileCustomer.rawOrders = rawOrders;
+  selectedProfileCustomer.rawDispatches = rawDispatches;
   const modalTitle = document.getElementById('cust-modal-title');
   if (modalTitle) modalTitle.textContent = `${cRow.clientName} — 360° Sales & Dispatch Profile`;
 
@@ -854,31 +894,105 @@ function openCustomerProfile(clientId) {
 }
 
 /**
- * Export Customer Profile to Excel
+ * Export a Single Customer's Detailed Sales & Dispatch Ledger to Excel (.xlsx)
+ * Includes multi-sheet breakdown: Summary & SKUs, Orders History, and Dispatches for the selected dates.
  */
-function exportCustomerDetailExcel() {
-  if (!selectedProfileCustomer) return;
-  const c = selectedProfileCustomer;
-  const skus = Object.values(c.purchasedSkus || {});
-  const data = skus.map(s => ({
-    'Customer': c.clientName,
+function exportSingleCustomerExcel(clientId) {
+  if (!currentReportDataset || !currentReportDataset.customerReport) {
+    APP.showToast('Please wait for reports to load.', 'warning');
+    return;
+  }
+
+  const cRow = currentReportDataset.customerReport.rows.find(r => String(r.clientId) === String(clientId));
+  if (!cRow) {
+    APP.showToast('Customer data not found.', 'error');
+    return;
+  }
+
+  const dateFrom = document.getElementById('date-from')?.value || '';
+  const dateTo = document.getElementById('date-to')?.value || '';
+  const dateRangeStr = (dateFrom && dateTo) ? `${dateFrom}_to_${dateTo}` : (dateFrom ? `from_${dateFrom}` : (dateTo ? `up_to_${dateTo}` : UTILS.todayStr()));
+
+  // 1. SKU Breakdown
+  const skusList = Object.values(cRow.purchasedSkus || {});
+  const skuRows = skusList.map(s => ({
+    'Customer Name': cRow.clientName,
     'Product Formulation': s.productName,
     'Pack Size (SKU)': s.packagingSize,
     'Ordered Units': s.orderedUnits,
     'Dispatched Units': s.dispatchedUnits,
     'Pending Units': s.pendingUnits,
-    'Revenue (₹)': s.revenue.toFixed(2)
+    'Revenue (₹)': parseFloat(s.revenue.toFixed(2))
   }));
 
+  // 2. Orders History
+  const rawOrders = (currentReportDataset.raw && currentReportDataset.raw.orders)
+    ? currentReportDataset.raw.orders.filter(o => String(o.client_id) === String(clientId))
+    : [];
+  const orderRows = rawOrders.map(o => {
+    const tot = parseFloat(o.total_amount) || 0;
+    const paid = parseFloat(o.paid_amount) || 0;
+    return {
+      'Order No': o.order_no,
+      'Date': o.date || '',
+      'Status': o.status || 'Draft',
+      'Dispatch Status': o.dispatch_status || 'Pending Verification',
+      'Total Billed (₹)': tot,
+      'Paid Amount (₹)': paid,
+      'Balance (₹)': parseFloat((tot - paid).toFixed(2))
+    };
+  });
+
+  // 3. Dispatches History
+  const rawDispatches = (currentReportDataset.raw && currentReportDataset.raw.dispatches)
+    ? currentReportDataset.raw.dispatches.filter(d => String(d.client_id) === String(clientId))
+    : [];
+  const dispatchRows = rawDispatches.map(d => ({
+    'Dispatch Slip': d.dispatch_no,
+    'Date': d.dispatch_date || '',
+    'Order Ref': d.order_no || '',
+    'Vehicle / Logistics': d.vehicle_no || (d.transporter_name || 'Direct'),
+    'Boxes Dispatched': d.total_boxes_dispatched || 0,
+    'Loose Dispatched': d.total_loose_dispatched || 0,
+    'Total Units Dispatched': d.total_units_dispatched || 0,
+    'Status': d.status || 'Dispatched'
+  }));
+
+  const cleanName = (cRow.clientName || 'Customer').replace(/[^a-zA-Z0-9_-]/g, '_');
+  const filename = `${cleanName}_Ledger_${dateRangeStr}.xlsx`;
+
   if (window.XLSX) {
-    const ws = XLSX.utils.json_to_sheet(data);
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Customer_SKUs');
-    XLSX.writeFile(wb, `${c.clientName.replace(/\s+/g, '_')}_Sales_Ledger.xlsx`);
-    APP.showToast('Customer Ledger exported to Excel!', 'success');
+
+    // Sheet 1: SKU Breakdown
+    const wsSkus = XLSX.utils.json_to_sheet(skuRows.length ? skuRows : [{ 'Customer': cRow.clientName, 'Notice': 'No product purchases in this date range' }]);
+    XLSX.utils.book_append_sheet(wb, wsSkus, 'SKU Summary');
+
+    // Sheet 2: Orders History
+    if (orderRows.length) {
+      const wsOrders = XLSX.utils.json_to_sheet(orderRows);
+      XLSX.utils.book_append_sheet(wb, wsOrders, 'Orders History');
+    }
+
+    // Sheet 3: Dispatches
+    if (dispatchRows.length) {
+      const wsDispatches = XLSX.utils.json_to_sheet(dispatchRows);
+      XLSX.utils.book_append_sheet(wb, wsDispatches, 'Dispatches');
+    }
+
+    XLSX.writeFile(wb, filename);
+    APP.showToast(`Excel ledger for "${cRow.clientName}" downloaded!`, 'success');
   } else {
-    UTILS.exportToCSV(data, `${c.clientName}_Sales_Ledger`);
+    UTILS.exportToCSV(skuRows, `${cleanName}_Ledger_${dateRangeStr}`);
   }
+}
+
+/**
+ * Export Customer Profile to Excel (from Modal)
+ */
+function exportCustomerDetailExcel() {
+  if (!selectedProfileCustomer) return;
+  exportSingleCustomerExcel(selectedProfileCustomer.clientId);
 }
 
 /**
@@ -986,6 +1100,8 @@ window.applyReportFilters = applyReportFilters;
 window.resetReportFilters = resetReportFilters;
 window.openCustomerProfile = openCustomerProfile;
 window.exportCustomerDetailExcel = exportCustomerDetailExcel;
+window.exportSingleCustomerExcel = exportSingleCustomerExcel;
+window.filterCustomerReportTable = filterCustomerReportTable;
 window.exportCurrentReportToExcel = exportCurrentReportToExcel;
 window.exportCurrentReportToCSV = exportCurrentReportToCSV;
 

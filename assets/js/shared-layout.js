@@ -126,7 +126,6 @@ const SIDEBAR_HTML = (logoUrl = getLogoUrl()) => `
     <div class="nav-section-label">Enterprise & Locations</div>
     <a href="companies.html" class="nav-item" data-page="companies.html" data-tooltip="Companies & Branches"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/><path d="M10 6h4"/><path d="M10 10h4"/><path d="M10 14h4"/><path d="M10 18h4"/></svg></span><span class="nav-label">Companies & Branches</span></a>
     <a href="warehouses.html" class="nav-item" data-page="warehouses.html" data-tooltip="Warehouses"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 8.35V20a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8.35A2 2 0 0 1 3.26 6.5l8-3.2a2 2 0 0 1 1.48 0l8 3.2A2 2 0 0 1 22 8.35Z"/><path d="M6 18h12"/><path d="M6 14h12"/><rect width="12" height="12" x="6" y="10"/></svg></span><span class="nav-label">Warehouses</span></a>
-    <a href="intercompany.html" class="nav-item" data-page="intercompany.html" data-tooltip="Intercompany Links"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 17H7A5 5 0 0 1 7 7h2"/><path d="M15 7h2a5 5 0 1 1 0 10h-2"/><line x1="8" x2="16" y1="12" y2="12"/></svg></span><span class="nav-label">Intercompany Links</span></a>
 
     <div class="nav-section-label">Finance & Reports</div>
     <a href="transactions.html" class="nav-item" data-page="transactions.html" data-tooltip="Cash & Bank Ledger"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg></span><span class="nav-label">Cash & Bank Ledger</span></a>
@@ -137,14 +136,6 @@ const SIDEBAR_HTML = (logoUrl = getLogoUrl()) => `
     <a href="exports.html" class="nav-item" data-page="exports.html" data-tooltip="Data Backup & Exports">
       <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></span>
       <span class="nav-label">Data Backup & Exports</span>
-    </a>
-    <a href="user-roles.html" class="nav-item" data-page="user-roles.html" data-tooltip="Roles & Access Control">
-      <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span>
-      <span class="nav-label">Roles & Access Control</span>
-    </a>
-    <a href="audit-logs.html" class="nav-item" data-page="audit-logs.html" data-tooltip="Security & Audit Logs">
-      <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span>
-      <span class="nav-label">Security & Audit Logs</span>
     </a>
   </nav>
 </aside>
@@ -255,14 +246,6 @@ const TOPBAR_HTML = (title, breadcrumb, logoUrl = getLogoUrl()) => `
           </svg>
           <span class="company-nav-label">Warehouses</span>
         </a>
-        <a href="intercompany.html" class="dropdown-item company-nav-item">
-          <svg class="company-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M9 17H7A5 5 0 0 1 7 7h2"/>
-            <path d="M15 7h2a5 5 0 1 1 0 10h-2"/>
-            <line x1="8" x2="16" y1="12" y2="12"/>
-          </svg>
-          <span class="company-nav-label">Intercompany Links</span>
-        </a>
       </div>
     </div>
 
@@ -301,12 +284,6 @@ const TOPBAR_HTML = (title, breadcrumb, logoUrl = getLogoUrl()) => `
       <div class="dropdown-menu" id="user-dropdown" role="menu" aria-label="User menu" style="min-width: 230px;">
         <button class="dropdown-item" id="user-profile-btn" type="button" role="menuitem" onclick="window.location.href='profile.html'">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> Profile
-        </button>
-        <button class="dropdown-item" id="user-roles-btn" type="button" role="menuitem" onclick="window.location.href='user-roles.html'">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg> Roles & Permissions
-        </button>
-        <button class="dropdown-item" id="audit-logs-btn" type="button" role="menuitem" onclick="window.location.href='audit-logs.html'">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Security Audit Logs
         </button>
         <div class="dropdown-divider"></div>
         <div style="padding: 6px 12px; font-size: 10px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Active Role (Test / Preview)</div>
@@ -616,13 +593,10 @@ const PAGE_MODULE_MAP = {
   'daily-transactions.html': 'daily_transactions',
   'companies.html': 'companies',
   'warehouses.html': 'warehouses',
-  'intercompany.html': 'intercompany',
   'transactions.html': 'transactions',
   'expenses.html': 'expenses',
   'reports.html': 'reports',
-  'exports.html': 'exports',
-  'user-roles.html': 'user_roles',
-  'audit-logs.html': 'audit_logs'
+  'exports.html': 'exports'
 };
 
 window.reapplyRbacNav = function() {
@@ -980,24 +954,6 @@ function initUserDropdown() {
       e.stopPropagation();
       menu.classList.remove('open');
       window.location.href = 'profile.html';
-    };
-  }
-
-  const rolesBtn = document.getElementById('user-roles-btn');
-  if (rolesBtn) {
-    rolesBtn.onclick = (e) => {
-      e.stopPropagation();
-      menu.classList.remove('open');
-      window.location.href = 'user-roles.html';
-    };
-  }
-
-  const auditBtn = document.getElementById('audit-logs-btn');
-  if (auditBtn) {
-    auditBtn.onclick = (e) => {
-      e.stopPropagation();
-      menu.classList.remove('open');
-      window.location.href = 'audit-logs.html';
     };
   }
 

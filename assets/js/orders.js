@@ -908,10 +908,6 @@ function renderOrdersSlice(slice) {
                 <span style="color:#ffffff;">Dispatch</span>
               </button>
             ` : ''}
-            <a href="intercompany.html?import_order_id=${o.id}" class="order-card-btn transfer" style="color:var(--text-secondary);text-decoration:none;" title="Create Intercompany Transfer for this Order">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-              <span>Transfer</span>
-            </a>
             <button type="button" class="order-card-btn delete" onclick="deleteOrder(${o.id})" title="Delete Order">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>
               <span>Delete</span>
@@ -973,7 +969,6 @@ function renderOrdersSlice(slice) {
           ${dispStatus !== 'Fully Dispatched' && (o.status || '').toLowerCase() !== 'cancelled' ? `
             <button class="action-btn" onclick="openPrepareDispatch(${o.id})" title="Prepare Dispatch Slip" style="color:var(--primary);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><path d="M5 18H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h3.19M15 6h2a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-3.19"/><path d="M12 12v6"/><path d="m9 15 3 3 3-3"/></svg></button>
           ` : ''}
-          <a class="action-btn" href="intercompany.html?import_order_id=${o.id}" title="Transfer via Intercompany" style="color:var(--text-muted);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><polyline points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></a>
           <button class="action-btn delete" onclick="deleteOrder(${o.id})" title="Delete"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg></button>
         </div></td>
       </tr>`;
@@ -1395,10 +1390,6 @@ async function viewOrder(id) {
 
         <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 4px; flex-wrap: wrap;">
           <button class="btn btn-secondary" onclick="APP.closeModal('view-modal')">Close</button>
-          <a href="intercompany.html?import_order_id=${o.id}" class="btn btn-secondary" style="display:inline-flex;align-items:center;gap:6px;background:rgba(12,57,37,0.06);color:#0C3925;border-color:rgba(12,57,37,0.2);" title="Auto-fill this order into an Intercompany Transfer">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><polyline points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-            Transfer via Intercompany
-          </a>
           <button class="btn btn-primary" onclick="APP.closeModal('view-modal'); openEdit(${o.id});">Edit Order</button>
         </div>
       </div>

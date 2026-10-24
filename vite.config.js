@@ -53,10 +53,7 @@ export default defineConfig({
         exports: resolve(__dirname, 'pages/exports.html'),
         profile: resolve(__dirname, 'pages/profile.html'),
         companies: resolve(__dirname, 'pages/companies.html'),
-        warehouses: resolve(__dirname, 'pages/warehouses.html'),
-        intercompany: resolve(__dirname, 'pages/intercompany.html'),
-        user_roles: resolve(__dirname, 'pages/user-roles.html'),
-        audit_logs: resolve(__dirname, 'pages/audit-logs.html')
+        warehouses: resolve(__dirname, 'pages/warehouses.html')
       }
     }
   }

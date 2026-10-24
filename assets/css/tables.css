@@ -1726,26 +1726,28 @@
     display: inline-flex;
     align-items: center;
     justify-content: flex-end;
-    gap: 4px;
+    gap: 6px;
     flex-wrap: nowrap;
     width: 100%;
   }
 
   #warehouses-table .action-btn {
-    width: 28px;
-    min-width: 28px;
-    height: 28px;
+    width: 30px;
+    min-width: 30px;
+    height: 30px;
     padding: 0;
     border-radius: 6px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
+    box-sizing: border-box;
+    vertical-align: middle;
   }
 
   #warehouses-table .action-btn svg {
-    width: 13.5px;
-    height: 13.5px;
+    width: 14px;
+    height: 14px;
   }
 
   #warehouses-table .action-btn.archive:hover {
@@ -1784,10 +1786,24 @@
     height: 26px;
   }
 
+  #warehouses-table .wh-view-stock-btn {
+    height: 26px !important;
+    min-height: 26px !important;
+    padding: 0 8px !important;
+    font-size: 11px !important;
+    gap: 4px !important;
+    border-radius: 5px !important;
+  }
+
+  #warehouses-table .wh-view-stock-btn span {
+    font-size: 11px !important;
+  }
+
   #companies-table .action-btn svg,
-  #warehouses-table .action-btn svg {
-    width: 12px;
-    height: 12px;
+  #warehouses-table .action-btn svg,
+  #warehouses-table .wh-view-stock-btn svg {
+    width: 12px !important;
+    height: 12px !important;
   }
 
   #companies-table .action-btn-select,

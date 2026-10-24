@@ -5431,7 +5431,28 @@ body { overflow-x: hidden; }
     box-sizing: border-box !important;
   }
 
-  #warehouses-table .action-btn svg {
+  #warehouses-table .wh-view-stock-btn {
+    height: 36px !important;
+    min-height: 36px !important;
+    padding: 0 12px !important;
+    border-radius: 8px !important;
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    gap: 6px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    box-sizing: border-box !important;
+    vertical-align: middle !important;
+  }
+
+  #warehouses-table .wh-view-stock-btn span {
+    font-size: 13px !important;
+    line-height: 1 !important;
+  }
+
+  #warehouses-table .action-btn svg,
+  #warehouses-table .wh-view-stock-btn svg {
     width: 16px !important;
     height: 16px !important;
     flex-shrink: 0 !important;

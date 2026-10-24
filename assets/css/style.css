@@ -202,7 +202,7 @@ body, input, select, textarea, button, p, span, div, h1, h2, h3, h4, h5, h6, td,
 }
 
 /* Whitelist elements requiring white text (Primary action buttons, active navigation, active tabs, dark header badges) */
-.btn-primary, .btn-primary *, .btn-secondary-dark, .btn-secondary-dark *, .tab-btn.active, .wh-tab-btn.active, .wh-tab-btn.active *, .cat-pill.active, .badge-primary, .status-pill.active, [data-theme="dark"] .history-table th, .login-btn, .login-btn *, #btn-text {
+.btn-primary, .btn-primary *, .btn-secondary-dark, .btn-secondary-dark *, .tab-btn.active, .wh-tab-btn.active, .wh-tab-btn.active *, .cat-pill.active, .badge-primary, .status-pill.active, [data-theme="dark"] .history-table th, .login-btn, .login-btn *, #btn-text, .wh-view-stock-btn, .wh-view-stock-btn *, .wh-view-stock-btn:hover, .wh-view-stock-btn:hover *, .wh-view-stock-btn:active, .wh-view-stock-btn:active *, .wh-view-stock-btn:focus, .wh-view-stock-btn:focus * {
   color: #ffffff !important;
 }
 

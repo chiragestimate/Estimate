@@ -62,12 +62,12 @@ function getActiveCompanyName() {
   if (window.TENANT_CONTEXT && window.TENANT_CONTEXT.getActiveCompany) {
     const act = window.TENANT_CONTEXT.getActiveCompany();
     if (act && act.name) {
-      if (act.name === 'Anjani Agri Care') act.name = 'Afield Crop Care';
+      if (act.name === 'Afield Crop Care') act.name = 'Afield Crop Care';
       return act.name;
     }
   }
   const stored = localStorage.getItem('erp_active_company_name');
-  if (stored === 'Anjani Agri Care' || !stored) {
+  if (stored === 'Afield Crop Care' || !stored) {
     localStorage.setItem('erp_active_company_name', 'Afield Crop Care');
     return 'Afield Crop Care';
   }
@@ -759,9 +759,9 @@ async function initCompanySwitcher() {
     let active = (window.TENANT_CONTEXT && window.TENANT_CONTEXT.getActiveCompany)
       ? window.TENANT_CONTEXT.getActiveCompany()
       : { id: getActiveCompanyId(), name: getActiveCompanyName(), code: getActiveCompanyCode(), is_manufacturing: true };
-    if (active && (active.name === 'Anjani Agri Care' || !active.name)) {
+    if (active && (active.name === 'Afield Crop Care' || !active.name)) {
       active.name = 'Afield Crop Care';
-      if (localStorage.getItem('erp_active_company_name') === 'Anjani Agri Care') {
+      if (localStorage.getItem('erp_active_company_name') === 'Afield Crop Care') {
         localStorage.setItem('erp_active_company_name', 'Afield Crop Care');
       }
     }
@@ -770,7 +770,7 @@ async function initCompanySwitcher() {
       : [active];
     if (companies && Array.isArray(companies)) {
       companies.forEach(c => {
-        if (c.name === 'Anjani Agri Care') c.name = 'Afield Crop Care';
+        if (c.name === 'Afield Crop Care') c.name = 'Afield Crop Care';
       });
     }
 
@@ -786,8 +786,8 @@ async function initCompanySwitcher() {
     if (listContainer) {
       const renderItem = (c, isCurrent) => {
         const isMfg = c.is_manufacturing !== false;
-        const city = c.city || (c.code === 'AAC' || (c.name && c.name.toLowerCase().includes('anjani')) ? 'Rajkot' : '');
-        const code = c.code || 'AAC';
+        const city = c.city || (c.code === 'ACC' || c.code === 'AAC' || (c.name && (c.name.toLowerCase().includes('afield') || c.name.toLowerCase().includes('anjani'))) ? 'Rajkot' : '');
+        const code = c.code || 'ACC';
         const badgeLabel = isMfg ? 'MANUFACTURER' : 'TRADING';
         return `
           <button class="company-dropdown-item ${isCurrent ? 'active' : ''}" type="button" onclick="window.TENANT_CONTEXT && window.TENANT_CONTEXT.switchCompany ? window.TENANT_CONTEXT.switchCompany(${c.id}) : null">

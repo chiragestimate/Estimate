@@ -5,7 +5,7 @@
  * Implements:
  * 1. Internal stock transfers (same legal entity, no commercial invoice).
  * 2. Intercompany commercial transactions (distinct legal entities, commercial billing).
- * 3. Consignment stock supply arrangements (stock held at recipient, legally owned by Anjani).
+ * 3. Consignment stock supply arrangements (stock held at recipient, legally owned by Afield Crop Care).
  * 4. In-transit posting: source stock deducted at dispatch, destination credited upon receipt.
  * 5. Single-counting guard: zero double-counting while goods are in transit.
  * 6. Shortage, damage, rejection, and return tracking.
@@ -148,13 +148,13 @@
 
     /**
      * Enforce company boundary permissions.
-     * Root company (ID 1, Anjani Agri Care) has complete visibility into all authorized transfers.
+     * Root company (ID 1, Afield Crop Care) has complete visibility into all authorized transfers.
      * Recipient companies (Company A, B, C) can ONLY access transfers where they are sender or receiver.
      */
     validateCompanyScope(userCompanyId, transfer) {
       if (!userCompanyId) return true; // Super admin / unrestricted
       const uCo = parseInt(userCompanyId, 10);
-      if (uCo === 1 || uCo === 623) return true; // Anjani Agri Care (Root / Manufacturing) has complete authorized supply chain visibility
+      if (uCo === 1 || uCo === 623) return true; // Afield Crop Care (Root / Manufacturing) has complete authorized supply chain visibility
 
       const fromCo = parseInt(transfer.from_company_id, 10);
       const toCo = parseInt(transfer.to_company_id, 10);
@@ -279,7 +279,7 @@
      * Distinguishes:
      * - INTERNAL_TRANSFER: from_company_id === to_company_id
      * - INTERCOMPANY_SALE: from_company_id !== to_company_id
-     * - CONSIGNMENT: stock legally retained by from_company_id (Anjani)
+     * - CONSIGNMENT: stock legally retained by from_company_id (Afield Crop Care)
      */
     async createTransfer(client, payload) {
       const fromCo = parseInt(payload.from_company_id, 10);
@@ -309,7 +309,7 @@
       const supplyType = payload.supply_type || (isInternal ? 'BRANCH_TRANSFER' : 'STANDARD_SALE');
 
       // Ownership Attribution:
-      // If CONSIGNMENT or INTERNAL_TRANSFER, ownership remains with from_company_id (Anjani)
+      // If CONSIGNMENT or INTERNAL_TRANSFER, ownership remains with from_company_id (Afield Crop Care)
       // If STANDARD_SALE, ownership transfers upon receipt
       const ownershipCo = (supplyType === 'CONSIGNMENT' || isInternal) ? fromCo : fromCo;
 
@@ -588,7 +588,7 @@
 
         if (balances.receivedUnits > 0) {
           // Ownership Attribution:
-          // If CONSIGNMENT, ownership stays with from_company_id (Anjani)!
+          // If CONSIGNMENT, ownership stays with from_company_id (Afield Crop Care)!
           // If STANDARD_SALE, ownership belongs to to_company_id!
           const isConsignment = (transfer.supply_type === 'CONSIGNMENT');
           const batchOwnershipCo = isConsignment ? transfer.from_company_id : transfer.to_company_id;
@@ -769,7 +769,7 @@
       const all = await this._safeSelectMany(client, 'intercompany_transfers');
       let list = all || [];
 
-      // Filter by userCompanyId (Anjani ID 1 or 623 sees all; recipient companies see only their own)
+      // Filter by userCompanyId (Afield Crop Care ID 1 or 623 sees all; recipient companies see only their own)
       if (userCompanyId && parseInt(userCompanyId, 10) !== 1 && parseInt(userCompanyId, 10) !== 623) {
         const uCo = parseInt(userCompanyId, 10);
         list = list.filter(t => t.from_company_id === uCo || t.to_company_id === uCo);
@@ -798,7 +798,7 @@
     /**
      * LIVE RECONCILIATION REPORT ENGINE
      * Generates real-time audit ledger across:
-     * - Stock owned by Anjani (Plant + Consignment + In Transit)
+     * - Stock owned by Afield Crop Care (Plant + Consignment + In Transit)
      * - Stock held by each warehouse
      * - Quantity supplied to each recipient
      * - Dispatched vs Received vs In-Transit
@@ -876,14 +876,14 @@
           if (isConsign) warehouseStockMap[whId].consignment_units += qty;
         }
 
-        // If legally owned by ownerCompanyId (Anjani)
+        // If legally owned by ownerCompanyId (Afield Crop Care)
         if (ownCo === ownerId) {
           totalOwnedStock += qty;
           if (isConsign) totalConsignmentStock += qty;
         }
       });
 
-      // Total Owned Stock includes: physical stock at Anjani + consignment stock held at recipients + stock in transit!
+      // Total Owned Stock includes: physical stock at Afield Crop Care + consignment stock held at recipients + stock in transit!
       totalOwnedStock += totalInTransit;
 
       // Compute Recipient Breakdown (Company A, B, C)

@@ -125,12 +125,12 @@ function getUserCompanyId() {
   }
   const stored = localStorage.getItem('erp_active_company_id') || localStorage.getItem('active_company_id');
   if (stored) return parseInt(stored, 10);
-  const mfg = allCompanies.find(c => c.is_manufacturing === true || (c.code || '').toUpperCase() === 'AAC');
+  const mfg = allCompanies.find(c => c.is_manufacturing === true || (c.code || '').toUpperCase() === 'ACC' || (c.code || '').toUpperCase() === 'AAC');
   return mfg ? mfg.id : (allCompanies[0]?.id || 623);
 }
 
 function getRootCompanyId() {
-  const mfg = allCompanies.find(c => c.is_manufacturing === true || (c.code || '').toUpperCase() === 'AAC');
+  const mfg = allCompanies.find(c => c.is_manufacturing === true || (c.code || '').toUpperCase() === 'ACC' || (c.code || '').toUpperCase() === 'AAC');
   return mfg ? mfg.id : (allCompanies[0]?.id || 623);
 }
 
@@ -552,10 +552,10 @@ function addTransferItemRow(prefillData = null) {
     ).join('');
   } else {
     prodOptions = `
-      <option value="66" data-price="2400" data-unit="Litre" ${selectedProdId==='66'?'selected':''}>Anjani Coragen-80 Ec</option>
-      <option value="63" data-price="650" data-unit="Litre" ${selectedProdId==='63'?'selected':''}>Anjani Chlor-20 Ec</option>
-      <option value="64" data-price="950" data-unit="Litre" ${selectedProdId==='64'?'selected':''}>Anjani Profe-40 Ec</option>
-      <option value="65" data-price="870" data-unit="Litre" ${selectedProdId==='65'?'selected':''}>Anjani Thio-60 Ec</option>
+      <option value="66" data-price="2400" data-unit="Litre" ${selectedProdId==='66'?'selected':''}>Afield Coragen-80 Ec</option>
+      <option value="63" data-price="650" data-unit="Litre" ${selectedProdId==='63'?'selected':''}>Afield Chlor-20 Ec</option>
+      <option value="64" data-price="950" data-unit="Litre" ${selectedProdId==='64'?'selected':''}>Afield Profe-40 Ec</option>
+      <option value="65" data-price="870" data-unit="Litre" ${selectedProdId==='65'?'selected':''}>Afield Thio-60 Ec</option>
     `;
   }
 
@@ -1050,7 +1050,7 @@ async function openReceiveTransfer(transferId) {
       <div style="font-weight:700;color:#0284c7;margin-bottom:4px;">RECIPIENT DESTINATION STOCK CREDITING</div>
       <p style="margin:0;font-size:12px;color:var(--text);">
         Confirming receipt will credit sound units into recipient warehouse.
-        ${t.supply_type === 'CONSIGNMENT' ? '<strong>CONSIGNMENT NOTICE:</strong> Goods will be stored at recipient depot but remain legally owned by Anjani Agri Care.' : ''}
+        ${t.supply_type === 'CONSIGNMENT' ? '<strong>CONSIGNMENT NOTICE:</strong> Goods will be stored at recipient depot but remain legally owned by Afield Crop Care.' : ''}
       </p>
     </div>
 

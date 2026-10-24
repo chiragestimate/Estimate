@@ -56,7 +56,7 @@
     async log({
       companyId = 1,
       tenantId = 1,
-      actorEmail = 'system@anjani.local',
+      actorEmail = 'system@afield.local',
       actionCategory, // 'STOCK_MOVEMENT', 'PRODUCTION_COMPLETION', 'QC_DECISION', 'PACKING_APPROVAL', 'DISPATCH_POSTING', 'INVOICE_POSTING', 'PERMISSION_CHANGE', 'FINANCIAL_ADJUSTMENT'
       actionName,
       tableName,
@@ -128,7 +128,7 @@
      */
     async logStockMovement({
       companyId = 1,
-      actorEmail = 'store@anjani.local',
+      actorEmail = 'store@afield.local',
       itemId,
       itemName,
       batchId = null,
@@ -160,7 +160,7 @@
      */
     async logProductionCompletion({
       companyId = 1,
-      actorEmail = 'production@anjani.local',
+      actorEmail = 'production@afield.local',
       orderId,
       orderNo,
       batchNo,
@@ -190,7 +190,7 @@
      */
     async logQCDecision({
       companyId = 1,
-      actorEmail = 'qc@anjani.local',
+      actorEmail = 'qc@afield.local',
       batchId,
       batchNo,
       previousStatus = 'Pending',
@@ -218,7 +218,7 @@
      */
     async logPackingApproval({
       companyId = 1,
-      actorEmail = 'supervisor@anjani.local',
+      actorEmail = 'supervisor@afield.local',
       packingOrderId,
       lotNo,
       sku,
@@ -247,7 +247,7 @@
      */
     async logDispatchPosting({
       companyId = 1,
-      actorEmail = 'dispatch@anjani.local',
+      actorEmail = 'dispatch@afield.local',
       dispatchId,
       dispatchNo,
       orderNo,
@@ -277,7 +277,7 @@
      */
     async logInvoicePosting({
       companyId = 1,
-      actorEmail = 'billing@anjani.local',
+      actorEmail = 'billing@afield.local',
       invoiceId,
       invoiceNo,
       clientName,
@@ -307,7 +307,7 @@
      */
     async logPermissionChange({
       companyId = 1,
-      actorEmail = 'superadmin@anjani.local',
+      actorEmail = 'superadmin@afield.local',
       targetUser,
       previousRole,
       newRole,
@@ -332,7 +332,7 @@
      */
     async logFinancialAdjustment({
       companyId = 1,
-      actorEmail = 'accountant@anjani.local',
+      actorEmail = 'accountant@afield.local',
       entryId,
       entryNo,
       adjustmentType, // 'CREDIT_NOTE', 'DEBIT_NOTE', 'PAYMENT_REVERSAL', 'MANUAL_JOURNAL'
@@ -358,7 +358,7 @@
     /**
      * 9. Administrative Entity Lifecycle (Warehouses & Companies)
      */
-    async logWarehouseArchived({ companyId, warehouseId, warehouseName, warehouseCode, actorEmail = 'admin@anjani.local', reason = 'Administrative archival' }) {
+    async logWarehouseArchived({ companyId, warehouseId, warehouseName, warehouseCode, actorEmail = 'admin@afield.local', reason = 'Administrative archival' }) {
       return await this.log({
         companyId,
         actorEmail,
@@ -373,7 +373,7 @@
       });
     }
 
-    async logWarehouseReactivated({ companyId, warehouseId, warehouseName, warehouseCode, actorEmail = 'admin@anjani.local' }) {
+    async logWarehouseReactivated({ companyId, warehouseId, warehouseName, warehouseCode, actorEmail = 'admin@afield.local' }) {
       return await this.log({
         companyId,
         actorEmail,
@@ -388,7 +388,7 @@
       });
     }
 
-    async logWarehouseDeleted({ companyId, warehouseId, warehouseName, warehouseCode, actorEmail = 'admin@anjani.local', movCountPreserved = 0 }) {
+    async logWarehouseDeleted({ companyId, warehouseId, warehouseName, warehouseCode, actorEmail = 'admin@afield.local', movCountPreserved = 0 }) {
       return await this.log({
         companyId,
         actorEmail,
@@ -403,7 +403,7 @@
       });
     }
 
-    async logCompanyCreated({ companyId, companyName, companyCode, actorEmail = 'superadmin@anjani.local' }) {
+    async logCompanyCreated({ companyId, companyName, companyCode, actorEmail = 'superadmin@afield.local' }) {
       return await this.log({
         companyId: companyId || 1,
         actorEmail,
@@ -418,7 +418,7 @@
       });
     }
 
-    async logCompanyUpdated({ companyId, companyName, companyCode, actorEmail = 'superadmin@anjani.local' }) {
+    async logCompanyUpdated({ companyId, companyName, companyCode, actorEmail = 'superadmin@afield.local' }) {
       return await this.log({
         companyId: companyId || 1,
         actorEmail,
@@ -433,7 +433,7 @@
       });
     }
 
-    async logCompanyArchived({ companyId, companyName, companyCode, actorEmail = 'superadmin@anjani.local', reason = 'Sister concern deactivated' }) {
+    async logCompanyArchived({ companyId, companyName, companyCode, actorEmail = 'superadmin@afield.local', reason = 'Sister concern deactivated' }) {
       return await this.log({
         companyId,
         actorEmail,
@@ -448,7 +448,7 @@
       });
     }
 
-    async logCompanyReactivated({ companyId, companyName, companyCode, actorEmail = 'superadmin@anjani.local' }) {
+    async logCompanyReactivated({ companyId, companyName, companyCode, actorEmail = 'superadmin@afield.local' }) {
       return await this.log({
         companyId,
         actorEmail,
@@ -463,7 +463,7 @@
       });
     }
 
-    async logCompanyDeleted({ companyId, companyName, companyCode, actorEmail = 'superadmin@anjani.local' }) {
+    async logCompanyDeleted({ companyId, companyName, companyCode, actorEmail = 'superadmin@afield.local' }) {
       return await this.log({
         companyId,
         actorEmail,
@@ -478,7 +478,7 @@
       });
     }
 
-    async logWarehouseCreated({ companyId, warehouseId, warehouseName, warehouseCode, actorEmail = 'admin@anjani.local' }) {
+    async logWarehouseCreated({ companyId, warehouseId, warehouseName, warehouseCode, actorEmail = 'admin@afield.local' }) {
       return await this.log({
         companyId,
         actorEmail,
@@ -493,7 +493,7 @@
       });
     }
 
-    async logWarehouseUpdated({ companyId, warehouseId, warehouseName, warehouseCode, actorEmail = 'admin@anjani.local' }) {
+    async logWarehouseUpdated({ companyId, warehouseId, warehouseName, warehouseCode, actorEmail = 'admin@afield.local' }) {
       return await this.log({
         companyId,
         actorEmail,

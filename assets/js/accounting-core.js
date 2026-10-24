@@ -121,7 +121,7 @@
       taxMode = 'Non-GST',
       taxAmount = 0,
       notes = '',
-      postedBy = 'system@anjani.local'
+      postedBy = 'system@afield.local'
     }) {
       const numAmount = Math.round((parseFloat(amount) || 0) * 100) / 100;
       if (numAmount <= 0) {
@@ -265,7 +265,7 @@
       accountId = null,
       date = new Date().toISOString().substring(0, 10),
       notes = '',
-      postedBy = 'accountant@anjani.local'
+      postedBy = 'accountant@afield.local'
     }) {
       const numAmt = parseFloat(amount) || 0;
       if (numAmt <= 0) throw new Error('Payment amount must be greater than zero');
@@ -407,7 +407,7 @@
       accountId = null,
       date = new Date().toISOString().substring(0, 10),
       notes = '',
-      postedBy = 'accountant@anjani.local'
+      postedBy = 'accountant@afield.local'
     }) {
       const numAmt = parseFloat(amount) || 0;
       if (numAmt <= 0) throw new Error('Receipt amount must be greater than zero');
@@ -461,7 +461,7 @@
       mode = 'Bank',
       date = new Date().toISOString().substring(0, 10),
       description = '',
-      postedBy = 'accountant@anjani.local'
+      postedBy = 'accountant@afield.local'
     }) {
       const expAccountCode = this.mapExpenseCategoryToAccount(category);
       const crAccountCode = (String(mode).toLowerCase() === 'cash') ? '1010' : '1020';
@@ -588,7 +588,7 @@
      * Never deletes historical records. Instead, posts an explicit reversal
      * swapping debit and credit accounts, stamped with reason and actor.
      */
-    reverseEntry(entryId, reason, actor = 'admin@anjani.local') {
+    reverseEntry(entryId, reason, actor = 'admin@afield.local') {
       const orig = inMemoryLedger.find(e => e.id === entryId || e.entry_no === entryId);
       if (!orig) {
         throw new Error(`ENTRY_NOT_FOUND: Ledger entry ${entryId} does not exist.`);

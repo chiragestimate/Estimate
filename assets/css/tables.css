@@ -846,18 +846,18 @@
 }
 
 /* ═════════════════════════════════════════════════════════════════
-   ANJANI AGRI CARE UI COMPONENT SYSTEM
+   AFIELD CROP CARE UI COMPONENT SYSTEM
    ═════════════════════════════════════════════════════════════════ */
 
 /* 1. Global Pill Search Bar (For Header / Navbar) */
-.anjani-pill-search-container {
+.acc-, .anjani- {
   position: relative;
   display: flex;
   align-items: center;
   width: 100%;
 }
 
-.anjani-pill-search-icon {
+.acc-, .anjani- {
   position: absolute;
   left: 14px;
   top: 50%;
@@ -871,12 +871,12 @@
   justify-content: center;
 }
 
-.anjani-pill-search-icon svg {
+.acc-, .anjani- svg {
   width: 16px;
   height: 16px;
 }
 
-.anjani-pill-search-input {
+.acc-, .anjani- {
   width: 100%;
   padding-left: 40px;
   padding-right: 96px;
@@ -890,21 +890,21 @@
   transition: all 0.2s ease;
 }
 
-.anjani-pill-search-input:hover {
+.acc-, .anjani-:hover {
   background-color: rgba(241, 245, 249, 0.8);
 }
 
-.anjani-pill-search-input:focus {
+.acc-, .anjani-:focus {
   background-color: #ffffff;
   border-color: #0C3925;
   box-shadow: 0 0 0 3px rgba(12, 57, 37, 0.15);
 }
 
-.anjani-pill-search-input::placeholder {
+.acc-, .anjani-::placeholder {
   color: #94a3b8;
 }
 
-.anjani-pill-search-btn {
+.acc-, .anjani- {
   position: absolute;
   right: 6px;
   top: 50%;
@@ -924,14 +924,14 @@
   transition: background-color 0.2s ease, transform 0.1s ease;
 }
 
-.anjani-pill-search-btn:hover {
+.acc-, .anjani-:hover {
   background-color: #08281a;
 }
 
 /* 2. Standard Select Dropdowns (Filters, Sorting, Forms) */
 .form-select,
 .table-filter select,
-.anjani-select {
+.acc-, .anjani- {
   height: 40px !important;
   padding: 0 34px 0 12px !important;
   font-size: 13px !important;
@@ -959,14 +959,14 @@
 
 .form-select:hover,
 .table-filter select:hover,
-.anjani-select:hover {
+.acc-, .anjani-:hover {
   background-color: rgba(241, 245, 249, 0.7) !important;
   border-color: #94a3b8 !important;
 }
 
 .form-select:focus,
 .table-filter select:focus,
-.anjani-select:focus {
+.acc-, .anjani-:focus {
   border-color: #0C3925 !important;
   box-shadow: 0 0 0 2px rgba(12, 57, 37, 0.2) !important;
   background-color: #ffffff !important;
@@ -976,7 +976,7 @@
 
 .form-select:disabled,
 .table-filter select:disabled,
-.anjani-select:disabled {
+.acc-, .anjani-:disabled {
   opacity: 0.6 !important;
   cursor: not-allowed !important;
   pointer-events: none !important;
@@ -986,13 +986,13 @@
 
 .form-select.error,
 .table-filter select.error,
-.anjani-select.error {
+.acc-, .anjani-.error {
   border-color: #ef4444 !important;
   box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2) !important;
 }
 
 /* 3. Compound Input-Dropdown Groups (Value + Unit fields) */
-.anjani-compound-group,
+.acc-, .anjani-,
 .compound-input-group {
   display: flex !important;
   border-radius: 8px !important;
@@ -1004,13 +1004,13 @@
   box-sizing: border-box !important;
 }
 
-.anjani-compound-group:focus-within,
+.acc-, .anjani-:focus-within,
 .compound-input-group:focus-within {
   border-color: #0C3925 !important;
   box-shadow: 0 0 0 2px rgba(12, 57, 37, 0.2) !important;
 }
 
-.anjani-compound-group .compound-left-input,
+.acc-, .anjani- .compound-left-input,
 .compound-input-group .compound-left-input {
   width: 60% !important;
   flex: 3 !important;
@@ -1025,7 +1025,7 @@
   box-shadow: none !important;
 }
 
-.anjani-compound-group .compound-right-select,
+.acc-, .anjani- .compound-right-select,
 .compound-input-group .compound-right-select {
   width: 40% !important;
   flex: 2 !important;

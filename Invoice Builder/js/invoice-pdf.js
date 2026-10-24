@@ -316,7 +316,7 @@
     const isGst = payload.InvoiceType === 'GST' || (typeof document !== 'undefined' && document.body && document.body.classList.contains('gst-mode'));
 
     // Exact Brand & Preview Palette (Image 1 target design)
-    const C_DARK_GREEN = [8, 40, 26];     // #08281A (Anjani Agri Care Primary Theme Green)
+    const C_DARK_GREEN = [8, 40, 26];     // #08281A (Afield Crop Care Primary Theme Green)
     const C_TEXT_MAIN  = [0, 0, 0];        // #000000 (Pure black headings/text as in Image 1)
     const C_TEXT_SLATE = [30, 41, 59];      // #1e293b
     const C_TEXT_MUTED = [100, 116, 139];   // #64748b (Slate 500)
@@ -439,7 +439,7 @@
     const headerTop = margin;
 
     // 1A. Logo (Left)
-    const logoEl = $('paper-logo') || $('navbar-logo') || (typeof document !== 'undefined' ? (document.querySelector('#view-invoice-paper img') || document.querySelector('#dispatch-slip-paper img') || document.querySelector('img[alt*="Anjani"]') || document.querySelector('img[alt*="Logo"]')) : null);
+    const logoEl = $('paper-logo') || $('navbar-logo') || (typeof document !== 'undefined' ? (document.querySelector('#view-invoice-paper img') || document.querySelector('#dispatch-slip-paper img') || document.querySelector('img[alt*="Afield"]') || document.querySelector('img[alt*="Logo"]')) : null);
     if (logoEl && logoEl.complete && logoEl.naturalWidth > 0 && logoEl.style.display !== 'none') {
       try {
         const logoData = getElementImageDataUrl(logoEl);

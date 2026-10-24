@@ -1,6 +1,6 @@
 
 /* ─── CO-MARKETING BRAND / LABEL OWNER & STOCK VERIFICATION HELPERS ─── */
-async function populateOrderBrandSelect(selectedOwner = 'AAC') {
+async function populateOrderBrandSelect(selectedOwner = 'ACC') {
   const sel = document.getElementById('order-label-owner-select');
   if (!sel) return;
 
@@ -10,19 +10,21 @@ async function populateOrderBrandSelect(selectedOwner = 'AAC') {
     companies = compList || [];
   } catch (_) {}
 
-  if (!companies.some(c => c.code === 'AAC')) companies.unshift({ id: 1, name: 'Afield Crop Care', code: 'AAC', is_manufacturing: true });
+  if (!companies.some(c => c.code === 'ACC' || c.code === 'AAC')) companies.unshift({ id: 1, name: 'Afield Crop Care', code: 'ACC', is_manufacturing: true });
   if (!companies.some(c => c.code === 'GAS')) companies.push({ id: 2, name: 'Greenfield Agro Solutions', code: 'GAS', is_manufacturing: false });
 
   const activeCode = (window.TENANT_CONTEXT && window.TENANT_CONTEXT.getActiveCompany) 
-    ? (window.TENANT_CONTEXT.getActiveCompany().code || 'AAC') 
-    : 'AAC';
-  const targetOwner = (selectedOwner || activeCode || 'AAC').toUpperCase();
+    ? (window.TENANT_CONTEXT.getActiveCompany().code || 'ACC') 
+    : 'ACC';
+  let targetOwner = (selectedOwner || activeCode || 'ACC').toUpperCase();
+  if (targetOwner === 'AAC') targetOwner = 'ACC';
   currentOrderLabelOwner = targetOwner;
 
   sel.innerHTML = companies.map(c => {
-    const isSel = c.code.toUpperCase() === targetOwner;
+    const normCode = (c.code || '').toUpperCase() === 'AAC' ? 'ACC' : (c.code || '').toUpperCase();
+    const isSel = normCode === targetOwner;
     const typeLabel = c.is_manufacturing ? 'In-House Mfg' : 'Co-Marketing Partner';
-    return `<option value="${c.code}" ${isSel ? 'selected' : ''}>${c.code} (${c.name} - ${typeLabel})</option>`;
+    return `<option value="${normCode}" ${isSel ? 'selected' : ''}>${normCode} (${c.name} - ${typeLabel})</option>`;
   }).join('');
 }
 
@@ -38,17 +40,19 @@ function onOrderClientChange(clientId) {
       ownerSel.value = 'GAS';
       onOrderLabelOwnerChange('GAS');
     }
-  } else if (clientText.includes('anjani') || clientText.includes('aac')) {
+  } else if (clientText.includes('afield') || clientText.includes('anjani') || clientText.includes('acc') || clientText.includes('aac')) {
     const ownerSel = document.getElementById('order-label-owner-select');
     if (ownerSel) {
-      ownerSel.value = 'AAC';
-      onOrderLabelOwnerChange('AAC');
+      ownerSel.value = 'ACC';
+      onOrderLabelOwnerChange('ACC');
     }
   }
 }
 
 function onOrderLabelOwnerChange(ownerVal) {
-  currentOrderLabelOwner = (ownerVal || 'AAC').trim().toUpperCase();
+  let val = (ownerVal || 'ACC').trim().toUpperCase();
+  if (val === 'AAC') val = 'ACC';
+  currentOrderLabelOwner = val;
   console.log('[Orders] Brand / Label Owner changed to:', currentOrderLabelOwner);
   // Re-resolve labels for all current order items
   orderItems.forEach(it => {
@@ -69,7 +73,8 @@ function resolveOrderItemLabel(item, labelOwner = currentOrderLabelOwner) {
   const pName = item.product_name || pMatch?.name || '';
   const packSize = item.packaging_size || item.packing_size || '';
 
-  const targetOwner = (labelOwner || currentOrderLabelOwner || 'AAC').toUpperCase();
+  let targetOwner = (labelOwner || currentOrderLabelOwner || 'ACC').toUpperCase();
+  if (targetOwner === 'AAC') targetOwner = 'ACC';
 
   // Search cachedLabelsList
   const matched = (cachedLabelsList || []).find(it => {
@@ -97,12 +102,13 @@ function resolveOrderItemLabel(item, labelOwner = currentOrderLabelOwner) {
     }
     if (!sizeMatchOk) return false;
 
-    // 3. Check Owner match (AAC vs GAS)
+    // 3. Check Owner match (ACC vs GAS, with backward compatibility for AAC)
     const itSubtype = String(it.item_subtype || '').trim().toUpperCase();
     const itNameUpper = String(it.name || '').toUpperCase();
-    if (itSubtype === targetOwner) return true;
+    if (itSubtype === targetOwner || (targetOwner === 'ACC' && itSubtype === 'AAC')) return true;
     if (itNameUpper.includes(`[${targetOwner}]`) || itNameUpper.includes(`(${targetOwner})`)) return true;
-    if (!itSubtype && targetOwner === 'AAC') return true;
+    if (targetOwner === 'ACC' && (itNameUpper.includes('[AAC]') || itNameUpper.includes('(AAC)'))) return true;
+    if (!itSubtype && (targetOwner === 'ACC' || targetOwner === 'AAC')) return true;
 
     return false;
   });
@@ -206,7 +212,7 @@ function updateOrderStockSummary() {
     }
     lineRows.push({
       type: 'Technical Bulk',
-      item: `${techName} (AAC Technical)`,
+      item: `${techName} (ACC Technical)`,
       required: `${volumeLiters.toFixed(2)} L`,
       available: `${techAvail.toFixed(2)} L`,
       status: techDeficit ? 'Deficit' : 'OK',
@@ -229,7 +235,7 @@ function updateOrderStockSummary() {
       const btlDisplay = btl ? (typeof UTILS !== 'undefined' && UTILS.formatPackagingDisplayName ? UTILS.formatPackagingDisplayName(btl, 'Bottles') : btl.name) : 'Bottle';
       lineRows.push({
         type: 'Bottle',
-        item: `${btlDisplay} (AAC Packaging)`,
+        item: `${btlDisplay} (ACC Packaging)`,
         required: `${qty} Nos`,
         available: `${btlAvail.toFixed(0)} Nos`,
         status: btlDeficit ? 'Deficit' : 'OK',
@@ -257,7 +263,7 @@ function updateOrderStockSummary() {
       const bxDisplay = bx ? (typeof UTILS !== 'undefined' && UTILS.formatPackagingDisplayName ? UTILS.formatPackagingDisplayName(bx, 'Boxes') : bx.name) : 'Box';
       lineRows.push({
         type: 'Box',
-        item: `${bxDisplay} (AAC Packaging)`,
+        item: `${bxDisplay} (ACC Packaging)`,
         required: `${outerBoxes} Nos`,
         available: `${bxAvail.toFixed(0)} Nos`,
         status: bxDeficit ? 'Deficit' : 'OK',
@@ -377,7 +383,7 @@ function updateOrderStockSummary() {
   contentEl.innerHTML = productCardsHtml;
 }
 
-let currentOrderLabelOwner = 'AAC';
+let currentOrderLabelOwner = 'ACC';
 let cachedLabelsList = [];
 let allInventoryItemsList = [];
 /* orders.js */
@@ -1362,7 +1368,7 @@ async function viewOrder(id) {
                 const foundWh = window.allWarehouses.find(w => String(w.id) === String(sourceWhId) || w.code === String(sourceWhId));
                 if (foundWh) return `${foundWh.name} (${foundWh.code})`;
               }
-              return 'Main Plant Warehouse (WH-AAC-01)';
+              return 'Main Plant Warehouse (WH-ACC-01)';
             })()}</div>
             <span class="dispatch-route-sub" style="font-size: 10.5px; color: var(--text-muted);">Origin Fulfillment Facility</span>
           </div>
@@ -1458,7 +1464,7 @@ async function openAdd() {
   handleAutoDiscount();
 
   orderItems = [{ id: Date.now(), product_id: '', product_name: '', packaging_size: '', bottle_inventory_id: null, box_inventory_id: null, quantity: 1, unit_price: 0, total: 0 }];
-  await populateOrderBrandSelect('AAC');
+  await populateOrderBrandSelect('ACC');
   await populateClientSelect();
   await renderOrderItems();
   UTILS.applyDefaultDateInputs(orderForm, { skipFieldNames: ['due_date'] });
@@ -1482,13 +1488,14 @@ async function openEdit(id) {
   try {
     // If cached in memory, populate immediately
     const cached = (window.allOrders || []).find(x => String(x.id) === String(id));
-    let existingOwner = 'AAC';
+    let existingOwner = 'ACC';
     if (cached && cached.notes && /(?:DISPATCH_META|Dispatch_meta):/i.test(cached.notes)) {
       try {
         const meta = JSON.parse(cached.notes.replace(/^[\s\S]*?(?:DISPATCH_META|Dispatch_meta):/i, '').trim());
         if (meta.label_owner) existingOwner = meta.label_owner;
       } catch (_) {}
     }
+    if (existingOwner === 'AAC') existingOwner = 'ACC';
     await populateOrderBrandSelect(existingOwner);
     await populateClientSelect();
     
@@ -2539,7 +2546,7 @@ async function insertOrderItemsAndSyncStock(orderId, items, orderNo, allowBackor
       outer_boxes_consumed: outerBoxes,
       label_inventory_id: it.label_inventory_id || null,
       label_name: it.label_name || null,
-      label_owner: currentOrderLabelOwner || 'AAC'
+      label_owner: currentOrderLabelOwner || 'ACC'
     };
   });
 
@@ -2619,7 +2626,7 @@ async function insertOrderItemsAndSyncStock(orderId, items, orderNo, allowBackor
         remaining_units: Math.max(0, totalUnits - prevDisp),
         label_inventory_id: it.label_inventory_id || null,
         label_name: it.label_name || null,
-        label_owner: currentOrderLabelOwner || 'AAC'
+        label_owner: currentOrderLabelOwner || 'ACC'
       };
     });
 
@@ -2642,7 +2649,7 @@ async function insertOrderItemsAndSyncStock(orderId, items, orderNo, allowBackor
 
     const packagingMeta = {
       ...existingMeta,
-      label_owner: currentOrderLabelOwner || 'AAC',
+      label_owner: currentOrderLabelOwner || 'ACC',
       items_meta: itemsMeta,
       dispatches: dispatches
     };

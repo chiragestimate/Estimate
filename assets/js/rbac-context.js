@@ -167,7 +167,7 @@
       if (this._initialized) return this;
 
       try {
-        const userEmail = localStorage.getItem('admin_user') || 'admin@anjani.local';
+        const userEmail = localStorage.getItem('admin_user') || 'admin@afield.local';
         this._currentUser = { email: userEmail };
 
         // 1. Check for manual role switch override (for administrative preview / testing)
@@ -330,7 +330,7 @@
       
       await this.logAudit('ROLE_SWITCHED_PREVIEW', {
         newRole: roleCode,
-        actor: this._currentUser?.email || 'admin@anjani.local'
+        actor: this._currentUser?.email || 'admin@afield.local'
       });
 
       this.applyDomPermissions();
@@ -503,7 +503,7 @@
           reference_table: referenceTable,
           reference_id: parseInt(referenceId, 10),
           reference_code: referenceCode,
-          requested_by: this._currentUser?.email || 'operator@anjani.local',
+          requested_by: this._currentUser?.email || 'operator@afield.local',
           required_role_id: parseInt(requiredRoleId, 10) || 6, // default to QC
           status: 'Pending',
           decision_notes: notes || null
@@ -527,7 +527,7 @@
         const logEntry = {
           tenant_id: 1,
           company_id: window.TENANT_CONTEXT ? window.TENANT_CONTEXT.getCompanyId() : 1,
-          actor_email: this._currentUser?.email || 'admin@anjani.local',
+          actor_email: this._currentUser?.email || 'admin@afield.local',
           action_type: actionType,
           target_user: targetUser,
           details: details,

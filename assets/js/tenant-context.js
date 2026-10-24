@@ -72,7 +72,7 @@
         this._hasMultiCompanySchema = true;
         this._authorizedCompanies = (companies && companies.length > 0) ? companies.map(c => ({
           ...c,
-          name: c.name === 'Anjani Agri Care' ? 'Afield Crop Care' : c.name
+          name: c.name === 'Afield Crop Care' ? 'Afield Crop Care' : c.name
         })) : [];
 
         // 2. Determine active company from localStorage, validated against authorized list
@@ -80,17 +80,17 @@
         let matched = this._authorizedCompanies.find(c => c.id === storedCompanyId);
 
         if (!matched && this._authorizedCompanies.length > 0) {
-          // Default to the first authorized company (Anjani Agri Care is ID 1)
+          // Default to the first authorized company (Afield Crop Care is ID 1)
           matched = this._authorizedCompanies.find(c => c.id === 1) || this._authorizedCompanies[0];
           localStorage.setItem(STORAGE_KEY_COMPANY, matched.id);
         }
 
-        if (matched && matched.name === 'Anjani Agri Care') {
+        if (matched && matched.name === 'Afield Crop Care') {
           matched.name = 'Afield Crop Care';
         }
         this._activeCompany = matched || {
           id: 1,
-          name: (typeof localStorage !== 'undefined' && (localStorage.getItem('erp_active_company_name') === 'Anjani Agri Care' ? 'Afield Crop Care' : (localStorage.getItem('erp_active_company_name') || 'Afield Crop Care'))),
+          name: (typeof localStorage !== 'undefined' && (localStorage.getItem('erp_active_company_name') === 'Afield Crop Care' ? 'Afield Crop Care' : (localStorage.getItem('erp_active_company_name') || 'Afield Crop Care'))),
           code: (typeof localStorage !== 'undefined' && localStorage.getItem('erp_active_company_code')) || 'ACC',
           is_manufacturing: true,
           currency: 'INR'
@@ -117,7 +117,7 @@
     _fallbackInit() {
       const defaultCompany = {
         id: 1,
-        name: (typeof localStorage !== 'undefined' && (localStorage.getItem('erp_active_company_name') === 'Anjani Agri Care' ? 'Afield Crop Care' : (localStorage.getItem('erp_active_company_name') || 'Afield Crop Care'))),
+        name: (typeof localStorage !== 'undefined' && (localStorage.getItem('erp_active_company_name') === 'Afield Crop Care' ? 'Afield Crop Care' : (localStorage.getItem('erp_active_company_name') || 'Afield Crop Care'))),
         code: (typeof localStorage !== 'undefined' && localStorage.getItem('erp_active_company_code')) || 'ACC',
         is_manufacturing: true,
         currency: 'INR'
@@ -198,10 +198,10 @@
     filter(query, companyId = null) {
       const cId = companyId || this.getCompanyId();
       if (this._hasMultiCompanySchema) {
-        // For the primary manufacturing parent entity (AAC), support active ID (623), legacy ID (1), and null
+        // For the primary manufacturing parent entity (ACC), support active ID (623), legacy ID (1), and null
         const activeComp = this.getActiveCompany();
-        const isPrimaryAAC = (activeComp && (activeComp.code === 'AAC' || activeComp.id === 623 || activeComp.id === 1 || activeComp.is_manufacturing));
-        if (isPrimaryAAC && (cId === 623 || cId === 1)) {
+        const isPrimaryACC = (activeComp && (activeComp.code === 'ACC' || activeComp.code === 'AAC' || activeComp.id === 623 || activeComp.id === 1 || activeComp.is_manufacturing));
+        if (isPrimaryACC && (cId === 623 || cId === 1)) {
           return query.or(`company_id.eq.${cId},company_id.eq.1,company_id.is.null`);
         }
         return query.eq('company_id', cId);

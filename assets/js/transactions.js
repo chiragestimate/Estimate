@@ -710,7 +710,7 @@ async function executeTraceableReversal() {
 
   try {
     if (window.ACCOUNTING_CORE) {
-      const rev = window.ACCOUNTING_CORE.reverseEntry(entryId, reason, 'accountant@anjani.local');
+      const rev = window.ACCOUNTING_CORE.reverseEntry(entryId, reason, 'accountant@afield.local');
       if (window.AUDIT_LOGGER) {
         await window.AUDIT_LOGGER.logFinancialAdjustment({
           entryId: rev.id,

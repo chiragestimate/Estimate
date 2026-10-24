@@ -193,7 +193,7 @@
     /**
      * Mark a notification as read.
      */
-    markAsRead(notificationId, userEmail = 'user@anjani.local') {
+    markAsRead(notificationId, userEmail = 'user@afield.local') {
       const notif = inMemoryNotifications.find(n => n.id === notificationId);
       if (notif) {
         notif.is_read = true;

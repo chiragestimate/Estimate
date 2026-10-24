@@ -305,7 +305,7 @@ async function viewPurchase(id) {
             <div class="dispatch-route-label" style="font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:0.8px; color:#0284c7; margin-bottom:4px;">DESTINATION (RECEIVING GODOWN)</div>
             <div class="dispatch-route-val" style="font-weight:700; font-size:13px; color:var(--text);">${(() => {
               const whName = p.items && p.items[0]?.warehouse;
-              return whName || 'Main Plant Warehouse (WH-AAC-01)';
+              return whName || 'Main Plant Warehouse (WH-ACC-01)';
             })()}</div>
             <div class="dispatch-route-sub" style="font-size:10.5px; color:var(--text-muted); margin-top:2px;">Inward Stock Storage Facility</div>
           </div>

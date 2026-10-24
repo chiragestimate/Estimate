@@ -1,7 +1,7 @@
 /**
  * ==============================================================================
  * js/history.js — Premium Invoice History Logic
- * Anjani Agri Care ERP
+ * Afield Crop Care ERP
  * 
  * Fetches invoices, categorizes Regular vs Dispatch, renders metric cards,
  * segmented category tabs, desktop table, and responsive mobile cards.

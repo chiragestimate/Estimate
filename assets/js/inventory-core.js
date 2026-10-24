@@ -305,7 +305,8 @@
     formatLabelName(productName, packagingSize, ownerCode) {
       const pName = String(productName || '').trim();
       const pSize = String(packagingSize || '').trim();
-      const owner = String(ownerCode || 'AAC').trim().toUpperCase();
+      let owner = String(ownerCode || 'ACC').trim().toUpperCase();
+      if (owner === 'AAC') owner = 'ACC';
       return `${pName} ${pSize} Label [${owner}]`.replace(/\s{2,}/g, ' ');
     }
   };
@@ -868,14 +869,15 @@
      * Enforces that:
      * - Product must match (by product_id or exact product name)
      * - Packaging size must match (volume/weight equivalence, e.g. 1 Ltr != 500 Ml)
-     * - Label owner must match (AAC vs GAS)
+     * - Label owner must match (ACC vs GAS)
      * - Category must be 'Labels'
      */
-    async resolveLabelItem({ productId, productName = '', packagingSize, labelOwner = 'AAC', inventoryItems = null }) {
+    async resolveLabelItem({ productId, productName = '', packagingSize, labelOwner = 'ACC', inventoryItems = null }) {
       const db = this.getDb();
       if (!db && !inventoryItems) return null;
 
-      const targetOwner = String(labelOwner || 'AAC').trim().toUpperCase();
+      let targetOwner = String(labelOwner || 'ACC').trim().toUpperCase();
+      if (targetOwner === 'AAC') targetOwner = 'ACC';
       const targetSize = String(packagingSize || '').trim();
       const targetProdId = productId ? parseInt(productId, 10) : null;
       const targetProdName = String(productName || '').trim().toLowerCase();
@@ -916,17 +918,19 @@
         }
         if (!sizeMatches) continue;
 
-        // 3. Check Owner match (AAC vs GAS)
+        // 3. Check Owner match (ACC vs GAS)
         const itemOwner = String(item.item_subtype || '').trim().toUpperCase();
         const itemName = String(item.name || '').toUpperCase();
         let ownerMatches = false;
 
-        if (itemOwner === targetOwner) {
+        if (itemOwner === targetOwner || (targetOwner === 'ACC' && itemOwner === 'AAC')) {
           ownerMatches = true;
         } else if (itemName.includes(`[${targetOwner}]`) || itemName.includes(`(${targetOwner})`)) {
           ownerMatches = true;
-        } else if (!itemOwner && targetOwner === 'AAC') {
-          // Backward compatibility: unspecified owner defaults to AAC in-house
+        } else if (targetOwner === 'ACC' && (itemName.includes('[AAC]') || itemName.includes('(AAC)'))) {
+          ownerMatches = true;
+        } else if (!itemOwner && (targetOwner === 'ACC' || targetOwner === 'AAC')) {
+          // Backward compatibility: unspecified owner defaults to ACC in-house
           ownerMatches = true;
         }
 

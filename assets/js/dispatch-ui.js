@@ -62,7 +62,7 @@
     }
     let str = String(fallbackName || '').trim();
     if (!str || str.toLowerCase().includes('gas co-marketing')) {
-      return 'GAS (WH-AAC-GAS)';
+      return 'GAS (WH-ACC-GAS)';
     }
     return str;
   }
@@ -350,7 +350,7 @@
           const statusBadge = `<span class="badge ${badgeClass}">${st}</span>`;
 
           const sourceWhId = d.warehouse_id || 1;
-          const sourceWhDisplay = resolveGodownDisplayName(sourceWhId, 'Main Plant Warehouse (WH-AAC-01)');
+          const sourceWhDisplay = resolveGodownDisplayName(sourceWhId, 'Main Plant Warehouse (WH-ACC-01)');
           const isGodown = d.delivery_target === 'GODOWN';
 
           let destTitle = '';
@@ -358,7 +358,7 @@
           let destIconType = 'customer';
 
           if (isGodown) {
-            destTitle = resolveGodownDisplayName(d.target_warehouse_id, d.target_warehouse_name || 'Gas Godown (WH-AAC-GAS)');
+            destTitle = resolveGodownDisplayName(d.target_warehouse_id, d.target_warehouse_name || 'Gas Godown (WH-ACC-GAS)');
             destSub = 'Godown Stocking Point';
             destIconType = 'godown';
           } else if (d.intercompany_transfer_id || d.is_intercompany) {
@@ -573,7 +573,7 @@
           const statusBadge = `<span class="badge ${badgeClass}">${st}</span>`;
 
           const sourceWhId = d.warehouse_id || 1;
-          const sourceWhDisplay = resolveGodownDisplayName(sourceWhId, 'Main Plant Warehouse (WH-AAC-01)');
+          const sourceWhDisplay = resolveGodownDisplayName(sourceWhId, 'Main Plant Warehouse (WH-ACC-01)');
           const isGodown = d.delivery_target === 'GODOWN';
 
           let destTitle = '';
@@ -581,7 +581,7 @@
           let destIconType = 'customer';
 
           if (isGodown) {
-            destTitle = resolveGodownDisplayName(d.target_warehouse_id, d.target_warehouse_name || 'Gas Godown (WH-AAC-GAS)');
+            destTitle = resolveGodownDisplayName(d.target_warehouse_id, d.target_warehouse_name || 'Gas Godown (WH-ACC-GAS)');
             destSub = 'Godown Stocking Point';
             destIconType = 'godown';
           } else if (d.intercompany_transfer_id || d.is_intercompany) {
@@ -786,10 +786,10 @@
           const godowns = whs.filter(w => w.id !== 1 && (w.status || 'Active') === 'Active');
           if (godowns.length > 0) {
             targetWhSelect.innerHTML = godowns.map(w => 
-              `<option value="${w.id}" ${w.code === 'WH-AAC-GAS' ? 'selected' : ''}>${w.name} (${w.code || 'WH'})</option>`
+              `<option value="${w.id}" ${(w.code === 'WH-ACC-GAS' || w.code === 'WH-AAC-GAS') ? 'selected' : ''}>${w.name} (${w.code || 'WH'})</option>`
             ).join('');
           } else {
-            targetWhSelect.innerHTML = '<option value="532" selected>GAS (WH-AAC-GAS)</option>';
+            targetWhSelect.innerHTML = '<option value="532" selected>GAS (WH-ACC-GAS)</option>';
           }
         }
 
@@ -1813,10 +1813,10 @@
         };
 
         const sourceWhId = d.warehouse_id || 1;
-        const sourceWhDisplay = resolveGodownDisplayName(sourceWhId, 'Main Plant Warehouse (WH-AAC-01)');
+        const sourceWhDisplay = resolveGodownDisplayName(sourceWhId, 'Main Plant Warehouse (WH-ACC-01)');
         const isGodown = d.delivery_target === 'GODOWN';
         const destDisplayName = isGodown 
-          ? resolveGodownDisplayName(d.target_warehouse_id, d.target_warehouse_name || 'Gas Godown (WH-AAC-GAS)')
+          ? resolveGodownDisplayName(d.target_warehouse_id, d.target_warehouse_name || 'Gas Godown (WH-ACC-GAS)')
           : `Direct Customer Delivery — ${safeEscape(d.client_name || 'Customer')}`;
 
         const content = document.getElementById('view-dispatch-content');
@@ -2672,7 +2672,7 @@
             <!-- Header: Logo | Company Center | Invoice Box -->
             <div style="display:grid; grid-template-columns:130px 1fr 160px; align-items:center; gap:12px; margin-bottom:14px; padding-bottom:12px; border-bottom:3px solid #0C3925;">
               <div style="display:flex; align-items:center; justify-content:flex-start;">
-                <img src="../assets/images/logo.jpg" alt="Anjani Agri Care" style="height:76px; width:76px; max-width:120px; object-fit:contain; border:none; display:block; background:transparent;" onerror="this.onerror=null; this.src='../apps/Invoice Builder/logo.jpg';" />
+                <img src="../assets/images/logo.jpg" alt="Afield Crop Care" style="height:76px; width:76px; max-width:120px; object-fit:contain; border:none; display:block; background:transparent;" onerror="this.onerror=null; this.src='../apps/Invoice Builder/logo.jpg';" />
               </div>
               <div style="text-align:center; display:flex; flex-direction:column; align-items:center;">
                 <div style="font-size:20px; font-weight:800; color:#0C3925 !important; letter-spacing:-0.4px;">Afield Crop Care</div>

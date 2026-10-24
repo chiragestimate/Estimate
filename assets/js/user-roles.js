@@ -308,16 +308,16 @@ function assignUserToRole(roleCode) {
 
 function seedAllTenRoles() {
   const tenRoleSeeds = [
-    { id: 1, user_email: 'admin@anjani.local', full_name: 'Anjani Administrator', role_id: 1, roles: { code: 'super_admin', name: 'Software Super Admin' }, company_id: 1, branch_id: 1, warehouse_id: 1, status: 'Active' },
-    { id: 2, user_email: 'owner@anjani.local', full_name: 'Anjani Director', role_id: 2, roles: { code: 'company_owner', name: 'Company Owner / Director' }, company_id: 1, branch_id: 1, warehouse_id: 1, status: 'Active' },
-    { id: 3, user_email: 'production@anjani.local', full_name: 'Mahesh Sharma (Plant)', role_id: 3, roles: { code: 'production_manager', name: 'Production Manager' }, company_id: 1, branch_id: 1, warehouse_id: 1, status: 'Active' },
-    { id: 4, user_email: 'factory@anjani.local', full_name: 'Ketan Patel (Shift)', role_id: 4, roles: { code: 'factory_operator', name: 'Factory Operator' }, company_id: 1, branch_id: 1, warehouse_id: 1, status: 'Active' },
-    { id: 5, user_email: 'operator@anjani.local', full_name: 'Dinesh Kumar (Godown)', role_id: 5, roles: { code: 'godown_operator', name: 'Packaging / Godown Operator' }, company_id: 1, branch_id: 1, warehouse_id: 1, status: 'Active' },
-    { id: 6, user_email: 'qc@anjani.local', full_name: 'Ramesh Patel (QC Lab)', role_id: 6, roles: { code: 'qc_officer', name: 'QC Officer' }, company_id: 1, branch_id: 1, warehouse_id: 1, status: 'Active' },
-    { id: 7, user_email: 'accountant@anjani.local', full_name: 'Suresh Shah (Finance)', role_id: 7, roles: { code: 'accountant', name: 'Accountant' }, company_id: 1, branch_id: 1, warehouse_id: 1, status: 'Active' },
-    { id: 8, user_email: 'store@anjani.local', full_name: 'Pravin Vaghela (Stores)', role_id: 8, roles: { code: 'store_manager', name: 'Inventory / Store Manager' }, company_id: 1, branch_id: 1, warehouse_id: 1, status: 'Active' },
-    { id: 9, user_email: 'sales@anjani.local', full_name: 'Vikram Desai (Dispatch)', role_id: 9, roles: { code: 'sales_executive', name: 'Sales / Dispatch Executive' }, company_id: 1, branch_id: 1, warehouse_id: 1, status: 'Active' },
-    { id: 10, user_email: 'auditor@anjani.local', full_name: 'Harish Dave (Auditor)', role_id: 10, roles: { code: 'viewer_auditor', name: 'Viewer / Auditor' }, company_id: 1, branch_id: 1, warehouse_id: 1, status: 'Active' }
+    { id: 1, user_email: 'admin@afield.local', full_name: 'Afield Administrator', role_id: 1, roles: { code: 'super_admin', name: 'Software Super Admin' }, company_id: 1, branch_id: 1, warehouse_id: 1, status: 'Active' },
+    { id: 2, user_email: 'owner@afield.local', full_name: 'Afield Director', role_id: 2, roles: { code: 'company_owner', name: 'Company Owner / Director' }, company_id: 1, branch_id: 1, warehouse_id: 1, status: 'Active' },
+    { id: 3, user_email: 'production@afield.local', full_name: 'Mahesh Sharma (Plant)', role_id: 3, roles: { code: 'production_manager', name: 'Production Manager' }, company_id: 1, branch_id: 1, warehouse_id: 1, status: 'Active' },
+    { id: 4, user_email: 'factory@afield.local', full_name: 'Ketan Patel (Shift)', role_id: 4, roles: { code: 'factory_operator', name: 'Factory Operator' }, company_id: 1, branch_id: 1, warehouse_id: 1, status: 'Active' },
+    { id: 5, user_email: 'operator@afield.local', full_name: 'Dinesh Kumar (Godown)', role_id: 5, roles: { code: 'godown_operator', name: 'Packaging / Godown Operator' }, company_id: 1, branch_id: 1, warehouse_id: 1, status: 'Active' },
+    { id: 6, user_email: 'qc@afield.local', full_name: 'Ramesh Patel (QC Lab)', role_id: 6, roles: { code: 'qc_officer', name: 'QC Officer' }, company_id: 1, branch_id: 1, warehouse_id: 1, status: 'Active' },
+    { id: 7, user_email: 'accountant@afield.local', full_name: 'Suresh Shah (Finance)', role_id: 7, roles: { code: 'accountant', name: 'Accountant' }, company_id: 1, branch_id: 1, warehouse_id: 1, status: 'Active' },
+    { id: 8, user_email: 'store@afield.local', full_name: 'Pravin Vaghela (Stores)', role_id: 8, roles: { code: 'store_manager', name: 'Inventory / Store Manager' }, company_id: 1, branch_id: 1, warehouse_id: 1, status: 'Active' },
+    { id: 9, user_email: 'sales@afield.local', full_name: 'Vikram Desai (Dispatch)', role_id: 9, roles: { code: 'sales_executive', name: 'Sales / Dispatch Executive' }, company_id: 1, branch_id: 1, warehouse_id: 1, status: 'Active' },
+    { id: 10, user_email: 'auditor@afield.local', full_name: 'Harish Dave (Auditor)', role_id: 10, roles: { code: 'viewer_auditor', name: 'Viewer / Auditor' }, company_id: 1, branch_id: 1, warehouse_id: 1, status: 'Active' }
   ];
 
   tenRoleSeeds.forEach(seed => {
@@ -1051,7 +1051,7 @@ async function decideApproval(id, decision) {
     if (window.dbClient) {
       await window.dbClient.from('approval_requests').update({
         status: decision,
-        decision_by: localStorage.getItem('admin_user') || 'admin@anjani.local',
+        decision_by: localStorage.getItem('admin_user') || 'admin@afield.local',
         decision_notes: notes,
         decision_at: new Date().toISOString()
       }).eq('id', id);

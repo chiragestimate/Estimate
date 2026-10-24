@@ -1,7 +1,7 @@
 /**
  * ==============================================================================
  * js/master.js — Master Data Management Logic
- * Anjani Agri Care ERP
+ * Afield Crop Care ERP
  * 
  * Manages Clients and Products CRUD operations, tab switching, contextual search,
  * desktop table rendering, and responsive mobile card presentation.

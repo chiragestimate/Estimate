@@ -92,7 +92,7 @@ async function loadAuditLogs() {
           localRbacLogs = parsedRbac.map((r, idx) => ({
             id: r.id || ('rbac_local_' + (idx + 1)),
             created_at: r.created_at || new Date().toISOString(),
-            actor_email: r.actor_email || 'admin@anjani.local',
+            actor_email: r.actor_email || 'admin@afield.local',
             action_category: (r.action_type && r.action_type.includes('ROLE')) ? 'PERMISSION_CHANGE' : (r.action_type && r.action_type.includes('APPROVAL')) ? 'APPROVAL_DECISION' : 'SECURITY_EVENT',
             action_name: r.action_type || 'RBAC_EVENT',
             table_name: 'user_role_assignments',
@@ -191,7 +191,7 @@ function renderAuditSlice(logs) {
 
   tbody.innerHTML = logs.map(log => {
     const timeFormatted = log.created_at ? new Date(log.created_at).toLocaleString() : 'N/A';
-    const actor = log.actor_email || 'system@anjani.local';
+    const actor = log.actor_email || 'system@afield.local';
     const category = log.action_category || (log.action_type?.includes('ROLE') ? 'PERMISSION_CHANGE' : 'SECURITY_EVENT');
     const action = log.action_name || log.action_type || 'EVENT';
     const refCode = log.reference_no || (log.record_id ? `#${log.record_id}` : '—');
@@ -628,7 +628,7 @@ function showAuditModal(parsed, title, log = null) {
     const hasMeta = Object.keys(metadata).length > 0;
 
     // Extract context details from log if present
-    const actor = log?.actor_email || 'system@anjani.local';
+    const actor = log?.actor_email || 'system@afield.local';
     const refCode = log?.reference_no || (log?.record_id ? `#${log.record_id}` : '—');
     const tbl = log?.table_name || 'general';
     const category = log?.action_category || (log?.action_type?.includes('ROLE') ? 'PERMISSION_CHANGE' : 'SECURITY_EVENT');

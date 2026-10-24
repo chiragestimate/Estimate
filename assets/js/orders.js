@@ -212,7 +212,11 @@ function updateOrderStockSummary() {
     }
     lineRows.push({
       type: 'Technical Bulk',
+      typeSlug: 'technical',
       item: `${techName} (ACC Technical)`,
+      reqQty: volumeLiters.toFixed(2),
+      availQty: techAvail.toFixed(2),
+      unit: 'LTR',
       required: `${volumeLiters.toFixed(2)} L`,
       available: `${techAvail.toFixed(2)} L`,
       status: techDeficit ? 'Deficit' : 'OK',
@@ -235,7 +239,11 @@ function updateOrderStockSummary() {
       const btlDisplay = btl ? (typeof UTILS !== 'undefined' && UTILS.formatPackagingDisplayName ? UTILS.formatPackagingDisplayName(btl, 'Bottles') : btl.name) : 'Bottle';
       lineRows.push({
         type: 'Bottle',
+        typeSlug: 'bottle',
         item: `${btlDisplay} (ACC Packaging)`,
+        reqQty: `${qty}`,
+        availQty: `${btlAvail.toFixed(0)}`,
+        unit: 'Nos',
         required: `${qty} Nos`,
         available: `${btlAvail.toFixed(0)} Nos`,
         status: btlDeficit ? 'Deficit' : 'OK',
@@ -263,7 +271,11 @@ function updateOrderStockSummary() {
       const bxDisplay = bx ? (typeof UTILS !== 'undefined' && UTILS.formatPackagingDisplayName ? UTILS.formatPackagingDisplayName(bx, 'Boxes') : bx.name) : 'Box';
       lineRows.push({
         type: 'Box',
+        typeSlug: 'box',
         item: `${bxDisplay} (ACC Packaging)`,
+        reqQty: `${outerBoxes}`,
+        availQty: `${bxAvail.toFixed(0)}`,
+        unit: 'Nos',
         required: `${outerBoxes} Nos`,
         available: `${bxAvail.toFixed(0)} Nos`,
         status: bxDeficit ? 'Deficit' : 'OK',
@@ -285,7 +297,11 @@ function updateOrderStockSummary() {
     }
     lineRows.push({
       type: 'Label',
+      typeSlug: 'label',
       item: lblMatch ? lblMatch.name : `${currentOrderLabelOwner} ${pName} ${packSize} Label`,
+      reqQty: `${qty}`,
+      availQty: lblMatch ? `${lblAvail.toFixed(0)}` : '0',
+      unit: 'Nos',
       required: `${qty} Nos`,
       available: lblMatch ? `${lblAvail.toFixed(0)} Nos` : '0 (Not in inventory)',
       status: lblDeficit ? 'Deficit' : 'OK',
@@ -304,45 +320,87 @@ function updateOrderStockSummary() {
     }
 
     return `
-      <div class="stock-line-card" style="margin-bottom:12px; border:1px solid var(--border); border-radius:8px; overflow:hidden; background:rgba(255,255,255,0.015);">
-        <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 12px; background:rgba(255,255,255,0.03); border-bottom:1px solid var(--border); flex-wrap:wrap; gap:6px;">
-          <div style="font-size:12.5px; font-weight:700; color:var(--text-primary); display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
-            <span style="color:var(--text-muted); font-size:11.5px;">#${idx + 1}</span>
-            <span>${pName}</span>
-            <span style="color:var(--text-muted); font-weight:400;">—</span>
-            <span style="color:var(--accent); font-weight:600;">${packSize}</span>
-            <span style="color:var(--text-muted); font-weight:400;">—</span>
-            <span>Qty: <strong>${qty}</strong></span>
+      <div class="stock-line-card">
+        <div class="stock-line-card-header">
+          <div class="stock-line-card-title">
+            <span class="stock-line-idx">#${idx + 1}</span>
+            <span class="stock-line-pname">${pName}</span>
+            <span class="stock-line-sep">•</span>
+            <span class="stock-line-pack">${packSize}</span>
+            <span class="stock-line-sep">•</span>
+            <span class="stock-line-qty">Qty: <strong>${qty}</strong></span>
           </div>
-          <span class="badge ${lineBadgeClass}" style="font-size:10px; padding:2px 7px;">${lineBadgeText}</span>
+          <span class="badge ${lineBadgeClass} stock-line-badge">${lineBadgeText}</span>
         </div>
-        <table class="data-table" style="font-size:11.5px; margin:0; width:100%; border:none;">
-          <thead>
-            <tr style="background:rgba(0,0,0,0.15);">
-              <th style="padding:4px 10px; width:18%;">Type</th>
-              <th style="padding:4px 10px;">Item / Material Name</th>
-              <th style="padding:4px 10px; width:110px;">Required</th>
-              <th style="padding:4px 10px; width:130px;">Available Stock</th>
-              <th style="padding:4px 10px; width:85px; text-align:right;">Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${lineRows.map(r => `
-              <tr style="${r.status === 'Deficit' ? (r.isLabel ? 'background:rgba(245,158,11,0.06);' : 'background:rgba(239,68,68,0.06);') : ''}">
-                <td style="padding:4px 10px; font-weight:600; color:var(--text-secondary);">${r.type}</td>
-                <td style="padding:4px 10px; font-weight:600; color:${r.status === 'Deficit' ? (r.isLabel ? 'var(--warning,#f59e0b)' : 'var(--danger,#ef4444)') : 'var(--text-primary)'};">
-                  ${r.isLabel ? `<span class="badge ${currentOrderLabelOwner === 'GAS' ? 'badge-info' : 'badge-purple'}" style="font-size:9px; padding:1px 4px; margin-right:4px;">${currentOrderLabelOwner}</span>` : ''}
-                  ${r.item}
-                </td>
-                <td style="padding:4px 10px;">${r.required}</td>
-                <td style="padding:4px 10px; font-weight:700; color:${r.status === 'Deficit' ? (r.isLabel ? 'var(--warning,#f59e0b)' : 'var(--danger,#ef4444)') : 'var(--accent)'};">${r.available}</td>
-                <td style="padding:4px 10px; text-align:right;">
-                  <span class="badge ${r.status === 'Deficit' ? (r.isLabel ? 'badge-warning' : 'badge-danger') : 'badge-success'}" style="font-size:9.5px; padding:1px 6px;">${r.status === 'Deficit' ? 'DEFICIT' : 'OK'}</span>
-                </td>
+
+        <!-- Desktop / Laptop / Tablet Table View (> 768px) -->
+        <div class="stock-verify-table-desktop">
+          <table class="data-table stock-verify-table">
+            <thead>
+              <tr>
+                <th style="width: 15%;">Item Type</th>
+                <th style="width: 37%;">Material Name</th>
+                <th style="width: 14%; text-align: right;">Required Qty</th>
+                <th style="width: 14%; text-align: right;">Available Stock</th>
+                <th style="width: 8%; text-align: center;">Unit</th>
+                <th style="width: 12%; text-align: center;">Status</th>
               </tr>
-            `).join('')}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              ${lineRows.map(r => `
+                <tr class="${r.status === 'Deficit' ? (r.isLabel ? 'row-label-deficit' : 'row-deficit') : 'row-ok'}">
+                  <td class="col-type"><span class="sv-type-tag sv-type-${r.typeSlug}">${r.type}</span></td>
+                  <td class="col-item">
+                    ${r.isLabel ? `<span class="badge ${currentOrderLabelOwner === 'GAS' ? 'badge-info' : 'badge-purple'} brand-badge" style="font-size:9px; padding:1px 5px; margin-right:4px;">${currentOrderLabelOwner}</span>` : ''}
+                    <span class="item-name-text">${r.item}</span>
+                  </td>
+                  <td class="col-req" style="text-align: right; font-weight: 600; white-space: nowrap;">${r.reqQty}</td>
+                  <td class="col-avail" style="text-align: right; font-weight: 700; white-space: nowrap; color: ${r.status === 'Deficit' ? (r.isLabel ? 'var(--warning, #f59e0b)' : 'var(--danger, #ef4444)') : 'var(--accent, #1B5E20)'};">${r.availQty}</td>
+                  <td class="col-unit" style="text-align: center; color: var(--text-muted); font-size: 11px; white-space: nowrap;">${r.unit}</td>
+                  <td class="col-status" style="text-align: center;">
+                    <span class="badge ${r.status === 'Deficit' ? (r.isLabel ? 'badge-warning' : 'badge-danger') : 'badge-success'}" style="font-size: 9.5px; padding: 2px 7px;">${r.status === 'Deficit' ? (r.isLabel ? 'DEFICIT' : 'SHORTAGE') : 'OK'}</span>
+                  </td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Mobile Responsive Card View (<= 768px) -->
+        <div class="stock-verify-cards-mobile">
+          ${lineRows.map(r => `
+            <div class="sv-mobile-card ${r.status === 'Deficit' ? (r.isLabel ? 'card-label-deficit' : 'card-deficit') : 'card-ok'}">
+              <div class="sv-card-top">
+                <span class="sv-type-tag sv-type-${r.typeSlug}">${r.type}</span>
+                <span class="badge ${r.status === 'Deficit' ? (r.isLabel ? 'badge-warning' : 'badge-danger') : 'badge-success'} sv-status-badge">
+                  ${r.status === 'Deficit' ? (r.isLabel ? '⚠️ DEFICIT' : '✕ SHORTAGE') : '✓ OK'}
+                </span>
+              </div>
+              <div class="sv-card-title">
+                ${r.isLabel ? `<span class="badge ${currentOrderLabelOwner === 'GAS' ? 'badge-info' : 'badge-purple'} brand-badge" style="font-size:9px; padding:1px 5px; margin-right:4px;">${currentOrderLabelOwner}</span>` : ''}
+                <span class="sv-item-name">${r.item}</span>
+              </div>
+              <div class="sv-card-grid">
+                <div class="sv-grid-row">
+                  <span class="sv-grid-label">Required Quantity</span>
+                  <span class="sv-grid-val"><strong>${r.reqQty}</strong> <span class="sv-unit">${r.unit}</span></span>
+                </div>
+                <div class="sv-grid-row">
+                  <span class="sv-grid-label">Available Stock</span>
+                  <span class="sv-grid-val ${r.status === 'Deficit' ? (r.isLabel ? 'val-warning' : 'val-danger') : 'val-success'}">
+                    <strong>${r.availQty}</strong> <span class="sv-unit">${r.unit}</span>
+                  </span>
+                </div>
+                <div class="sv-grid-row sv-status-row">
+                  <span class="sv-grid-label">Status</span>
+                  <span class="sv-status-pill ${r.status === 'Deficit' ? (r.isLabel ? 'status-pill-warning' : 'status-pill-danger') : 'status-pill-success'}">
+                    ${r.status === 'Deficit' ? (r.isLabel ? '⚠️ Label Deficit' : '✕ Insufficient Stock') : '✓ In Stock'}
+                  </span>
+                </div>
+              </div>
+            </div>
+          `).join('')}
+        </div>
       </div>
     `;
   }).join('');
@@ -350,17 +408,17 @@ function updateOrderStockSummary() {
   // Update top stats pills
   if (statsPillsEl) {
     statsPillsEl.innerHTML = `
-      <span class="badge" style="background:rgba(255,255,255,0.06); color:var(--text-secondary); font-size:11px; padding:2px 8px; border:1px solid var(--border);">
+      <span class="badge sv-pill sv-pill-neutral">
         <strong>${validItems.length}</strong> ${validItems.length === 1 ? 'Product' : 'Products'}
       </span>
-      <span class="badge" style="background:rgba(255,255,255,0.06); color:var(--text-secondary); font-size:11px; padding:2px 8px; border:1px solid var(--border);">
+      <span class="badge sv-pill sv-pill-neutral">
         <strong>${totalRequirementsCount}</strong> Requirements
       </span>
-      <span class="badge badge-success" style="font-size:11px; padding:2px 8px;">
+      <span class="badge badge-success sv-pill">
         <strong>${totalAvailableCount}</strong> Available
       </span>
       ${totalShortageCount > 0 ? `
-      <span class="badge ${nonLabelDeficits > 0 ? 'badge-danger' : 'badge-warning'}" style="font-size:11px; padding:2px 8px;">
+      <span class="badge ${nonLabelDeficits > 0 ? 'badge-danger' : 'badge-warning'} sv-pill">
         <strong>${totalShortageCount}</strong> Shortage${totalShortageCount > 1 ? 's' : ''}
       </span>` : ''}
     `;
@@ -388,6 +446,9 @@ let cachedLabelsList = [];
 let allInventoryItemsList = [];
 /* orders.js */
 let allOrders = [], orderItems = [], editingOrderId = null;
+window.updateOrderStockSummary = updateOrderStockSummary;
+window.getOrderItems = () => orderItems;
+window.setOrderItems = (items) => { orderItems = items; return orderItems; };
 let activeOrderTab = 'Orders';
 let activeStatusFilter = '';
 let activeItemsStatusFilter = '';

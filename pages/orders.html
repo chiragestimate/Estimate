@@ -465,16 +465,25 @@
           </div>
           <button type="button" class="add-line-btn" style="margin-top: 10px;" onclick="addOrderItem()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:15px;height:15px"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Add Item</button>
           
-          <!-- Compact Live Stock Requirement & Availability Summary -->
-          <div id="order-stock-summary-box" style="margin-top: 14px; padding: 12px 14px; border: 1px solid var(--border); border-radius: 8px; background: rgba(255,255,255,0.02); display: none;">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; flex-wrap:wrap; gap:8px;">
-              <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
-                <h5 style="margin:0; font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-secondary);">Live Material & Packaging Stock Verification</h5>
-                <div id="stock-summary-stats-pills" style="display:flex; gap:6px; flex-wrap:wrap;"></div>
+          <!-- Live Material & Packaging Stock Verification -->
+          <div id="order-stock-summary-box" class="order-stock-summary-box" style="display: none;">
+            <div class="stock-summary-header">
+              <div class="stock-summary-title-col">
+                <div class="stock-summary-title-row">
+                  <svg class="stock-summary-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+                    <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+                    <line x1="12" y1="22.08" x2="12" y2="12"/>
+                  </svg>
+                  <h5 class="stock-summary-title">Live Material & Packaging Stock Verification</h5>
+                </div>
+                <div id="stock-summary-stats-pills" class="stock-summary-pills"></div>
               </div>
-              <span id="stock-summary-badge" class="badge badge-success" style="font-size:11px; padding:3px 10px; font-weight:600;">Stock Available</span>
+              <div class="stock-summary-badge-col">
+                <span id="stock-summary-badge" class="badge badge-success stock-summary-main-badge">Stock Available</span>
+              </div>
             </div>
-            <div id="order-stock-summary-content" style="max-height: 380px; overflow-y: auto; padding-right: 4px;"></div>
+            <div id="order-stock-summary-content" class="order-stock-summary-content"></div>
           </div>
 
           <div class="summary-row"><div class="summary-box">

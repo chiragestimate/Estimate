@@ -1188,12 +1188,12 @@ function exportCurrentReportToExcel() {
       XLSX.utils.book_append_sheet(wb, wsProd, 'Product & SKU Sales');
     }
 
-    const filename = `Afield_Crop_Care_Business_Report_${UTILS.todayStr()}.xlsx`;
+    const filename = 'Estimate.xlsx';
     XLSX.writeFile(wb, filename);
-    APP.showToast('Comprehensive multi-sheet Excel report downloaded successfully!', 'success');
+    APP.showToast('Estimate Excel report downloaded successfully!', 'success');
   } else {
     // Graceful CSV fallback for systems without XLSX
-    UTILS.exportToCSV(productDetailsData, `Customer_Product_Sales_${UTILS.todayStr()}`);
+    UTILS.exportToCSV(productDetailsData, 'Estimate');
   }
 }
 
@@ -1220,9 +1220,9 @@ function exportCurrentReportToCSV() {
         filters
       }) : []);
 
-  const label = (activeReportTab === 'ProductSales') ? 'Product_SKU_Sales_Report' : 'Customer_Product_Sales_Details';
+  const label = 'Estimate';
   const csvContent = core
-    ? core.generateCsvString(exportData, label.replace(/_/g, ' '))
+    ? core.generateCsvString(exportData, label)
     : null;
 
   if (csvContent) {

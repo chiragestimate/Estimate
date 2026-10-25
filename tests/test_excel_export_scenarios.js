@@ -206,7 +206,10 @@ async function runAllTests() {
 
   // Verify Scenario 10: Payments and outstanding balance
   const bksSummary = summaryData.find(r => r['Customer Name'] === 'Bharat Kisan Seva');
-  assert(bksSummary && bksSummary['Total Billed (₹)'] === 52000 && bksSummary['Total Paid (₹)'] === 20000 && bksSummary['Outstanding Balance (₹)'] === 32000,
+  const bksOrderVal = bksSummary?.['Total Order Value (₹)'] ?? bksSummary?.['Total Billed (₹)'];
+  const bksPaidVal = bksSummary?.['Total Payments Received (₹)'] ?? bksSummary?.['Total Paid (₹)'];
+  const bksOutBal = bksSummary?.['Outstanding Invoice Balance (₹)'] ?? bksSummary?.['Outstanding Balance (₹)'];
+  assert(bksSummary && bksOrderVal === 52000 && bksPaidVal === 20000 && bksOutBal === 32000,
     'Scenario 10: Customer with payment (₹20,000) and outstanding balance (₹32,000) correctly computed',
     JSON.stringify(bksSummary));
 

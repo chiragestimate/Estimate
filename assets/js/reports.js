@@ -11,6 +11,7 @@ let cachedClients = [];
 let cachedCompanies = [];
 let cachedProducts = [];
 let cachedPackaging = [];
+let cachedInventoryItems = [];
 
 function updatePageDebug(text, color) {
   const el = document.getElementById('debug-page-status');
@@ -77,17 +78,19 @@ function selectDatePreset(preset) {
  */
 async function initReportFilters() {
   try {
-    const [cRes, compRes, pRes, pkgRes] = await Promise.all([
+    const [cRes, compRes, pRes, pkgRes, invItemRes] = await Promise.all([
       window.TENANT_CONTEXT ? window.TENANT_CONTEXT.filter(window.dbClient.from('clients').select('id, name, type, city, balance, credit_limit')) : window.dbClient.from('clients').select('id, name, type, city, balance, credit_limit'),
       window.dbClient.from('companies').select('id, name, code, is_manufacturer'),
-      window.dbClient.from('products').select('id, name, unit'),
-      window.dbClient.from('product_packaging').select('*')
+      window.dbClient.from('products').select('id, name, unit, category, sku, sell_price, purchase_price'),
+      window.dbClient.from('product_packaging').select('*'),
+      window.dbClient.from('inventory_items').select('id, name, category, item_subtype, item_size')
     ]);
 
     cachedClients = cRes.data || [];
     cachedCompanies = compRes.data || [];
     cachedProducts = pRes.data || [];
     cachedPackaging = pkgRes.data || [];
+    cachedInventoryItems = invItemRes?.data || [];
 
     // Populate Clients
     const clientSel = document.getElementById('filter-client');
@@ -359,7 +362,7 @@ async function loadReports() {
       monthlyReport,
       companyReport,
       expensesByCategory,
-      raw: { orders, orderItems, dispatches, dispatchItems, expenses, purchases, reversals }
+      raw: { orders, orderItems, dispatches, dispatchItems, expenses, purchases, reversals, products: cachedProducts, inventoryItems: cachedInventoryItems }
     };
     window.currentReportDataset = currentReportDataset;
 
@@ -1137,6 +1140,8 @@ function exportCurrentReportToExcel() {
     dispatches: raw.dispatches || [],
     dispatchItems: raw.dispatchItems || [],
     clients: cachedClients || [],
+    products: cachedProducts || raw.products || [],
+    inventoryItems: cachedInventoryItems || raw.inventoryItems || [],
     reversals: raw.reversals || [],
     filters
   });
@@ -1148,6 +1153,7 @@ function exportCurrentReportToExcel() {
     dispatches: raw.dispatches || [],
     dispatchItems: raw.dispatchItems || [],
     clients: cachedClients || [],
+    products: cachedProducts || raw.products || [],
     reversals: raw.reversals || [],
     filters
   });
@@ -1216,6 +1222,8 @@ function exportCurrentReportToCSV() {
         dispatches: raw.dispatches || [],
         dispatchItems: raw.dispatchItems || [],
         clients: cachedClients || [],
+        products: cachedProducts || raw.products || [],
+        inventoryItems: cachedInventoryItems || raw.inventoryItems || [],
         reversals: raw.reversals || [],
         filters
       }) : []);
@@ -1230,14 +1238,14 @@ function exportCurrentReportToCSV() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `${label}_${UTILS.todayStr()}.csv`;
+    link.download = 'Estimate.csv';
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
     APP.showToast('CSV report generated and downloaded successfully!', 'success');
   } else {
-    UTILS.exportToCSV(data, label);
+    UTILS.exportToCSV(exportData, 'Estimate');
   }
 }
 

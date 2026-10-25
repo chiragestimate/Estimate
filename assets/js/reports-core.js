@@ -393,10 +393,20 @@
         const stats = customerStats.get(cId);
         const isCancelled = String(o.status || '').toLowerCase() === 'cancelled';
 
+        const orderDispatchesList = dispatchesByOrderId.get(String(o.id)) || [];
+        const hasOrderInvoice = Boolean(
+          (o.invoice_no && o.invoice_no !== 'null' && o.invoice_no !== '—') ||
+          orderDispatchesList.some(d => d.invoice_no && d.invoice_no !== 'null' && d.invoice_no !== '—')
+        );
+        const orderVal = parseFloat(o.total_amount) || 0;
+        const orderInvoiceAmount = hasOrderInvoice ? orderVal : 0;
+
         if (!isCancelled) {
           stats.totalOrdersCount++;
           stats.orderIds.push(o.id);
-          stats.totalBilledAmount += parseFloat(o.total_amount) || 0;
+          stats.totalOrderValue = (stats.totalOrderValue || 0) + orderVal;
+          stats.totalBilledAmount += orderVal;
+          stats.totalInvoicedAmount = (stats.totalInvoicedAmount || 0) + orderInvoiceAmount;
           stats.totalPaidAmount += parseFloat(o.paid_amount) || 0;
         } else {
           stats.cancelledOrdersCount = (stats.cancelledOrdersCount || 0) + 1;
@@ -490,8 +500,11 @@
 
       // Calculate net balances and net revenues
       const rows = Array.from(customerStats.values()).map(s => {
-        s.netRevenue = Math.max(0, s.totalBilledAmount - s.totalReturnedAmount);
-        s.outstandingBalance = Math.max(0, s.netRevenue - s.totalPaidAmount);
+        const invoicedBase = s.totalInvoicedAmount !== undefined && s.totalInvoicedAmount > 0
+          ? s.totalInvoicedAmount
+          : s.totalBilledAmount;
+        s.netRevenue = Math.max(0, invoicedBase - s.totalReturnedAmount);
+        s.outstandingBalance = Math.max(0, invoicedBase - s.totalPaidAmount);
         // Interoperable aliases for developer ergonomics
         s.orderedUnits = s.totalOrderedUnits;
         s.dispatchedUnits = s.totalDispatchedUnits;
@@ -516,7 +529,9 @@
       const totals = {
         totalCustomers: activeRows.length,
         totalOrders: activeRows.reduce((sum, r) => sum + r.totalOrdersCount, 0),
+        totalOrderValue: activeRows.reduce((sum, r) => sum + (r.totalOrderValue || r.totalBilledAmount), 0),
         totalBilled: activeRows.reduce((sum, r) => sum + r.totalBilledAmount, 0),
+        totalInvoicedAmount: activeRows.reduce((sum, r) => sum + (r.totalInvoicedAmount !== undefined ? r.totalInvoicedAmount : r.totalBilledAmount), 0),
         totalPaid: activeRows.reduce((sum, r) => sum + r.totalPaidAmount, 0),
         totalOutstanding: activeRows.reduce((sum, r) => sum + r.outstandingBalance, 0),
         totalOrderedUnits: activeRows.reduce((sum, r) => sum + r.totalOrderedUnits, 0),
@@ -615,6 +630,7 @@
             looseDispatched: 0,
             totalVolumeLitres: 0,
             grossRevenue: 0,
+            invoicedRevenue: 0,
             returnedUnits: 0,
             returnedAmount: 0,
             netRevenue: 0
@@ -648,7 +664,14 @@
         sku.orderedUnits += ordUnits;
         sku.dispatchedUnits += dispUnits;
         sku.pendingUnits += remUnits;
-        sku.grossRevenue += parseFloat(it.total) || 0;
+        const ordDsps = (orderMetaMap.get(String(order.id))?.dispatches || []);
+        const isItemInvoiced = Boolean(
+          (order.invoice_no && order.invoice_no !== 'null' && order.invoice_no !== '—') ||
+          ordDsps.some(d => d.invoice_no && d.invoice_no !== 'null' && d.invoice_no !== '—')
+        );
+        const itemTot = parseFloat(it.total) || 0;
+        sku.grossRevenue += itemTot;
+        sku.invoicedRevenue = (sku.invoicedRevenue || 0) + (isItemInvoiced ? itemTot : 0);
 
         const bCalc = PackagingHelper.breakdownQuantities(dispUnits, sku.unitsPerBox, packSize);
         sku.boxesDispatched += bCalc.boxes;
@@ -689,6 +712,7 @@
         totalPendingUnits: rows.reduce((s, r) => s + r.pendingUnits, 0),
         totalVolumeLitres: parseFloat(rows.reduce((s, r) => s + r.totalVolumeLitres, 0).toFixed(2)),
         grossRevenue: rows.reduce((s, r) => s + r.grossRevenue, 0),
+        totalInvoicedRevenue: rows.reduce((s, r) => s + (r.invoicedRevenue !== undefined ? r.invoicedRevenue : r.grossRevenue), 0),
         returnedAmount: rows.reduce((s, r) => s + r.returnedAmount, 0),
         netRevenue: rows.reduce((s, r) => s + r.netRevenue, 0)
       };
@@ -887,30 +911,45 @@
         totals = reportResult.totals || {};
       }
 
-      const data = rows.map((r, i) => ({
-        '#': i + 1,
-        'Customer Name': r.clientName || r.name || '—',
-        'Client Type': r.clientType || '—',
-        'City': r.city || '—',
-        'Orders Count': r.totalOrdersCount || r.ordersCount || 0,
-        'Ordered Units': r.totalOrderedUnits || r.orderedUnits || 0,
-        'Dispatched Units': r.totalDispatchedUnits || r.dispatchedUnits || 0,
-        'Boxes Dispatched': r.totalBoxesDispatched || r.boxesDispatched || 0,
-        'Loose Dispatched': r.totalLooseDispatched || r.looseDispatched || 0,
-        'Pending Units': r.totalPendingUnits || r.pendingUnits || 0,
-        'Cancelled / Returned': (r.totalCancelledUnits || 0) + (r.totalReturnedUnits || r.returnedUnits || 0),
-        'Total Billed (₹)': parseFloat(r.totalBilledAmount || r.totalBilled || 0),
-        'Total Paid (₹)': parseFloat(r.totalPaidAmount || r.totalPaid || 0),
-        'Outstanding Balance (₹)': parseFloat(r.outstandingBalance || r.outstandingReceivable || 0),
-        'Net Revenue (₹)': parseFloat(r.netRevenue || 0),
-        'Credit Limit (₹)': parseFloat(r.creditLimit || 0)
-      }));
+      const data = rows.map((r, i) => {
+        const orderVal = parseFloat((r.totalOrderValue || r.totalBilledAmount || r.totalBilled || 0).toFixed(2));
+        const invoicedAmt = parseFloat((r.totalInvoicedAmount !== undefined ? r.totalInvoicedAmount : orderVal).toFixed(2));
+        const paidAmt = parseFloat((r.totalPaidAmount || r.totalPaid || 0).toFixed(2));
+        const outBal = parseFloat((r.outstandingBalance || r.outstandingReceivable || 0).toFixed(2));
+        const netRev = parseFloat((r.netRevenue || 0).toFixed(2));
+
+        return {
+          '#': i + 1,
+          'Customer Name': r.clientName || r.name || '—',
+          'Customer Type': r.clientType || 'Retailer',
+          'City': r.city || '—',
+          'Orders Count': r.totalOrdersCount || r.ordersCount || 0,
+          'Ordered Units': r.totalOrderedUnits || r.orderedUnits || 0,
+          'Dispatched Units': r.totalDispatchedUnits || r.dispatchedUnits || 0,
+          'Boxes Dispatched': r.totalBoxesDispatched || r.boxesDispatched || 0,
+          'Loose Dispatched': r.totalLooseDispatched || r.looseDispatched || 0,
+          'Pending Units': r.totalPendingUnits || r.pendingUnits || 0,
+          'Cancelled / Returned': (r.totalCancelledUnits || 0) + (r.totalReturnedUnits || r.returnedUnits || 0),
+          'Total Order Value (₹)': orderVal,
+          'Total Invoiced Amount (₹)': invoicedAmt,
+          'Total Payments Received (₹)': paidAmt,
+          'Outstanding Invoice Balance (₹)': outBal,
+          'Net Sales Revenue (₹)': netRev,
+          'Credit Limit (₹)': parseFloat((r.creditLimit || 0).toFixed(2))
+        };
+      });
 
       // Append Total / Summary row
+      const totOrderVal = parseFloat((totals.totalOrderValue || totals.totalBilled || totals.totalBilledAmount || 0).toFixed(2));
+      const totInvoicedAmt = parseFloat((totals.totalInvoicedAmount !== undefined ? totals.totalInvoicedAmount : totOrderVal).toFixed(2));
+      const totPaidAmt = parseFloat((totals.totalPaid || totals.totalPaidAmount || 0).toFixed(2));
+      const totOutBal = parseFloat((totals.totalOutstanding || totals.totalReceivable || 0).toFixed(2));
+      const totNetRev = parseFloat((totals.netRevenue || 0).toFixed(2));
+
       data.push({
         '#': 'TOTAL',
         'Customer Name': 'TOTALS',
-        'Client Type': '—',
+        'Customer Type': '—',
         'City': '—',
         'Orders Count': totals.totalOrders || 0,
         'Ordered Units': totals.totalOrderedUnits || 0,
@@ -919,10 +958,11 @@
         'Loose Dispatched': totals.totalLooseDispatched || 0,
         'Pending Units': totals.totalPendingUnits || 0,
         'Cancelled / Returned': (totals.totalCancelledUnits || 0) + (totals.totalReturnedUnits || 0),
-        'Total Billed (₹)': parseFloat(totals.totalBilled || totals.totalBilledAmount || 0),
-        'Total Paid (₹)': parseFloat(totals.totalPaid || totals.totalPaidAmount || 0),
-        'Outstanding Balance (₹)': parseFloat(totals.totalOutstanding || totals.totalReceivable || 0),
-        'Net Revenue (₹)': parseFloat(totals.netRevenue || 0),
+        'Total Order Value (₹)': totOrderVal,
+        'Total Invoiced Amount (₹)': totInvoicedAmt,
+        'Total Payments Received (₹)': totPaidAmt,
+        'Outstanding Invoice Balance (₹)': totOutBal,
+        'Net Sales Revenue (₹)': totNetRev,
         'Credit Limit (₹)': '—'
       });
 
@@ -939,6 +979,8 @@
       dispatches = [],
       dispatchItems = [],
       clients = [],
+      products = [],
+      inventoryItems = [],
       reversals = [],
       filters = {}
     } = {}) {
@@ -956,33 +998,53 @@
       const clientMap = new Map();
       (clients || []).forEach(c => clientMap.set(String(c.id), c));
 
-      const ordersMap = new Map();
-      (orders || []).forEach(o => ordersMap.set(String(o.id), o));
+      const prodMap = new Map();
+      (products || []).forEach(p => {
+        prodMap.set(String(p.id), p);
+        if (p.name) prodMap.set(p.name, p);
+      });
 
-      // Extract & merge dispatches from orders.notes (DISPATCH_META) if not provided
+      const invMap = new Map();
+      (inventoryItems || []).forEach(i => {
+        invMap.set(String(i.id), i);
+        if (i.name) invMap.set(i.name, i);
+      });
+
+      const ordersMap = new Map();
+      const orderMetaMap = new Map();
       const dispatchesByOrderId = new Map();
+      const reversalsByOrderId = new Map();
+
+      // Index dispatches
       (dispatches || []).forEach(d => {
         const oId = String(d.order_id);
         if (!dispatchesByOrderId.has(oId)) dispatchesByOrderId.set(oId, []);
         dispatchesByOrderId.get(oId).push(d);
       });
 
-      const orderMetaMap = new Map();
+      // Index reversals
+      (reversals || []).forEach(r => {
+        const oId = String(r.order_id);
+        if (!reversalsByOrderId.has(oId)) reversalsByOrderId.set(oId, []);
+        reversalsByOrderId.get(oId).push(r);
+      });
+
+      // Parse metadata from orders.notes
       (orders || []).forEach(o => {
+        ordersMap.set(String(o.id), o);
         if (o.notes && /(?:DISPATCH_META|Dispatch_meta):/i.test(o.notes)) {
           try {
-            const jsonStr = o.notes.replace(/^[sS]*?(?:DISPATCH_META|Dispatch_meta):/i, '').trim();
+            const jsonStr = o.notes.replace(/^[\s\S]*?(?:DISPATCH_META|Dispatch_meta):/i, '').trim();
             const meta = JSON.parse(jsonStr);
             orderMetaMap.set(String(o.id), meta);
-            if (!o.dispatch_status && meta.dispatch_status) {
-              o.dispatch_status = meta.dispatch_status;
-            }
+
             if (Array.isArray(meta.dispatches)) {
               meta.dispatches.forEach(d => {
                 const oId = String(d.order_id || o.id);
                 if (!dispatchesByOrderId.has(oId)) dispatchesByOrderId.set(oId, []);
-                if (!dispatchesByOrderId.get(oId).some(x => String(x.id) === String(d.id) || x.dispatch_no === d.dispatch_no)) {
-                  dispatchesByOrderId.get(oId).push({ ...d, order_id: o.id, order_no: o.order_no, client_name: o.client_name });
+                const existing = dispatchesByOrderId.get(oId);
+                if (!existing.some(x => String(x.id) === String(d.id) || x.dispatch_no === d.dispatch_no)) {
+                  existing.push({ ...d, order_id: o.id, order_no: o.order_no, client_name: o.client_name });
                 }
               });
             }
@@ -990,37 +1052,7 @@
         }
       });
 
-      // Reversals mapped by order and dispatch ID
-      const reversalsByOrderId = new Map();
-      (reversals || []).forEach(r => {
-        if (r.order_id) {
-          const oId = String(r.order_id);
-          if (!reversalsByOrderId.has(oId)) reversalsByOrderId.set(oId, []);
-          reversalsByOrderId.get(oId).push(r);
-        }
-      });
-
-      // Filter eligible orders
-      const eligibleOrders = (orders || []).filter(o => {
-        if (companyId && String(o.company_id || 1) !== String(companyId)) return false;
-        if (clientId && String(o.client_id) !== String(clientId)) return false;
-        if (dateFrom || dateTo) {
-          if (!DateRangeHelper.isWithinRange(o.date, dateFrom, dateTo)) return false;
-        }
-        if (status) {
-          const st = String(o.status || '').toLowerCase();
-          if (st !== String(status).toLowerCase()) return false;
-        }
-        if (dispatchStatus) {
-          const ds = String(o.dispatch_status || 'Pending Verification').toLowerCase();
-          if (ds !== String(dispatchStatus).toLowerCase()) return false;
-        }
-        return true;
-      });
-
-      const eligibleOrderIds = new Set(eligibleOrders.map(o => String(o.id)));
-
-      // Effective order items
+      // Prepare order items
       const effectiveItems = (orderItems && orderItems.length > 0)
         ? orderItems
         : (orders || []).flatMap(o => (o.items || []).map(it => ({ ...it, order_id: it.order_id || o.id })));
@@ -1038,77 +1070,70 @@
         taxableAmount: 0,
         gstAmount: 0,
         lineTotal: 0,
+        invoicedValue: 0,
         returnQuantity: 0,
         cancelledQuantity: 0
       };
 
-      effectiveItems.forEach(oi => {
+      effectiveItems.forEach((oi, idx) => {
         const oId = String(oi.order_id);
-        if (!eligibleOrderIds.has(oId)) return;
-        const o = ordersMap.get(oId) || {};
-        const c = clientMap.get(String(o.client_id)) || { name: o.client_name, type: 'Retailer', city: '—' };
+        const o = ordersMap.get(oId);
+        if (!o) return;
 
-        // SKU filter check
+        // Apply filters
+        if (companyId && String(o.company_id || 1) !== String(companyId)) return;
+        if (clientId && String(o.client_id) !== String(clientId)) return;
+        if (status && String(o.status || '').toLowerCase() !== String(status).toLowerCase()) return;
+        if (dispatchStatus && String(o.dispatch_status || 'Pending Verification').toLowerCase() !== String(dispatchStatus).toLowerCase()) return;
+
+        if (dateFrom || dateTo) {
+          if (!DateRangeHelper.isWithinRange(o.date, dateFrom, dateTo)) return;
+        }
+
         if (productId && String(oi.product_id) !== String(productId)) return;
         if (packagingSize) {
           const pSize = String(oi.packing_size || oi.packaging_size || '').toLowerCase();
           if (!pSize.includes(String(packagingSize).toLowerCase())) return;
         }
 
+        const c = clientMap.get(String(o.client_id)) || { name: o.client_name, type: 'Retailer', city: '—' };
+        const p = prodMap.get(String(oi.product_id)) || prodMap.get(oi.product_name) || {};
         const isCancelled = String(o.status || '').toLowerCase() === 'cancelled';
-        let orderedQty = parseInt(oi.ordered_units || oi.total_units || oi.quantity, 10) || 0;
+
+        // Extract metadata item
+        const ordMeta = orderMetaMap.get(oId);
+        let m = null;
+        if (ordMeta && Array.isArray(ordMeta.items_meta)) {
+          m = ordMeta.items_meta.find(im =>
+            String(im.id || im.order_item_id) === String(oi.id) ||
+            (im.product_name === oi.product_name && (im.packing_size === (oi.packing_size || oi.packaging_size)))
+          );
+        }
+
+        // Quantities calculation
+        const orderedQty = parseInt(oi.ordered_units || oi.total_units || oi.quantity, 10) || 0;
+        let upb = oi.bottles_per_box;
+        if (!upb && m && m.bottles_per_box) upb = m.bottles_per_box;
+        if (!upb) upb = 10;
+
+        let boxesOrd = m?.box_quantity !== undefined ? parseInt(m.box_quantity, 10) : Math.floor(orderedQty / upb);
+        let looseOrd = m?.loose_quantity !== undefined ? parseInt(m.loose_quantity, 10) : (orderedQty % upb);
+
         let dispQty = oi.dispatched_units !== undefined ? parseInt(oi.dispatched_units, 10) : NaN;
         let pendingQty = oi.remaining_units !== undefined ? parseInt(oi.remaining_units, 10) : NaN;
-        let upb = oi.bottles_per_box;
-        let boxesOrd = oi.box_quantity !== undefined ? parseInt(oi.box_quantity, 10) : NaN;
-        let looseOrd = oi.loose_quantity !== undefined ? parseInt(oi.loose_quantity, 10) : NaN;
 
-        const ordMeta = orderMetaMap.get(oId);
-        const m = (ordMeta && Array.isArray(ordMeta.items_meta)) ? ordMeta.items_meta.find(im => 
-          String(im.id || im.order_item_id) === String(oi.id) ||
-          (im.product_name === oi.product_name && (im.packing_size === (oi.packing_size || oi.packaging_size)))
-        ) : null;
+        if (isNaN(dispQty) && m && m.dispatched_units !== undefined) dispQty = parseInt(m.dispatched_units, 10);
+        if (isNaN(pendingQty) && m && m.remaining_units !== undefined) pendingQty = parseInt(m.remaining_units, 10);
 
-        if (isNaN(dispQty) || dispQty === 0) {
-          if (m && m.dispatched_units !== undefined) dispQty = parseInt(m.dispatched_units, 10);
-        }
-        if (isNaN(dispQty)) dispQty = 0;
+        if (isNaN(dispQty)) dispQty = isCancelled ? 0 : orderedQty;
+        if (isNaN(pendingQty)) pendingQty = isCancelled ? 0 : Math.max(0, orderedQty - dispQty);
 
-        if (!upb || upb <= 0) {
-          if (m && m.bottles_per_box) upb = parseInt(m.bottles_per_box, 10);
-        }
-        if (!upb || upb <= 0) upb = 10;
-
-        if (isNaN(boxesOrd) || (boxesOrd === 0 && orderedQty >= upb)) {
-          if (m && m.box_quantity !== undefined && m.box_quantity > 0) {
-            boxesOrd = parseInt(m.box_quantity, 10);
-          } else {
-            boxesOrd = Math.floor(orderedQty / upb);
-          }
-        }
-
-        if (isNaN(looseOrd) || (looseOrd === 0 && orderedQty % upb !== 0)) {
-          if (m && m.loose_quantity !== undefined) {
-            looseOrd = parseInt(m.loose_quantity, 10);
-          } else {
-            looseOrd = orderedQty % upb;
-          }
-        }
-
-        if (isNaN(pendingQty)) {
-          if (m && m.remaining_units !== undefined) {
-            pendingQty = parseInt(m.remaining_units, 10);
-          } else {
-            pendingQty = Math.max(0, orderedQty - dispQty);
-          }
-        }
-
-        // Dispatches matching this order & item
+        // Matching dispatches
         const orderDispatches = dispatchesByOrderId.get(oId) || [];
         const matchingDispatches = orderDispatches.filter(d => {
           if (!Array.isArray(d.items)) return true;
-          return d.items.some(dit => 
-            String(dit.order_item_id) === String(oi.id) || 
+          return d.items.some(dit =>
+            String(dit.order_item_id) === String(oi.id) ||
             (dit.product_name === oi.product_name && (dit.packaging_size === (oi.packing_size || oi.packaging_size)))
           );
         });
@@ -1134,26 +1159,61 @@
         }
 
         const dispatchRefs = [...new Set(matchingDispatches.map(d => d.dispatch_no).filter(Boolean))].join(', ') || (dispQty > 0 ? 'DSP-Fulfilled' : '—');
-        const invoiceRefs = [...new Set(matchingDispatches.map(d => d.invoice_no).filter(Boolean))].join(', ') || (o.invoice_no || '—');
+        
+        // Strict invoice resolution: check if valid invoice exists
+        const invNos = [...new Set([
+          ...matchingDispatches.map(d => d.invoice_no),
+          o.invoice_no
+        ].filter(inv => inv && inv !== 'null' && inv !== '—'))];
 
-        // Financials
+        const hasInvoice = invNos.length > 0;
+        const invoiceRef = hasInvoice ? invNos.join(', ') : 'Not Invoiced';
+        const invoiceStatus = hasInvoice ? 'Invoiced' : 'Not Invoiced';
+
+        // Packaging resolution
+        const packSize = oi.packing_size || oi.packaging_size || '1 Litre';
+        const bottleObj = invMap.get(String(m?.bottle_inventory_id || oi.bottle_inventory_id));
+        const bottleType = bottleObj ? bottleObj.name : (m?.bottle_name || '—');
+        const boxObj = invMap.get(String(m?.box_inventory_id || oi.box_inventory_id));
+        const boxType = m?.box_name || (boxObj ? boxObj.name : 'Regular Box 1 Ltr');
+        const labelObj = invMap.get(String(m?.label_inventory_id || oi.label_inventory_id));
+        const labelName = m?.label_name || (labelObj ? labelObj.name : '—');
+
+        // UOM determination
+        let uom = p.unit || 'Litre';
+        const pSizeLower = packSize.toLowerCase();
+        if (pSizeLower.includes('ml')) uom = 'ml';
+        else if (pSizeLower.includes('kg')) uom = 'Kg';
+        else if (pSizeLower.includes('gram') || pSizeLower.includes('gm')) uom = 'Gram';
+        else if (pSizeLower.includes('litre') || pSizeLower.includes('ltr')) uom = 'Litre';
+
+        // Financials & GST
         const unitRate = parseFloat(oi.unit_price) || 0;
         const discount = parseFloat(oi.discount) || 0;
         const taxableAmount = parseFloat(Math.max(0, (unitRate * orderedQty) - discount).toFixed(2));
-        
+
         let gstRate = 0;
-        let gstAmount = 0;
+        let cgstAmount = 0;
+        let sgstAmount = 0;
+        let igstAmount = 0;
+        let totalGstAmount = 0;
+
         if (o.tax && parseFloat(o.tax) > 0) {
           const totAmt = parseFloat(o.total_amount) || 0;
           const preTax = totAmt - parseFloat(o.tax);
           if (preTax > 0) {
             gstRate = Math.round((parseFloat(o.tax) / preTax) * 100);
-            gstAmount = parseFloat(((taxableAmount * gstRate) / 100).toFixed(2));
+            totalGstAmount = parseFloat(((taxableAmount * gstRate) / 100).toFixed(2));
+            cgstAmount = parseFloat((totalGstAmount / 2).toFixed(2));
+            sgstAmount = parseFloat((totalGstAmount / 2).toFixed(2));
           }
         }
-        const lineTotal = parseFloat((taxableAmount + gstAmount).toFixed(2));
 
-        // Returns and reversals
+        const lineTotal = parseFloat((taxableAmount + totalGstAmount).toFixed(2));
+        const invoicedValue = hasInvoice ? lineTotal : 0.00;
+        const taxMode = hasInvoice ? (o.tax_mode || 'Non-GST') : 'Non-GST (Uninvoiced)';
+
+        // Returns and cancellations
         let returnQty = 0;
         const orderReversals = reversalsByOrderId.get(oId) || [];
         orderReversals.forEach(r => {
@@ -1179,33 +1239,25 @@
           lineStatus = 'Partially Dispatched';
         }
 
-        // Determine packaging type and UOM
-        const packSize = oi.packing_size || oi.packaging_size || '—';
-        let packagingType = 'Bottle';
-        let uom = 'Nos';
-        const pSizeLower = packSize.toLowerCase();
-        if (pSizeLower.includes('litre') || pSizeLower.includes('ltr') || pSizeLower.includes('ml')) {
-          packagingType = 'Bottle';
-          uom = pSizeLower.includes('ml') ? 'ml' : 'Litre';
-        } else if (pSizeLower.includes('kg') || pSizeLower.includes('gram') || pSizeLower.includes('gm') || pSizeLower.includes('bag')) {
-          packagingType = 'Bag';
-          uom = pSizeLower.includes('kg') ? 'Kg' : 'Gram';
-        } else if (oi.box_name) {
-          packagingType = 'Box';
-          uom = 'Box';
-        }
-
         const row = {
+          '#': rows.length + 1,
           'Customer Name': c.name || o.client_name || 'Guest Client',
-          'Client Type': c.type || 'Retailer',
+          'Customer Type': c.type || 'Retailer',
           'City': c.city || '—',
           'Order Number': o.order_no || ('O-' + o.id),
           'Order Date': o.date || '',
-          'Invoice Number': invoiceRefs,
+          'Order Status': o.status || 'Completed',
           'Dispatch Reference': dispatchRefs,
+          'Dispatch Status': o.dispatch_status || 'Fully Dispatched',
+          'Invoice Number': invoiceRef,
+          'Invoice Status': invoiceStatus,
           'Product Name': oi.product_name || 'Standard Item',
+          'Product SKU': p.sku || ('SKU-' + (p.id || oi.product_id)),
+          'Product Category': p.category || 'Insecticides',
           'Packaging Size': packSize,
-          'Packaging Type': packagingType,
+          'Bottle Type': bottleType,
+          'Box Type': boxType,
+          'Label Name': labelName,
           'Boxes Ordered': boxesOrd,
           'Units Per Box': upb,
           'Loose Units Ordered': looseOrd,
@@ -1215,12 +1267,17 @@
           'Total Dispatched Quantity': dispQty,
           'Pending Quantity': pendingQty,
           'Unit of Measurement': uom,
-          'Unit Rate (₹)': unitRate,
+          'Unit Selling Price (₹)': unitRate,
           'Discount (₹)': discount,
           'Taxable Amount (₹)': taxableAmount,
+          'Tax Mode': taxMode,
           'GST Rate (%)': gstRate,
-          'GST Amount (₹)': gstAmount,
+          'CGST Amount (₹)': cgstAmount,
+          'SGST Amount (₹)': sgstAmount,
+          'IGST Amount (₹)': igstAmount,
+          'Total GST Amount (₹)': totalGstAmount,
           'Line Total (₹)': lineTotal,
+          'Invoiced Value (₹)': invoicedValue,
           'Return Quantity': returnQty,
           'Cancelled Quantity': cancelledQty,
           'Line Status': lineStatus
@@ -1238,24 +1295,33 @@
         totals.pendingQuantity += pendingQty;
         totals.discount += discount;
         totals.taxableAmount += taxableAmount;
-        totals.gstAmount += gstAmount;
+        totals.gstAmount += totalGstAmount;
         totals.lineTotal += lineTotal;
+        totals.invoicedValue += invoicedValue;
         totals.returnQuantity += returnQty;
         totals.cancelledQuantity += cancelledQty;
       });
 
       // Append Total Summary Row
       rows.push({
+        '#': 'TOTAL',
         'Customer Name': 'TOTALS',
-        'Client Type': '—',
+        'Customer Type': '—',
         'City': '—',
         'Order Number': `Total Items: ${rows.length}`,
         'Order Date': '—',
-        'Invoice Number': '—',
+        'Order Status': '—',
         'Dispatch Reference': '—',
+        'Dispatch Status': '—',
+        'Invoice Number': '—',
+        'Invoice Status': '—',
         'Product Name': '—',
+        'Product SKU': '—',
+        'Product Category': '—',
         'Packaging Size': '—',
-        'Packaging Type': '—',
+        'Bottle Type': '—',
+        'Box Type': '—',
+        'Label Name': '—',
         'Boxes Ordered': totals.boxesOrdered,
         'Units Per Box': '—',
         'Loose Units Ordered': totals.looseOrdered,
@@ -1265,12 +1331,17 @@
         'Total Dispatched Quantity': totals.totalDispatchedQuantity,
         'Pending Quantity': totals.pendingQuantity,
         'Unit of Measurement': '—',
-        'Unit Rate (₹)': '—',
+        'Unit Selling Price (₹)': '—',
         'Discount (₹)': parseFloat(totals.discount.toFixed(2)),
         'Taxable Amount (₹)': parseFloat(totals.taxableAmount.toFixed(2)),
+        'Tax Mode': '—',
         'GST Rate (%)': '—',
-        'GST Amount (₹)': parseFloat(totals.gstAmount.toFixed(2)),
+        'CGST Amount (₹)': 0,
+        'SGST Amount (₹)': 0,
+        'IGST Amount (₹)': 0,
+        'Total GST Amount (₹)': parseFloat(totals.gstAmount.toFixed(2)),
         'Line Total (₹)': parseFloat(totals.lineTotal.toFixed(2)),
+        'Invoiced Value (₹)': parseFloat(totals.invoicedValue.toFixed(2)),
         'Return Quantity': totals.returnQuantity,
         'Cancelled Quantity': totals.cancelledQuantity,
         'Line Status': '—'
@@ -1282,6 +1353,7 @@
     /**
      * Format Chronological Sales Transactions for Export
      * Provides an audit ledger of orders placed, dispatches fulfilled, and reversals.
+     * Prevents double-counting by strictly separating Order-Line Value, Dispatched Goods Value, and Invoiced Sales Value.
      */
     formatSalesTransactionsForExport({
       orders = [],
@@ -1289,6 +1361,7 @@
       dispatches = [],
       dispatchItems = [],
       clients = [],
+      products = [],
       reversals = [],
       filters = {}
     } = {}) {
@@ -1322,6 +1395,7 @@
 
       const transactions = [];
 
+      // 1. Order Placed / Booked transactions
       (orders || []).forEach(o => {
         if (companyId && String(o.company_id || 1) !== String(companyId)) return;
         if (clientId && String(o.client_id) !== String(clientId)) return;
@@ -1331,11 +1405,6 @@
         const c = clientMap.get(String(o.client_id)) || { name: o.client_name, type: 'Retailer' };
         const items = itemsByOrderId.get(String(o.id)) || [];
 
-        const isPaid = (parseFloat(o.paid_amount) || 0) >= (parseFloat(o.total_amount) || 0) && (parseFloat(o.total_amount) || 0) > 0;
-        const isPartPaid = (parseFloat(o.paid_amount) || 0) > 0 && !isPaid;
-        const paymentStatus = isPaid ? 'Paid' : (isPartPaid ? 'Partially Paid' : 'Unpaid');
-
-        // 1. Order Placed / Booked event
         if (!dateFrom && !dateTo || DateRangeHelper.isWithinRange(o.date, dateFrom, dateTo)) {
           items.forEach(it => {
             if (productId && String(it.product_id) !== String(productId)) return;
@@ -1352,18 +1421,22 @@
               'Transaction Date': o.date || '',
               'Customer Name': c.name || o.client_name || 'Guest Client',
               'Order Number': o.order_no || `O-${o.id}`,
-              'Invoice Number': o.invoice_no || '—',
-              'Dispatch Reference': '—',
+              'Order Status': o.status || 'Completed',
+              'Transaction Type': 'Order Booked',
+              'Transaction Reference': o.order_no || `O-${o.id}`,
+              'Transaction Status': 'Booked',
               'Product Name': it.product_name || 'Item',
               'Packaging Size': it.packing_size || it.packaging_size || '—',
               'Ordered Quantity': ordUnits,
               'Dispatched Quantity': 0,
-              'Transaction Type': 'Order Booked',
-              'Quantity Change': `+${ordUnits}`,
-              'Unit Rate (₹)': unitRate,
-              'Amount (₹)': lineAmt,
-              'Payment Status': paymentStatus,
-              'Dispatch Status': o.dispatch_status || 'Pending'
+              'Pending Quantity': ordUnits,
+              'Unit Selling Price (₹)': unitRate,
+              'Order-Line Value (₹)': lineAmt,
+              'Dispatched Goods Value (₹)': 0.00,
+              'Invoice Number': '—',
+              'Invoiced Sales Value (₹)': 0.00,
+              'Payment Amount (₹)': 0.00,
+              'Outstanding Balance (₹)': 0.00
             });
           });
         }
@@ -1374,7 +1447,7 @@
       (orders || []).forEach(o => {
         if (o.notes && /(?:DISPATCH_META|Dispatch_meta):/i.test(o.notes)) {
           try {
-            const jsonStr = o.notes.replace(/^[sS]*?(?:DISPATCH_META|Dispatch_meta):/i, '').trim();
+            const jsonStr = o.notes.replace(/^[\s\S]*?(?:DISPATCH_META|Dispatch_meta):/i, '').trim();
             const meta = JSON.parse(jsonStr);
             if (Array.isArray(meta.dispatches)) {
               meta.dispatches.forEach(d => {
@@ -1387,7 +1460,7 @@
         }
       });
 
-      // 3. Dispatch events
+      // 3. Dispatch Fulfillment transactions
       allDispatches.forEach(d => {
         const o = ordersMap.get(String(d.order_id)) || {};
         if (companyId && String(o.company_id || d.company_id || 1) !== String(companyId)) return;
@@ -1409,23 +1482,33 @@
           const dispUnits = parseInt(dit.total_units_dispatched || dit.quantity || dit.units, 10) || 0;
           const unitRate = parseFloat(dit.unit_price) || 0;
           const lineAmt = parseFloat(dit.total_amount) || (unitRate * dispUnits);
+          const hasInv = Boolean(
+            (d.invoice_no && d.invoice_no !== 'null' && d.invoice_no !== '—') ||
+            (o.invoice_no && o.invoice_no !== 'null' && o.invoice_no !== '—')
+          );
+          const invNo = hasInv ? (d.invoice_no || o.invoice_no) : 'Not Invoiced';
+          const invVal = hasInv ? lineAmt : 0.00;
 
           transactions.push({
             'Transaction Date': d.dispatch_date || o.date || '',
             'Customer Name': c.name || d.client_name || o.client_name || 'Guest Client',
             'Order Number': d.order_no || o.order_no || `O-${d.order_id}`,
-            'Invoice Number': d.invoice_no || o.invoice_no || '—',
-            'Dispatch Reference': d.dispatch_no || '—',
+            'Order Status': o.status || 'Completed',
+            'Transaction Type': 'Dispatch Fulfillment',
+            'Transaction Reference': d.dispatch_no || '—',
+            'Transaction Status': 'Dispatched',
             'Product Name': dit.product_name || 'Item',
             'Packaging Size': dit.packaging_size || dit.packing_size || '—',
             'Ordered Quantity': 0,
             'Dispatched Quantity': dispUnits,
-            'Transaction Type': 'Dispatch Fulfillment',
-            'Quantity Change': `-${dispUnits}`,
-            'Unit Rate (₹)': unitRate,
-            'Amount (₹)': lineAmt,
-            'Payment Status': (parseFloat(o.paid_amount) || 0) >= (parseFloat(o.total_amount) || 0) && (parseFloat(o.total_amount) || 0) > 0 ? 'Paid' : 'Unpaid',
-            'Dispatch Status': d.status || 'Dispatched'
+            'Pending Quantity': 0,
+            'Unit Selling Price (₹)': unitRate,
+            'Order-Line Value (₹)': 0.00,
+            'Dispatched Goods Value (₹)': lineAmt,
+            'Invoice Number': invNo,
+            'Invoiced Sales Value (₹)': invVal,
+            'Payment Amount (₹)': 0.00,
+            'Outstanding Balance (₹)': invVal
           });
         });
       });
@@ -1436,24 +1519,32 @@
       // Totals
       const totalOrdered = transactions.reduce((sum, t) => sum + (t['Ordered Quantity'] || 0), 0);
       const totalDispatched = transactions.reduce((sum, t) => sum + (t['Dispatched Quantity'] || 0), 0);
-      const totalAmount = transactions.reduce((sum, t) => sum + (t['Amount (₹)'] || 0), 0);
+      const totalOrderVal = transactions.reduce((sum, t) => sum + (t['Order-Line Value (₹)'] || 0), 0);
+      const totalDispVal = transactions.reduce((sum, t) => sum + (t['Dispatched Goods Value (₹)'] || 0), 0);
+      const totalInvVal = transactions.reduce((sum, t) => sum + (t['Invoiced Sales Value (₹)'] || 0), 0);
+      const totalPaymentVal = transactions.reduce((sum, t) => sum + (t['Payment Amount (₹)'] || 0), 0);
+      const totalBalanceVal = transactions.reduce((sum, t) => sum + (t['Outstanding Balance (₹)'] || 0), 0);
 
       transactions.push({
         'Transaction Date': 'TOTALS',
         'Customer Name': '—',
         'Order Number': `Total Transactions: ${transactions.length}`,
-        'Invoice Number': '—',
-        'Dispatch Reference': '—',
+        'Order Status': '—',
+        'Transaction Type': '—',
+        'Transaction Reference': '—',
+        'Transaction Status': '—',
         'Product Name': '—',
         'Packaging Size': '—',
         'Ordered Quantity': totalOrdered,
         'Dispatched Quantity': totalDispatched,
-        'Transaction Type': '—',
-        'Quantity Change': '—',
-        'Unit Rate (₹)': '—',
-        'Amount (₹)': parseFloat(totalAmount.toFixed(2)),
-        'Payment Status': '—',
-        'Dispatch Status': '—'
+        'Pending Quantity': 0,
+        'Unit Selling Price (₹)': '—',
+        'Order-Line Value (₹)': parseFloat(totalOrderVal.toFixed(2)),
+        'Dispatched Goods Value (₹)': parseFloat(totalDispVal.toFixed(2)),
+        'Invoice Number': '—',
+        'Invoiced Sales Value (₹)': parseFloat(totalInvVal.toFixed(2)),
+        'Payment Amount (₹)': parseFloat(totalPaymentVal.toFixed(2)),
+        'Outstanding Balance (₹)': parseFloat(totalBalanceVal.toFixed(2))
       });
 
       return transactions;
@@ -1522,6 +1613,8 @@
       const data = rows.map((r, i) => ({
         '#': i + 1,
         'Product Name': r.productName,
+        'Product SKU': r.sku || ('SKU-' + (r.productId || (i + 1))),
+        'Product Category': r.category || 'Insecticides',
         'Packaging Size (SKU)': r.packagingSize,
         'Units Per Box': r.unitsPerBox,
         'Orders Count': r.ordersCount,
@@ -1531,15 +1624,18 @@
         'Loose Dispatched': r.looseDispatched,
         'Pending Units': r.pendingUnits,
         'Volume Dispatched (L/Kg)': parseFloat(parseFloat(r.totalVolumeLitres || 0).toFixed(2)),
-        'Gross Revenue (₹)': parseFloat(r.grossRevenue || 0),
-        'Returns (₹)': parseFloat(r.returnedAmount || 0),
-        'Net Revenue (₹)': parseFloat(r.netRevenue || 0)
+        'Total Order Value (₹)': parseFloat((r.grossRevenue || 0).toFixed(2)),
+        'Total Invoiced Sales (₹)': parseFloat((r.invoicedRevenue !== undefined ? r.invoicedRevenue : (r.grossRevenue || 0)).toFixed(2)),
+        'Returns (₹)': parseFloat((r.returnedAmount || 0).toFixed(2)),
+        'Net Sales Revenue (₹)': parseFloat((r.netRevenue || 0).toFixed(2))
       }));
 
       // Append Summary Total Row
       data.push({
         '#': 'TOTAL',
         'Product Name': 'TOTALS',
+        'Product SKU': '—',
+        'Product Category': '—',
         'Packaging Size (SKU)': '—',
         'Units Per Box': '—',
         'Orders Count': totals.totalSkus || rows.length,
@@ -1549,17 +1645,15 @@
         'Loose Dispatched': totals.totalLooseDispatched || 0,
         'Pending Units': totals.totalPendingUnits || 0,
         'Volume Dispatched (L/Kg)': parseFloat(parseFloat(totals.totalVolumeLitres || 0).toFixed(2)),
-        'Gross Revenue (₹)': parseFloat(totals.grossRevenue || 0),
-        'Returns (₹)': parseFloat(totals.returnedAmount || 0),
-        'Net Revenue (₹)': parseFloat(totals.netRevenue || 0)
+        'Total Order Value (₹)': parseFloat((totals.grossRevenue || 0).toFixed(2)),
+        'Total Invoiced Sales (₹)': parseFloat((totals.totalInvoicedRevenue !== undefined ? totals.totalInvoicedRevenue : (totals.grossRevenue || 0)).toFixed(2)),
+        'Returns (₹)': parseFloat((totals.returnedAmount || 0).toFixed(2)),
+        'Net Sales Revenue (₹)': parseFloat((totals.netRevenue || 0).toFixed(2))
       });
 
       return data;
     },
 
-    /**
-     * Format Monthly Trends for Export
-     */
     formatMonthlyTrendsForExport(reportResult) {
       const { rows = [], totals = {} } = reportResult;
 

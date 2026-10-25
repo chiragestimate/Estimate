@@ -176,16 +176,19 @@
       <button class="modal-close" onclick="APP.closeModal('branches-modal')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     </div>
     <div class="modal-body">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
-        <p style="margin:0;font-size:13px;color:var(--text-muted);">Manage physical factory, office, and depot branches.</p>
-        <button class="btn btn-primary btn-sm" onclick="openAddBranch()">+ Add Branch</button>
+      <div class="branches-modal-subhead">
+        <p class="branches-modal-desc">Manage physical factory, office, and depot branches.</p>
+        <button class="btn btn-primary btn-sm btn-add-branch" onclick="openAddBranch()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Add Branch
+        </button>
       </div>
       <div id="branches-list-wrap">
         <div class="empty-state"><div class="spinner" style="margin:0 auto"></div></div>
       </div>
 
       <!-- Add Branch Inline Form (hidden by default) -->
-      <form id="branch-form" style="display:none;margin-top:16px;padding:16px;border:1px solid var(--border);border-radius:10px;background:rgba(255,255,255,0.02);" onsubmit="return false">
+      <form id="branch-form" class="branch-inline-form" style="display:none;" onsubmit="return false">
         <h4 style="margin:0 0 12px;font-size:14px;" id="branch-form-title">New Branch Location</h4>
         <div class="form-grid">
           <div class="form-group">
@@ -211,7 +214,7 @@
             </label>
           </div>
         </div>
-        <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:12px;">
+        <div class="branch-form-actions">
           <button type="button" class="btn btn-secondary btn-sm" onclick="cancelBranchForm()">Cancel</button>
           <button type="button" class="btn btn-primary btn-sm" onclick="saveBranch()">Save Branch</button>
         </div>

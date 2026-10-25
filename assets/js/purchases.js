@@ -315,16 +315,16 @@ async function viewPurchase(id) {
       <!-- Line Items Section -->
       <div>
         <h4 style="font-size:13.5px; font-weight:700; margin:0 0 8px; color:var(--text-primary);">Purchased Items (${(p.items || []).length})</h4>
-        <div class="purchase-detail-table-wrap" style="width:100%; border:1px solid var(--border); border-radius:8px; box-sizing:border-box;">
-          <table class="data-table purchase-detail-items-table" id="purchase-detail-items-table" style="margin:0; width:100%; border-collapse:collapse; table-layout:fixed;">
+        <div class="purchase-detail-table-wrap table-scroll-wrap" style="width:100%; border:1px solid var(--border); border-radius:8px; box-sizing:border-box; overflow-x:auto; -webkit-overflow-scrolling:touch;">
+          <table class="data-table purchase-detail-items-table" id="purchase-detail-items-table" style="margin:0; width:100%; min-width:560px; border-collapse:collapse;">
             <thead>
               <tr style="background:var(--bg); border-bottom:1px solid var(--border);">
-                <th style="width:6%; text-align:center; padding:9px 6px; font-size:11.5px;">#</th>
-                <th style="width:44%; padding:9px 10px; font-size:11.5px; text-align:left;">Item Name</th>
-                <th style="width:15%; padding:9px 8px; font-size:11.5px; text-align:left;">Expiry</th>
-                <th style="width:11%; padding:9px 8px; font-size:11.5px; text-align:right;">Qty</th>
-                <th style="width:11%; padding:9px 8px; font-size:11.5px; text-align:right;">Unit Price</th>
-                <th style="width:13%; padding:9px 10px; font-size:11.5px; text-align:right;">Total</th>
+                <th style="width:6%; min-width:32px; text-align:center; padding:9px 6px; font-size:11.5px; white-space:nowrap;">#</th>
+                <th style="width:44%; min-width:160px; padding:9px 10px; font-size:11.5px; text-align:left; white-space:nowrap;">Item Name</th>
+                <th style="width:15%; min-width:90px; padding:9px 8px; font-size:11.5px; text-align:left; white-space:nowrap;">Expiry</th>
+                <th style="width:11%; min-width:70px; padding:9px 8px; font-size:11.5px; text-align:right; white-space:nowrap;">Qty</th>
+                <th style="width:11%; min-width:90px; padding:9px 8px; font-size:11.5px; text-align:right; white-space:nowrap;">Unit Price</th>
+                <th style="width:13%; min-width:95px; padding:9px 10px; font-size:11.5px; text-align:right; white-space:nowrap;">Total</th>
               </tr>
             </thead>
             <tbody>

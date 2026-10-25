@@ -947,7 +947,7 @@ function renderPackagingOptionsContainer() {
   } else {
     container.innerHTML = `
       <div style="overflow-x: auto;">
-        <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+        <table style="width: 100%; min-width: 680px; border-collapse: collapse; font-size: 13px;">
           <thead>
             <tr style="background: var(--bg);">
               <th style="padding: 8px 12px; text-align: left; font-size: 11px; font-weight: 700; color: var(--text-secondary); border-bottom: 1px solid var(--border); width: 80px;">Base</th>

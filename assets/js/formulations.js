@@ -876,26 +876,28 @@ function calculateProductionNeeds() {
 
     return `
       <tr>
-        <td><strong>${escapeHtml(ingredient.product_name || 'Unnamed Ingredient')}</strong></td>
-        <td>${formatQty(requiredQty)} ${escapeHtml(unit)}</td>
-        <td>${pct}</td>
-        <td>${UTILS.fmtCurrency(cost)}</td>
+        <td data-label="Ingredient"><strong>${escapeHtml(ingredient.product_name || 'Unnamed Ingredient')}</strong></td>
+        <td data-label="Req. Qty">${formatQty(requiredQty)} ${escapeHtml(unit)}</td>
+        <td data-label="Percentage">${pct}</td>
+        <td data-label="Est. Cost">${UTILS.fmtCurrency(cost)}</td>
       </tr>
     `;
   }).join('');
 
   container.innerHTML = `
-    <table class="line-items-table" style="width:100%; margin-top:10px;">
-      <thead>
-        <tr>
-          <th>Ingredient</th>
-          <th>Req. Qty</th>
-          <th>Percentage</th>
-          <th>Est. Cost</th>
-        </tr>
-      </thead>
-      <tbody>${rowsHtml}</tbody>
-    </table>
+    <div class="table-scroll-wrap" style="width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--border);border-radius:8px;margin-top:10px;">
+      <table class="line-items-table" style="width:100%;min-width:440px;margin:0;">
+        <thead>
+          <tr>
+            <th style="white-space:nowrap;">Ingredient</th>
+            <th style="white-space:nowrap;">Req. Qty</th>
+            <th style="white-space:nowrap;">Percentage</th>
+            <th style="white-space:nowrap;">Est. Cost</th>
+          </tr>
+        </thead>
+        <tbody>${rowsHtml}</tbody>
+      </table>
+    </div>
   `;
 
   const confirmBtn = document.querySelector('#production-modal .modal-footer .btn-primary');

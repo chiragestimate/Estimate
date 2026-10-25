@@ -538,7 +538,7 @@ async function viewBatches(type, id) {
       } else {
         tableOrCardContent = `
           <div class="line-items-wrap" style="overflow-x:auto;">
-            <table class="data-table" style="width:100%; min-width:480px;">
+            <table class="data-table" style="width:100%; min-width:580px;">
               <thead>
                 <tr>
                   <th>Purchase / Batch No</th>
@@ -1850,15 +1850,15 @@ async function openDiagnosticsModal() {
 
       if (report.discrepancies.length > 0) {
         html += `
-          <div style="border:1px solid var(--border,#334155);border-radius:8px;overflow:hidden;margin-bottom:16px;">
-            <table class="data-table" style="margin:0;font-size:13px;">
+          <div class="table-scroll-wrap" style="border:1px solid var(--border,#334155);border-radius:8px;overflow-x:auto;-webkit-overflow-scrolling:touch;width:100%;margin-bottom:16px;">
+            <table class="data-table" style="margin:0;font-size:13px;width:100%;min-width:520px;">
               <thead>
                 <tr>
-                  <th>Item Name</th>
-                  <th>Category</th>
-                  <th>Display Stock</th>
-                  <th>Batch Total</th>
-                  <th>Difference</th>
+                  <th style="white-space:nowrap;">Item Name</th>
+                  <th style="white-space:nowrap;">Category</th>
+                  <th style="white-space:nowrap;">Display Stock</th>
+                  <th style="white-space:nowrap;">Batch Total</th>
+                  <th style="white-space:nowrap;">Difference</th>
                 </tr>
               </thead>
               <tbody>

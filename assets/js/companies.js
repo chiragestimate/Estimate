@@ -658,42 +658,105 @@ function renderBranchesList() {
 
   const branches = allBranches.filter(b => b.company_id === currentCompanyForBranches.id);
   if (!branches.length) {
-    wrap.innerHTML = `<div class="empty-state" style="padding:20px;"><h4>No branches defined</h4><p>Click "+ Add Branch" below to register a location.</p></div>`;
+    wrap.innerHTML = `<div class="empty-state" style="padding:24px 16px;text-align:center;">
+      <div style="width:44px;height:44px;border-radius:50%;background:rgba(12,57,37,0.08);color:#0C3925;display:flex;align-items:center;justify-content:center;margin:0 auto 10px;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:22px;height:22px;"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 22V12h6v10"/></svg>
+      </div>
+      <h4 style="margin:0 0 4px;font-size:14px;font-weight:700;">No branches defined</h4>
+      <p style="margin:0;font-size:12.5px;color:var(--text-muted);">Click "+ Add Branch" above to register physical factory, office, or depot locations.</p>
+    </div>`;
     return;
   }
 
+  const safeStr = (s) => (typeof escapeHtml === 'function' ? escapeHtml(s) : String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'));
+
   wrap.innerHTML = `
-    <table class="data-table" style="font-size:13px;margin:0;">
-      <thead>
-        <tr>
-          <th>Code</th>
-          <th>Branch Name</th>
-          <th>City / State</th>
-          <th>Head Office?</th>
-          <th style="text-align:right;">Actions</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${branches.map(b => `
-          <tr>
-            <td class="cell-bold cell-mono">${b.code}</td>
-            <td class="cell-bold">${b.name}</td>
-            <td>${b.city ? `${b.city}, ${b.state || ''}` : '—'}</td>
-            <td>${b.is_head_office ? '<span class="badge badge-success">HEAD OFFICE</span>' : '<span class="badge badge-gray">Branch</span>'}</td>
-            <td style="text-align:right;">
-              <div class="row-actions" style="justify-content:flex-end;gap:4px;">
-                <button class="action-btn edit" onclick="openEditBranch(${b.id})" title="Edit Branch">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                </button>
-                <button class="action-btn delete" onclick="safeDeleteBranch(${b.id})" title="Delete Branch" style="color:var(--danger,#ef4444);">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-                </button>
+    <!-- Desktop / Laptop View: Clean Structured Table -->
+    <div class="branches-table-desktop">
+      <div class="table-scroll-wrap" style="width:100%;border:1px solid var(--border,#e2e8f0);border-radius:8px;overflow-x:auto;">
+        <table class="data-table branches-table" style="font-size:13px;margin:0;width:100%;min-width:540px;">
+          <thead>
+            <tr>
+              <th style="width:18%;min-width:90px;">Code</th>
+              <th style="width:34%;min-width:160px;">Branch Name</th>
+              <th style="width:24%;min-width:120px;">City / State</th>
+              <th style="width:14%;min-width:90px;">Status</th>
+              <th style="width:10%;min-width:80px;text-align:right;">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${branches.map(b => `
+              <tr>
+                <td class="cell-bold cell-mono">${safeStr(b.code)}</td>
+                <td class="cell-bold">${safeStr(b.name)}</td>
+                <td>${b.city ? `${safeStr(b.city)}, ${safeStr(b.state || '')}` : '—'}</td>
+                <td>${b.is_head_office ? '<span class="badge badge-success">HEAD OFFICE</span>' : '<span class="badge badge-gray">Branch</span>'}</td>
+                <td style="text-align:right;">
+                  <div class="row-actions" style="justify-content:flex-end;gap:6px;">
+                    <button type="button" class="action-btn edit" onclick="openEditBranch(${b.id})" title="Edit Branch">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    </button>
+                    <button type="button" class="action-btn delete" onclick="safeDeleteBranch(${b.id})" title="Delete Branch" style="color:var(--danger,#ef4444);">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Mobile View: Dedicated Clean Responsive Cards -->
+    <div class="branches-cards-mobile">
+      ${branches.map(b => {
+        const locationStr = [b.city, b.state].filter(Boolean).map(safeStr).join(', ') || '—';
+        const isHeadOffice = Boolean(b.is_head_office);
+        const badgeHtml = isHeadOffice
+          ? `<span class="badge badge-success branch-status-badge">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:11px;height:11px;margin-right:3px;flex-shrink:0;"><path d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-4M9 9h1M9 13h1M9 17h1"/></svg>
+              Head Office
+            </span>`
+          : `<span class="badge badge-gray branch-status-badge">Branch Depot</span>`;
+
+        return `
+          <div class="branch-card-item">
+            <div class="branch-card-header">
+              <div class="branch-card-title-col">
+                <div class="branch-card-name">${safeStr(b.name)}</div>
+                <div class="branch-card-code-pill">${safeStr(b.code)}</div>
               </div>
-            </td>
-          </tr>
-        `).join('')}
-      </tbody>
-    </table>
+              <div class="branch-card-badge-col">
+                ${badgeHtml}
+              </div>
+            </div>
+
+            <div class="branch-card-meta-grid">
+              <div class="branch-card-meta-item">
+                <span class="branch-card-meta-label">Location</span>
+                <span class="branch-card-meta-val">${locationStr}</span>
+              </div>
+              <div class="branch-card-meta-item">
+                <span class="branch-card-meta-label">Facility Type</span>
+                <span class="branch-card-meta-val">${isHeadOffice ? 'Principal Operating HQ' : 'Operational Branch'}</span>
+              </div>
+            </div>
+
+            <div class="branch-card-actions">
+              <button type="button" class="btn btn-secondary btn-sm branch-action-btn edit" onclick="openEditBranch(${b.id})" title="Edit Branch">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px;margin-right:4px;"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                Edit
+              </button>
+              <button type="button" class="btn btn-sm branch-action-btn delete" onclick="safeDeleteBranch(${b.id})" title="Delete Branch">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px;margin-right:4px;"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                Delete
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('')}
+    </div>
   `;
 }
 

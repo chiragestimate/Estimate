@@ -310,8 +310,8 @@ async function openClientHistory(id) {
         <!-- Purchased SKUs Breakdown -->
         <div>
           <h4 style="font-size:13px; font-weight:700; text-transform:uppercase; color:var(--text-muted); margin:0 0 10px;">Purchased SKUs & Packaging Sizes (${skusList.length})</h4>
-          <div style="background:var(--bg); border:1px solid var(--border); border-radius:8px; overflow-x:auto;">
-            <table class="data-table" style="font-size:12.5px;">
+          <div class="table-scroll-wrap" style="background:var(--bg); border:1px solid var(--border); border-radius:8px; overflow-x:auto; -webkit-overflow-scrolling:touch; width:100%;">
+            <table class="data-table" style="font-size:12.5px; width:100%; min-width:580px; margin:0;">
               <thead>
                 <tr>
                   <th>Product Formulation</th>
@@ -339,8 +339,8 @@ async function openClientHistory(id) {
         <!-- Orders Register -->
         <div>
           <h4 style="font-size:13px; font-weight:700; text-transform:uppercase; color:var(--text-muted); margin:0 0 10px;">Order History (${orders.length})</h4>
-          <div style="background:var(--bg); border:1px solid var(--border); border-radius:8px; max-height:220px; overflow-y:auto;">
-            <table class="data-table" style="font-size:12px;">
+          <div class="table-scroll-wrap" style="background:var(--bg); border:1px solid var(--border); border-radius:8px; max-height:240px; overflow:auto; -webkit-overflow-scrolling:touch; width:100%;">
+            <table class="data-table" style="font-size:12px; width:100%; min-width:620px; margin:0;">
               <thead>
                 <tr>
                   <th>Order No</th>
@@ -374,8 +374,8 @@ async function openClientHistory(id) {
         ${dispatches.length ? `
           <div>
             <h4 style="font-size:13px; font-weight:700; text-transform:uppercase; color:var(--text-muted); margin:0 0 10px;">Dispatches & Gate Passes (${dispatches.length})</h4>
-            <div style="background:var(--bg); border:1px solid var(--border); border-radius:8px; max-height:180px; overflow-y:auto;">
-              <table class="data-table" style="font-size:12px;">
+            <div class="table-scroll-wrap" style="background:var(--bg); border:1px solid var(--border); border-radius:8px; max-height:200px; overflow:auto; -webkit-overflow-scrolling:touch; width:100%;">
+              <table class="data-table" style="font-size:12px; width:100%; min-width:620px; margin:0;">
                 <thead>
                   <tr>
                     <th>Dispatch Slip</th>

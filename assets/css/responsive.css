@@ -2825,9 +2825,21 @@ body { overflow-x: hidden; }
     box-sizing: border-box !important;
     border-top: 1px solid var(--border) !important;
     display: flex !important;
+    flex-wrap: wrap !important;
     gap: 8px !important;
     justify-content: flex-end !important;
     background: inherit !important;
+  }
+
+  .modal-footer .btn,
+  .prod-modal-footer .btn,
+  .doc-modal-footer .btn {
+    min-height: 38px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 13px !important;
+    box-sizing: border-box !important;
   }
 
   .modal-body form {
@@ -2860,17 +2872,34 @@ body { overflow-x: hidden; }
     box-sizing: border-box !important;
   }
 
-  .modal-body .data-table {
+  .modal-body .table-scroll-wrap,
+  .modal-body .line-items-wrap {
     width: 100% !important;
-    min-width: 0 !important;
-    font-size: 12px !important;
+    max-width: 100% !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    box-sizing: border-box !important;
   }
 
-  .modal-body .data-table th,
+  .modal-body .data-table {
+    width: 100% !important;
+    font-size: 12px !important;
+    border-collapse: collapse !important;
+  }
+
+  .modal-body .data-table th {
+    padding: 8px 10px !important;
+    white-space: nowrap !important;
+    word-break: normal !important;
+    font-size: 11px !important;
+    letter-spacing: 0.02em !important;
+  }
+
   .modal-body .data-table td {
     padding: 8px 10px !important;
     white-space: normal !important;
-    word-break: break-word !important;
+    word-break: normal !important;
+    overflow-wrap: break-word !important;
   }
 
   /* Clients search input & select dropdown layouts (50/50 side-by-side) */
@@ -5289,6 +5318,117 @@ body { overflow-x: hidden; }
   }
 
   /* ═════════════════════════════════════════════════════════════════
+     5A. BRANCHES POPUP ON MOBILE (<= 767px)
+     ═════════════════════════════════════════════════════════════════ */
+  @media (max-width: 767px) {
+    #branches-modal .modal {
+      max-width: 95vw !important;
+      width: 95vw !important;
+    }
+
+    .branches-modal-subhead {
+      display: flex !important;
+      flex-direction: column !important;
+      align-items: stretch !important;
+      gap: 8px !important;
+      margin-bottom: 12px !important;
+    }
+
+    .branches-modal-desc {
+      font-size: 12px !important;
+      line-height: 1.4 !important;
+    }
+
+    .btn-add-branch {
+      width: 100% !important;
+      justify-content: center !important;
+      height: 38px !important;
+      min-height: 38px !important;
+      font-size: 13px !important;
+      font-weight: 600 !important;
+      border-radius: 8px !important;
+    }
+
+    .branches-table-desktop {
+      display: none !important;
+    }
+
+    .branches-cards-mobile {
+      display: flex !important;
+      flex-direction: column !important;
+      gap: 10px !important;
+      width: 100% !important;
+    }
+
+    .branch-card-item {
+      padding: 12px 14px !important;
+      border-radius: 10px !important;
+      background: var(--surface, #ffffff) !important;
+      border: 1px solid var(--border, #e2e8f0) !important;
+      box-shadow: 0 1px 4px rgba(15, 23, 42, 0.04) !important;
+    }
+
+    .branch-card-header {
+      display: flex !important;
+      justify-content: space-between !important;
+      align-items: flex-start !important;
+      gap: 8px !important;
+      padding-bottom: 8px !important;
+    }
+
+    .branch-card-name {
+      font-size: 13.5px !important;
+      font-weight: 700 !important;
+      line-height: 1.35 !important;
+      word-break: break-word !important;
+    }
+
+    .branch-card-meta-grid {
+      display: grid !important;
+      grid-template-columns: 1fr 1fr !important;
+      gap: 6px 10px !important;
+    }
+
+    .branch-card-actions {
+      display: flex !important;
+      align-items: center !important;
+      justify-content: flex-end !important;
+      gap: 8px !important;
+      padding-top: 8px !important;
+    }
+
+    .branch-action-btn {
+      height: 34px !important;
+      min-height: 34px !important;
+      padding: 0 12px !important;
+      font-size: 12px !important;
+      font-weight: 600 !important;
+      border-radius: 6px !important;
+    }
+
+    .branch-inline-form {
+      padding: 12px !important;
+      border-radius: 10px !important;
+    }
+
+    .branch-form-actions {
+      display: flex !important;
+      gap: 8px !important;
+      width: 100% !important;
+    }
+
+    .branch-form-actions .btn {
+      flex: 1 1 50% !important;
+      height: 38px !important;
+      min-height: 38px !important;
+      font-size: 12.5px !important;
+      font-weight: 600 !important;
+      border-radius: 8px !important;
+      justify-content: center !important;
+    }
+  }
+
+  /* ═════════════════════════════════════════════════════════════════
      5B. WAREHOUSES TABLE ON MOBILE
      ═════════════════════════════════════════════════════════════════ */
   #warehouses-table tbody tr {
@@ -6933,6 +7073,32 @@ body { overflow-x: hidden; }
   .wh-card-grid-2col {
     grid-template-columns: 1fr 1fr !important;
     gap: 6px 8px !important;
+  }
+
+  /* Universal modal footer balance on small mobile screens */
+  .modal-footer,
+  .prod-modal-footer,
+  .doc-modal-footer {
+    padding: 10px 12px calc(10px + env(safe-area-inset-bottom, 0px)) 12px !important;
+    gap: 8px !important;
+    display: flex !important;
+    flex-wrap: wrap !important;
+  }
+
+  .modal-footer .btn,
+  .prod-modal-footer .btn,
+  .doc-modal-footer .btn {
+    flex: 1 1 calc(50% - 4px) !important;
+    min-height: 40px !important;
+    text-align: center !important;
+  }
+
+  .modal-footer .btn:only-child,
+  .prod-modal-footer .btn:only-child,
+  .doc-modal-footer .btn:only-child,
+  .modal-footer .btn-block {
+    flex: 1 1 100% !important;
+    width: 100% !important;
   }
 }
 

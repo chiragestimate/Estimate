@@ -38,4 +38,6 @@ apps/Invoice Builder/node_modules/
 test_*.png
 test_label_parser.js
 latest_prompt.txt
+tests/scratch/
+*.xlsx
 

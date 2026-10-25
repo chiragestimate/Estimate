@@ -281,7 +281,31 @@
         }
       });
 
-      // 2. Filter orders
+      // 2. Discover & parse order notes metadata (DISPATCH_META) for authoritative dispatches and packaging
+      const orderMetaMap = new Map();
+      orders.forEach(o => {
+        if (o.notes && /(?:DISPATCH_META|Dispatch_meta):/i.test(o.notes)) {
+          try {
+            const jsonStr = o.notes.replace(/^[sS]*?(?:DISPATCH_META|Dispatch_meta):/i, '').trim();
+            const meta = JSON.parse(jsonStr);
+            orderMetaMap.set(String(o.id), meta);
+            if (!o.dispatch_status && meta.dispatch_status) {
+              o.dispatch_status = meta.dispatch_status;
+            }
+            if (Array.isArray(meta.dispatches)) {
+              const oId = String(o.id);
+              if (!dispatchesByOrderId.has(oId)) dispatchesByOrderId.set(oId, []);
+              meta.dispatches.forEach(d => {
+                if (!dispatchesByOrderId.get(oId).some(x => String(x.id) === String(d.id) || x.dispatch_no === d.dispatch_no)) {
+                  dispatchesByOrderId.get(oId).push({ ...d, order_id: o.id, order_no: o.order_no, client_name: o.client_name });
+                }
+              });
+            }
+          } catch (_) {}
+        }
+      });
+
+      // 3. Filter orders
       const eligibleOrders = orders.filter(o => {
         // Multi-company scope
         if (companyId && String(o.company_id || 1) !== String(companyId)) return false;
@@ -388,9 +412,29 @@
             if (!pSize.includes(String(packagingSize).toLowerCase())) return;
           }
 
-          const ordUnits = parseInt(it.ordered_units || it.total_units || it.quantity, 10) || 0;
-          const dispUnits = parseInt(it.dispatched_units || 0, 10);
-          const remUnits = it.remaining_units !== undefined ? parseInt(it.remaining_units, 10) : Math.max(0, ordUnits - dispUnits);
+          let ordUnits = parseInt(it.ordered_units || it.total_units || it.quantity, 10) || 0;
+          let dispUnits = it.dispatched_units !== undefined ? parseInt(it.dispatched_units, 10) : NaN;
+          let remUnits = it.remaining_units !== undefined ? parseInt(it.remaining_units, 10) : NaN;
+          let upb = it.bottles_per_box;
+
+          if (isNaN(dispUnits) || isNaN(remUnits) || !upb) {
+            const ordMeta = orderMetaMap.get(String(o.id));
+            if (ordMeta && Array.isArray(ordMeta.items_meta)) {
+              const m = ordMeta.items_meta.find(im => 
+                String(im.id || im.order_item_id) === String(it.id) ||
+                (im.product_name === it.product_name && (im.packing_size === (it.packing_size || it.packaging_size)))
+              );
+              if (m) {
+                if (isNaN(dispUnits) && m.dispatched_units !== undefined) dispUnits = parseInt(m.dispatched_units, 10);
+                if (isNaN(remUnits) && m.remaining_units !== undefined) remUnits = parseInt(m.remaining_units, 10);
+                if (!upb && m.bottles_per_box) upb = m.bottles_per_box;
+              }
+            }
+          }
+
+          if (isNaN(dispUnits)) dispUnits = 0;
+          if (isNaN(remUnits)) remUnits = Math.max(0, ordUnits - dispUnits);
+          if (!upb) upb = 10;
 
           if (isCancelled) {
             stats.totalCancelledUnits += ordUnits;
@@ -513,7 +557,16 @@
       } = filters;
 
       const orderMap = new Map();
-      orders.forEach(o => orderMap.set(String(o.id), o));
+      const orderMetaMap = new Map();
+      orders.forEach(o => {
+        orderMap.set(String(o.id), o);
+        if (o.notes && /(?:DISPATCH_META|Dispatch_meta):/i.test(o.notes)) {
+          try {
+            const jsonStr = o.notes.replace(/^[sS]*?(?:DISPATCH_META|Dispatch_meta):/i, '').trim();
+            orderMetaMap.set(String(o.id), JSON.parse(jsonStr));
+          } catch (_) {}
+        }
+      });
 
       const skuMap = new Map();
 
@@ -569,9 +622,27 @@
         }
 
         const sku = skuMap.get(key);
-        const ordUnits = parseInt(it.ordered_units || it.total_units || it.quantity, 10) || 0;
-        const dispUnits = parseInt(it.dispatched_units || 0, 10);
-        const remUnits = it.remaining_units !== undefined ? parseInt(it.remaining_units, 10) : Math.max(0, ordUnits - dispUnits);
+        let ordUnits = parseInt(it.ordered_units || it.total_units || it.quantity, 10) || 0;
+        let dispUnits = it.dispatched_units !== undefined ? parseInt(it.dispatched_units, 10) : NaN;
+        let remUnits = it.remaining_units !== undefined ? parseInt(it.remaining_units, 10) : NaN;
+
+        if (isNaN(dispUnits) || isNaN(remUnits)) {
+          const ordMeta = orderMetaMap.get(String(order.id));
+          if (ordMeta && Array.isArray(ordMeta.items_meta)) {
+            const m = ordMeta.items_meta.find(im => 
+              String(im.id || im.order_item_id) === String(it.id) ||
+              (im.product_name === it.product_name && (im.packing_size === (it.packing_size || it.packaging_size)))
+            );
+            if (m) {
+              if (isNaN(dispUnits) && m.dispatched_units !== undefined) dispUnits = parseInt(m.dispatched_units, 10);
+              if (isNaN(remUnits) && m.remaining_units !== undefined) remUnits = parseInt(m.remaining_units, 10);
+              if (m.bottles_per_box && !sku.unitsPerBox) sku.unitsPerBox = m.bottles_per_box;
+            }
+          }
+        }
+
+        if (isNaN(dispUnits)) dispUnits = 0;
+        if (isNaN(remUnits)) remUnits = Math.max(0, ordUnits - dispUnits);
 
         sku.ordersCount++;
         sku.orderedUnits += ordUnits;
@@ -827,7 +898,7 @@
         'Boxes Dispatched': r.totalBoxesDispatched || r.boxesDispatched || 0,
         'Loose Dispatched': r.totalLooseDispatched || r.looseDispatched || 0,
         'Pending Units': r.totalPendingUnits || r.pendingUnits || 0,
-        'Cancelled / Returns': (r.totalCancelledUnits || 0) + (r.totalReturnedUnits || r.returnedUnits || 0),
+        'Cancelled / Returned': (r.totalCancelledUnits || 0) + (r.totalReturnedUnits || r.returnedUnits || 0),
         'Total Billed (₹)': parseFloat(r.totalBilledAmount || r.totalBilled || 0),
         'Total Paid (₹)': parseFloat(r.totalPaidAmount || r.totalPaid || 0),
         'Outstanding Balance (₹)': parseFloat(r.outstandingBalance || r.outstandingReceivable || 0),
@@ -847,7 +918,7 @@
         'Boxes Dispatched': totals.totalBoxesDispatched || 0,
         'Loose Dispatched': totals.totalLooseDispatched || 0,
         'Pending Units': totals.totalPendingUnits || 0,
-        'Cancelled / Returns': (totals.totalCancelledUnits || 0) + (totals.totalReturnedUnits || 0),
+        'Cancelled / Returned': (totals.totalCancelledUnits || 0) + (totals.totalReturnedUnits || 0),
         'Total Billed (₹)': parseFloat(totals.totalBilled || totals.totalBilledAmount || 0),
         'Total Paid (₹)': parseFloat(totals.totalPaid || totals.totalPaidAmount || 0),
         'Outstanding Balance (₹)': parseFloat(totals.totalOutstanding || totals.totalReceivable || 0),
@@ -856,6 +927,581 @@
       });
 
       return data;
+    },
+
+    /**
+     * Format Customer-Wise Product Details into Export Array with Summary Total Row
+     * Detailed worksheet containing every product item associated with sales orders.
+     */
+    formatCustomerProductDetailsForExport({
+      orders = [],
+      orderItems = [],
+      dispatches = [],
+      dispatchItems = [],
+      clients = [],
+      reversals = [],
+      filters = {}
+    } = {}) {
+      const {
+        clientId = null,
+        companyId = null,
+        productId = null,
+        packagingSize = null,
+        status = null,
+        dispatchStatus = null,
+        dateFrom = null,
+        dateTo = null
+      } = filters || {};
+
+      const clientMap = new Map();
+      (clients || []).forEach(c => clientMap.set(String(c.id), c));
+
+      const ordersMap = new Map();
+      (orders || []).forEach(o => ordersMap.set(String(o.id), o));
+
+      // Extract & merge dispatches from orders.notes (DISPATCH_META) if not provided
+      const dispatchesByOrderId = new Map();
+      (dispatches || []).forEach(d => {
+        const oId = String(d.order_id);
+        if (!dispatchesByOrderId.has(oId)) dispatchesByOrderId.set(oId, []);
+        dispatchesByOrderId.get(oId).push(d);
+      });
+
+      const orderMetaMap = new Map();
+      (orders || []).forEach(o => {
+        if (o.notes && /(?:DISPATCH_META|Dispatch_meta):/i.test(o.notes)) {
+          try {
+            const jsonStr = o.notes.replace(/^[sS]*?(?:DISPATCH_META|Dispatch_meta):/i, '').trim();
+            const meta = JSON.parse(jsonStr);
+            orderMetaMap.set(String(o.id), meta);
+            if (!o.dispatch_status && meta.dispatch_status) {
+              o.dispatch_status = meta.dispatch_status;
+            }
+            if (Array.isArray(meta.dispatches)) {
+              meta.dispatches.forEach(d => {
+                const oId = String(d.order_id || o.id);
+                if (!dispatchesByOrderId.has(oId)) dispatchesByOrderId.set(oId, []);
+                if (!dispatchesByOrderId.get(oId).some(x => String(x.id) === String(d.id) || x.dispatch_no === d.dispatch_no)) {
+                  dispatchesByOrderId.get(oId).push({ ...d, order_id: o.id, order_no: o.order_no, client_name: o.client_name });
+                }
+              });
+            }
+          } catch (_) {}
+        }
+      });
+
+      // Reversals mapped by order and dispatch ID
+      const reversalsByOrderId = new Map();
+      (reversals || []).forEach(r => {
+        if (r.order_id) {
+          const oId = String(r.order_id);
+          if (!reversalsByOrderId.has(oId)) reversalsByOrderId.set(oId, []);
+          reversalsByOrderId.get(oId).push(r);
+        }
+      });
+
+      // Filter eligible orders
+      const eligibleOrders = (orders || []).filter(o => {
+        if (companyId && String(o.company_id || 1) !== String(companyId)) return false;
+        if (clientId && String(o.client_id) !== String(clientId)) return false;
+        if (dateFrom || dateTo) {
+          if (!DateRangeHelper.isWithinRange(o.date, dateFrom, dateTo)) return false;
+        }
+        if (status) {
+          const st = String(o.status || '').toLowerCase();
+          if (st !== String(status).toLowerCase()) return false;
+        }
+        if (dispatchStatus) {
+          const ds = String(o.dispatch_status || 'Pending Verification').toLowerCase();
+          if (ds !== String(dispatchStatus).toLowerCase()) return false;
+        }
+        return true;
+      });
+
+      const eligibleOrderIds = new Set(eligibleOrders.map(o => String(o.id)));
+
+      // Effective order items
+      const effectiveItems = (orderItems && orderItems.length > 0)
+        ? orderItems
+        : (orders || []).flatMap(o => (o.items || []).map(it => ({ ...it, order_id: it.order_id || o.id })));
+
+      const rows = [];
+      const totals = {
+        boxesOrdered: 0,
+        looseOrdered: 0,
+        totalOrderedQuantity: 0,
+        dispatchedBoxes: 0,
+        dispatchedLooseUnits: 0,
+        totalDispatchedQuantity: 0,
+        pendingQuantity: 0,
+        discount: 0,
+        taxableAmount: 0,
+        gstAmount: 0,
+        lineTotal: 0,
+        returnQuantity: 0,
+        cancelledQuantity: 0
+      };
+
+      effectiveItems.forEach(oi => {
+        const oId = String(oi.order_id);
+        if (!eligibleOrderIds.has(oId)) return;
+        const o = ordersMap.get(oId) || {};
+        const c = clientMap.get(String(o.client_id)) || { name: o.client_name, type: 'Retailer', city: '—' };
+
+        // SKU filter check
+        if (productId && String(oi.product_id) !== String(productId)) return;
+        if (packagingSize) {
+          const pSize = String(oi.packing_size || oi.packaging_size || '').toLowerCase();
+          if (!pSize.includes(String(packagingSize).toLowerCase())) return;
+        }
+
+        const isCancelled = String(o.status || '').toLowerCase() === 'cancelled';
+        let orderedQty = parseInt(oi.ordered_units || oi.total_units || oi.quantity, 10) || 0;
+        let dispQty = oi.dispatched_units !== undefined ? parseInt(oi.dispatched_units, 10) : NaN;
+        let pendingQty = oi.remaining_units !== undefined ? parseInt(oi.remaining_units, 10) : NaN;
+        let upb = oi.bottles_per_box;
+        let boxesOrd = oi.box_quantity !== undefined ? parseInt(oi.box_quantity, 10) : NaN;
+        let looseOrd = oi.loose_quantity !== undefined ? parseInt(oi.loose_quantity, 10) : NaN;
+
+        const ordMeta = orderMetaMap.get(oId);
+        const m = (ordMeta && Array.isArray(ordMeta.items_meta)) ? ordMeta.items_meta.find(im => 
+          String(im.id || im.order_item_id) === String(oi.id) ||
+          (im.product_name === oi.product_name && (im.packing_size === (oi.packing_size || oi.packaging_size)))
+        ) : null;
+
+        if (isNaN(dispQty) || dispQty === 0) {
+          if (m && m.dispatched_units !== undefined) dispQty = parseInt(m.dispatched_units, 10);
+        }
+        if (isNaN(dispQty)) dispQty = 0;
+
+        if (!upb || upb <= 0) {
+          if (m && m.bottles_per_box) upb = parseInt(m.bottles_per_box, 10);
+        }
+        if (!upb || upb <= 0) upb = 10;
+
+        if (isNaN(boxesOrd) || (boxesOrd === 0 && orderedQty >= upb)) {
+          if (m && m.box_quantity !== undefined && m.box_quantity > 0) {
+            boxesOrd = parseInt(m.box_quantity, 10);
+          } else {
+            boxesOrd = Math.floor(orderedQty / upb);
+          }
+        }
+
+        if (isNaN(looseOrd) || (looseOrd === 0 && orderedQty % upb !== 0)) {
+          if (m && m.loose_quantity !== undefined) {
+            looseOrd = parseInt(m.loose_quantity, 10);
+          } else {
+            looseOrd = orderedQty % upb;
+          }
+        }
+
+        if (isNaN(pendingQty)) {
+          if (m && m.remaining_units !== undefined) {
+            pendingQty = parseInt(m.remaining_units, 10);
+          } else {
+            pendingQty = Math.max(0, orderedQty - dispQty);
+          }
+        }
+
+        // Dispatches matching this order & item
+        const orderDispatches = dispatchesByOrderId.get(oId) || [];
+        const matchingDispatches = orderDispatches.filter(d => {
+          if (!Array.isArray(d.items)) return true;
+          return d.items.some(dit => 
+            String(dit.order_item_id) === String(oi.id) || 
+            (dit.product_name === oi.product_name && (dit.packaging_size === (oi.packing_size || oi.packaging_size)))
+          );
+        });
+
+        // Compute dispatched boxes and loose
+        let boxesDisp = 0;
+        let looseDisp = 0;
+        if (matchingDispatches.length > 0) {
+          matchingDispatches.forEach(d => {
+            if (Array.isArray(d.items)) {
+              d.items.forEach(dit => {
+                if (String(dit.order_item_id) === String(oi.id) || (dit.product_name === oi.product_name && (dit.packaging_size === (oi.packing_size || oi.packaging_size)))) {
+                  boxesDisp += parseInt(dit.boxes_dispatched || 0, 10);
+                  looseDisp += parseInt(dit.loose_dispatched || 0, 10);
+                }
+              });
+            }
+          });
+        }
+        if (boxesDisp === 0 && looseDisp === 0 && dispQty > 0) {
+          boxesDisp = Math.floor(dispQty / upb);
+          looseDisp = dispQty % upb;
+        }
+
+        const dispatchRefs = [...new Set(matchingDispatches.map(d => d.dispatch_no).filter(Boolean))].join(', ') || (dispQty > 0 ? 'DSP-Fulfilled' : '—');
+        const invoiceRefs = [...new Set(matchingDispatches.map(d => d.invoice_no).filter(Boolean))].join(', ') || (o.invoice_no || '—');
+
+        // Financials
+        const unitRate = parseFloat(oi.unit_price) || 0;
+        const discount = parseFloat(oi.discount) || 0;
+        const taxableAmount = parseFloat(Math.max(0, (unitRate * orderedQty) - discount).toFixed(2));
+        
+        let gstRate = 0;
+        let gstAmount = 0;
+        if (o.tax && parseFloat(o.tax) > 0) {
+          const totAmt = parseFloat(o.total_amount) || 0;
+          const preTax = totAmt - parseFloat(o.tax);
+          if (preTax > 0) {
+            gstRate = Math.round((parseFloat(o.tax) / preTax) * 100);
+            gstAmount = parseFloat(((taxableAmount * gstRate) / 100).toFixed(2));
+          }
+        }
+        const lineTotal = parseFloat((taxableAmount + gstAmount).toFixed(2));
+
+        // Returns and reversals
+        let returnQty = 0;
+        const orderReversals = reversalsByOrderId.get(oId) || [];
+        orderReversals.forEach(r => {
+          const revItems = Array.isArray(r.items_reversed) ? r.items_reversed : [];
+          revItems.forEach(ri => {
+            if (String(ri.order_item_id) === String(oi.id) || ri.product_name === oi.product_name) {
+              returnQty += parseInt(ri.total_units || ri.units || ri.quantity, 10) || 0;
+            }
+          });
+        });
+
+        const cancelledQty = isCancelled ? orderedQty : 0;
+
+        // Line status
+        let lineStatus = 'Pending';
+        if (isCancelled) {
+          lineStatus = 'Cancelled';
+        } else if (returnQty >= orderedQty && orderedQty > 0) {
+          lineStatus = 'Returned';
+        } else if (dispQty >= orderedQty && orderedQty > 0) {
+          lineStatus = 'Dispatched';
+        } else if (dispQty > 0) {
+          lineStatus = 'Partially Dispatched';
+        }
+
+        // Determine packaging type and UOM
+        const packSize = oi.packing_size || oi.packaging_size || '—';
+        let packagingType = 'Bottle';
+        let uom = 'Nos';
+        const pSizeLower = packSize.toLowerCase();
+        if (pSizeLower.includes('litre') || pSizeLower.includes('ltr') || pSizeLower.includes('ml')) {
+          packagingType = 'Bottle';
+          uom = pSizeLower.includes('ml') ? 'ml' : 'Litre';
+        } else if (pSizeLower.includes('kg') || pSizeLower.includes('gram') || pSizeLower.includes('gm') || pSizeLower.includes('bag')) {
+          packagingType = 'Bag';
+          uom = pSizeLower.includes('kg') ? 'Kg' : 'Gram';
+        } else if (oi.box_name) {
+          packagingType = 'Box';
+          uom = 'Box';
+        }
+
+        const row = {
+          'Customer Name': c.name || o.client_name || 'Guest Client',
+          'Client Type': c.type || 'Retailer',
+          'City': c.city || '—',
+          'Order Number': o.order_no || ('O-' + o.id),
+          'Order Date': o.date || '',
+          'Invoice Number': invoiceRefs,
+          'Dispatch Reference': dispatchRefs,
+          'Product Name': oi.product_name || 'Standard Item',
+          'Packaging Size': packSize,
+          'Packaging Type': packagingType,
+          'Boxes Ordered': boxesOrd,
+          'Units Per Box': upb,
+          'Loose Units Ordered': looseOrd,
+          'Total Ordered Quantity': orderedQty,
+          'Dispatched Boxes': boxesDisp,
+          'Dispatched Loose Units': looseDisp,
+          'Total Dispatched Quantity': dispQty,
+          'Pending Quantity': pendingQty,
+          'Unit of Measurement': uom,
+          'Unit Rate (₹)': unitRate,
+          'Discount (₹)': discount,
+          'Taxable Amount (₹)': taxableAmount,
+          'GST Rate (%)': gstRate,
+          'GST Amount (₹)': gstAmount,
+          'Line Total (₹)': lineTotal,
+          'Return Quantity': returnQty,
+          'Cancelled Quantity': cancelledQty,
+          'Line Status': lineStatus
+        };
+
+        rows.push(row);
+
+        // Accumulate totals
+        totals.boxesOrdered += boxesOrd;
+        totals.looseOrdered += looseOrd;
+        totals.totalOrderedQuantity += orderedQty;
+        totals.dispatchedBoxes += boxesDisp;
+        totals.dispatchedLooseUnits += looseDisp;
+        totals.totalDispatchedQuantity += dispQty;
+        totals.pendingQuantity += pendingQty;
+        totals.discount += discount;
+        totals.taxableAmount += taxableAmount;
+        totals.gstAmount += gstAmount;
+        totals.lineTotal += lineTotal;
+        totals.returnQuantity += returnQty;
+        totals.cancelledQuantity += cancelledQty;
+      });
+
+      // Append Total Summary Row
+      rows.push({
+        'Customer Name': 'TOTALS',
+        'Client Type': '—',
+        'City': '—',
+        'Order Number': `Total Items: ${rows.length}`,
+        'Order Date': '—',
+        'Invoice Number': '—',
+        'Dispatch Reference': '—',
+        'Product Name': '—',
+        'Packaging Size': '—',
+        'Packaging Type': '—',
+        'Boxes Ordered': totals.boxesOrdered,
+        'Units Per Box': '—',
+        'Loose Units Ordered': totals.looseOrdered,
+        'Total Ordered Quantity': totals.totalOrderedQuantity,
+        'Dispatched Boxes': totals.dispatchedBoxes,
+        'Dispatched Loose Units': totals.dispatchedLooseUnits,
+        'Total Dispatched Quantity': totals.totalDispatchedQuantity,
+        'Pending Quantity': totals.pendingQuantity,
+        'Unit of Measurement': '—',
+        'Unit Rate (₹)': '—',
+        'Discount (₹)': parseFloat(totals.discount.toFixed(2)),
+        'Taxable Amount (₹)': parseFloat(totals.taxableAmount.toFixed(2)),
+        'GST Rate (%)': '—',
+        'GST Amount (₹)': parseFloat(totals.gstAmount.toFixed(2)),
+        'Line Total (₹)': parseFloat(totals.lineTotal.toFixed(2)),
+        'Return Quantity': totals.returnQuantity,
+        'Cancelled Quantity': totals.cancelledQuantity,
+        'Line Status': '—'
+      });
+
+      return rows;
+    },
+
+    /**
+     * Format Chronological Sales Transactions for Export
+     * Provides an audit ledger of orders placed, dispatches fulfilled, and reversals.
+     */
+    formatSalesTransactionsForExport({
+      orders = [],
+      orderItems = [],
+      dispatches = [],
+      dispatchItems = [],
+      clients = [],
+      reversals = [],
+      filters = {}
+    } = {}) {
+      const {
+        clientId = null,
+        companyId = null,
+        productId = null,
+        packagingSize = null,
+        status = null,
+        dispatchStatus = null,
+        dateFrom = null,
+        dateTo = null
+      } = filters || {};
+
+      const clientMap = new Map();
+      (clients || []).forEach(c => clientMap.set(String(c.id), c));
+
+      const ordersMap = new Map();
+      (orders || []).forEach(o => ordersMap.set(String(o.id), o));
+
+      const effectiveItems = (orderItems && orderItems.length > 0)
+        ? orderItems
+        : (orders || []).flatMap(o => (o.items || []).map(it => ({ ...it, order_id: it.order_id || o.id })));
+
+      const itemsByOrderId = new Map();
+      effectiveItems.forEach(it => {
+        const oId = String(it.order_id);
+        if (!itemsByOrderId.has(oId)) itemsByOrderId.set(oId, []);
+        itemsByOrderId.get(oId).push(it);
+      });
+
+      const transactions = [];
+
+      (orders || []).forEach(o => {
+        if (companyId && String(o.company_id || 1) !== String(companyId)) return;
+        if (clientId && String(o.client_id) !== String(clientId)) return;
+        if (status && String(o.status || '').toLowerCase() !== String(status).toLowerCase()) return;
+        if (dispatchStatus && String(o.dispatch_status || 'Pending Verification').toLowerCase() !== String(dispatchStatus).toLowerCase()) return;
+
+        const c = clientMap.get(String(o.client_id)) || { name: o.client_name, type: 'Retailer' };
+        const items = itemsByOrderId.get(String(o.id)) || [];
+
+        const isPaid = (parseFloat(o.paid_amount) || 0) >= (parseFloat(o.total_amount) || 0) && (parseFloat(o.total_amount) || 0) > 0;
+        const isPartPaid = (parseFloat(o.paid_amount) || 0) > 0 && !isPaid;
+        const paymentStatus = isPaid ? 'Paid' : (isPartPaid ? 'Partially Paid' : 'Unpaid');
+
+        // 1. Order Placed / Booked event
+        if (!dateFrom && !dateTo || DateRangeHelper.isWithinRange(o.date, dateFrom, dateTo)) {
+          items.forEach(it => {
+            if (productId && String(it.product_id) !== String(productId)) return;
+            if (packagingSize) {
+              const pSize = String(it.packing_size || it.packaging_size || '').toLowerCase();
+              if (!pSize.includes(String(packagingSize).toLowerCase())) return;
+            }
+
+            const ordUnits = parseInt(it.ordered_units || it.total_units || it.quantity, 10) || 0;
+            const unitRate = parseFloat(it.unit_price) || 0;
+            const lineAmt = parseFloat(it.total) || (unitRate * ordUnits);
+
+            transactions.push({
+              'Transaction Date': o.date || '',
+              'Customer Name': c.name || o.client_name || 'Guest Client',
+              'Order Number': o.order_no || `O-${o.id}`,
+              'Invoice Number': o.invoice_no || '—',
+              'Dispatch Reference': '—',
+              'Product Name': it.product_name || 'Item',
+              'Packaging Size': it.packing_size || it.packaging_size || '—',
+              'Ordered Quantity': ordUnits,
+              'Dispatched Quantity': 0,
+              'Transaction Type': 'Order Booked',
+              'Quantity Change': `+${ordUnits}`,
+              'Unit Rate (₹)': unitRate,
+              'Amount (₹)': lineAmt,
+              'Payment Status': paymentStatus,
+              'Dispatch Status': o.dispatch_status || 'Pending'
+            });
+          });
+        }
+      });
+
+      // 2. Discover dispatches from orders.notes if not supplied
+      const allDispatches = [...(dispatches || [])];
+      (orders || []).forEach(o => {
+        if (o.notes && /(?:DISPATCH_META|Dispatch_meta):/i.test(o.notes)) {
+          try {
+            const jsonStr = o.notes.replace(/^[sS]*?(?:DISPATCH_META|Dispatch_meta):/i, '').trim();
+            const meta = JSON.parse(jsonStr);
+            if (Array.isArray(meta.dispatches)) {
+              meta.dispatches.forEach(d => {
+                if (!allDispatches.some(x => String(x.id) === String(d.id) || x.dispatch_no === d.dispatch_no)) {
+                  allDispatches.push({ ...d, order_id: o.id, order_no: o.order_no, client_name: o.client_name });
+                }
+              });
+            }
+          } catch (_) {}
+        }
+      });
+
+      // 3. Dispatch events
+      allDispatches.forEach(d => {
+        const o = ordersMap.get(String(d.order_id)) || {};
+        if (companyId && String(o.company_id || d.company_id || 1) !== String(companyId)) return;
+        if (clientId && String(d.client_id || o.client_id) !== String(clientId)) return;
+        if (dateFrom || dateTo) {
+          if (!DateRangeHelper.isWithinRange(d.dispatch_date || o.date, dateFrom, dateTo)) return;
+        }
+
+        const c = clientMap.get(String(d.client_id || o.client_id)) || { name: d.client_name || o.client_name, type: 'Retailer' };
+        const dItems = Array.isArray(d.items) ? d.items : [];
+
+        dItems.forEach(dit => {
+          if (productId && String(dit.product_id) !== String(productId)) return;
+          if (packagingSize) {
+            const pSize = String(dit.packaging_size || dit.packing_size || '').toLowerCase();
+            if (!pSize.includes(String(packagingSize).toLowerCase())) return;
+          }
+
+          const dispUnits = parseInt(dit.total_units_dispatched || dit.quantity || dit.units, 10) || 0;
+          const unitRate = parseFloat(dit.unit_price) || 0;
+          const lineAmt = parseFloat(dit.total_amount) || (unitRate * dispUnits);
+
+          transactions.push({
+            'Transaction Date': d.dispatch_date || o.date || '',
+            'Customer Name': c.name || d.client_name || o.client_name || 'Guest Client',
+            'Order Number': d.order_no || o.order_no || `O-${d.order_id}`,
+            'Invoice Number': d.invoice_no || o.invoice_no || '—',
+            'Dispatch Reference': d.dispatch_no || '—',
+            'Product Name': dit.product_name || 'Item',
+            'Packaging Size': dit.packaging_size || dit.packing_size || '—',
+            'Ordered Quantity': 0,
+            'Dispatched Quantity': dispUnits,
+            'Transaction Type': 'Dispatch Fulfillment',
+            'Quantity Change': `-${dispUnits}`,
+            'Unit Rate (₹)': unitRate,
+            'Amount (₹)': lineAmt,
+            'Payment Status': (parseFloat(o.paid_amount) || 0) >= (parseFloat(o.total_amount) || 0) && (parseFloat(o.total_amount) || 0) > 0 ? 'Paid' : 'Unpaid',
+            'Dispatch Status': d.status || 'Dispatched'
+          });
+        });
+      });
+
+      // Sort transactions chronologically
+      transactions.sort((a, b) => (a['Transaction Date'] || '').localeCompare(b['Transaction Date'] || ''));
+
+      // Totals
+      const totalOrdered = transactions.reduce((sum, t) => sum + (t['Ordered Quantity'] || 0), 0);
+      const totalDispatched = transactions.reduce((sum, t) => sum + (t['Dispatched Quantity'] || 0), 0);
+      const totalAmount = transactions.reduce((sum, t) => sum + (t['Amount (₹)'] || 0), 0);
+
+      transactions.push({
+        'Transaction Date': 'TOTALS',
+        'Customer Name': '—',
+        'Order Number': `Total Transactions: ${transactions.length}`,
+        'Invoice Number': '—',
+        'Dispatch Reference': '—',
+        'Product Name': '—',
+        'Packaging Size': '—',
+        'Ordered Quantity': totalOrdered,
+        'Dispatched Quantity': totalDispatched,
+        'Transaction Type': '—',
+        'Quantity Change': '—',
+        'Unit Rate (₹)': '—',
+        'Amount (₹)': parseFloat(totalAmount.toFixed(2)),
+        'Payment Status': '—',
+        'Dispatch Status': '—'
+      });
+
+      return transactions;
+    },
+
+    /**
+     * Apply professional formatting to a SheetJS worksheet:
+     * - Auto-calculate column widths
+     * - Enable autofilters (excluding bottom total row)
+     * - Freeze the top header row
+     */
+    applySheetFormatting(ws, data, XLSXLib = null) {
+      if (!ws || !data || !data.length) return ws;
+      const X = XLSXLib || (typeof window !== 'undefined' ? window.XLSX : null) || (typeof require === 'function' ? require('xlsx') : null);
+      if (!X) return ws;
+
+      const headers = Object.keys(data[0]);
+
+      // 1. Column widths
+      ws['!cols'] = headers.map(h => {
+        let maxLen = h.length;
+        data.forEach(row => {
+          const val = row[h];
+          const strLen = val !== null && val !== undefined ? String(val).length : 0;
+          if (strLen > maxLen) maxLen = strLen;
+        });
+        return { wch: Math.min(Math.max(maxLen + 3, 10), 45) };
+      });
+
+      // 2. Freeze pane (freeze top header row)
+      ws['!freeze'] = { xSplit: 0, ySplit: 1 };
+      ws['!views'] = [{ state: 'frozen', xSplit: 0, ySplit: 1, activeCell: 'A2' }];
+
+      // 3. Autofilter (exclude summary total row if present)
+      try {
+        const range = X.utils.decode_range(ws['!ref']);
+        const lastRow = data[data.length - 1];
+        const hasTotalRow = lastRow && (lastRow['#'] === 'TOTAL' || lastRow['Customer Name'] === 'TOTALS' || lastRow['Transaction Date'] === 'TOTALS' || lastRow['Product Name'] === 'TOTALS');
+        const endRow = hasTotalRow && range.e.r > 1 ? range.e.r - 1 : range.e.r;
+        ws['!autofilter'] = {
+          ref: X.utils.encode_range({
+            s: { r: 0, c: 0 },
+            e: { r: endRow, c: range.e.c }
+          })
+        };
+      } catch (_) {}
+
+      return ws;
     },
 
     /**
@@ -982,7 +1628,10 @@
     getMonthlyTrendReport: (...args) => SalesAnalyticsEngine.generateMonthlyTrendReport(...args),
     getCompanySummaryReport: (...args) => SalesAnalyticsEngine.generateCompanySummaryReport(...args),
     formatCustomerSalesForExport: (...args) => ExportFormatter.formatCustomerSalesForExport(...args),
+    formatCustomerProductDetailsForExport: (...args) => ExportFormatter.formatCustomerProductDetailsForExport(...args),
+    formatSalesTransactionsForExport: (...args) => ExportFormatter.formatSalesTransactionsForExport(...args),
     formatProductSalesForExport: (...args) => ExportFormatter.formatProductSalesForExport(...args),
+    applySheetFormatting: (...args) => ExportFormatter.applySheetFormatting(...args),
     generateCsvString: (...args) => ExportFormatter.generateCsvString(...args)
   };
 

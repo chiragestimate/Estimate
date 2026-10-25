@@ -233,6 +233,76 @@ async function loadReports() {
       if (invData) invoices = invData;
     } catch (_) {}
 
+    // Enrich orderItems, dispatches, and dispatchItems from orders.notes (DISPATCH_META)
+    const itemsById = new Map();
+    orderItems.forEach(oi => itemsById.set(String(oi.id), oi));
+
+    orders.forEach(o => {
+      if (o.notes && /(?:DISPATCH_META|Dispatch_meta):/i.test(o.notes)) {
+        try {
+          const jsonStr = o.notes.replace(/^[sS]*?(?:DISPATCH_META|Dispatch_meta):/i, '').trim();
+          const meta = JSON.parse(jsonStr);
+
+          if (!o.dispatch_status && meta.dispatch_status) {
+            o.dispatch_status = meta.dispatch_status;
+          }
+
+          if (Array.isArray(meta.items_meta)) {
+            meta.items_meta.forEach(it => {
+              const oi = itemsById.get(String(it.id || it.order_item_id)) ||
+                         orderItems.find(x => String(x.order_id) === String(o.id) && String(x.product_id) === String(it.product_id) && String(x.packing_size) === String(it.packing_size));
+              if (oi) {
+                oi.ordered_units = it.ordered_units || it.total_units || oi.quantity;
+                oi.dispatched_units = it.dispatched_units !== undefined ? it.dispatched_units : 0;
+                oi.remaining_units = it.remaining_units !== undefined ? it.remaining_units : Math.max(0, oi.ordered_units - oi.dispatched_units);
+                oi.bottles_per_box = it.bottles_per_box || oi.bottles_per_box || 10;
+                oi.box_quantity = it.box_quantity !== undefined ? it.box_quantity : Math.floor(oi.ordered_units / oi.bottles_per_box);
+                oi.loose_quantity = it.loose_quantity !== undefined ? it.loose_quantity : (oi.ordered_units % oi.bottles_per_box);
+                oi.packing_size = it.packing_size || it.packaging_size || oi.packing_size;
+                oi.packaging_size = oi.packing_size;
+              }
+            });
+          }
+
+          if (Array.isArray(meta.dispatches)) {
+            meta.dispatches.forEach(d => {
+              d.order_id = d.order_id || o.id;
+              d.order_no = d.order_no || o.order_no;
+              d.client_name = d.client_name || o.client_name;
+              d.client_id = d.client_id || o.client_id;
+              if (!dispatches.some(x => String(x.id) === String(d.id) || x.dispatch_no === d.dispatch_no)) {
+                dispatches.push(d);
+              }
+              if (Array.isArray(d.items)) {
+                d.items.forEach(dit => {
+                  dit.order_id = d.order_id;
+                  dit.order_no = d.order_no;
+                  dit.dispatch_no = d.dispatch_no;
+                  dit.dispatch_date = d.dispatch_date;
+                  dit.invoice_no = d.invoice_no;
+                  dispatchItems.push(dit);
+                });
+              }
+            });
+          }
+        } catch (e) {
+          console.warn('[Reports] Failed to parse DISPATCH_META for order', o.id, e);
+        }
+      }
+
+      // Merge local storage offline dispatches
+      try {
+        const localDispatches = JSON.parse(localStorage.getItem('order_dispatches') || '[]');
+        if (Array.isArray(localDispatches)) {
+          localDispatches.forEach(ld => {
+            if (String(ld.order_id) === String(o.id) && !dispatches.some(x => String(x.id) === String(ld.id) || x.dispatch_no === ld.dispatch_no)) {
+              dispatches.push(ld);
+            }
+          });
+        }
+      } catch (_) {}
+    });
+
     // Run Analytics Engine
     const core = window.REPORTS_CORE ? window.REPORTS_CORE.Service : null;
     if (!core) {
@@ -1043,36 +1113,116 @@ function getActiveReportExportData() {
 }
 
 function exportCurrentReportToExcel() {
-  const exportPayload = getActiveReportExportData();
-  if (!exportPayload || !exportPayload.data || !exportPayload.data.length) {
+  if (!currentReportDataset) {
     APP.showToast('No report data to export', 'warning');
     return;
   }
 
-  const { data, label } = exportPayload;
+  const core = window.REPORTS_CORE ? window.REPORTS_CORE.Service : null;
+  if (!core) {
+    APP.showToast('Reporting service not loaded', 'error');
+    return;
+  }
+
+  const filters = currentReportDataset.customerReport?.filters || {};
+  const raw = currentReportDataset.raw || {};
+
+  // 1. Worksheet 1: Customer Summary
+  const summaryData = core.formatCustomerSalesForExport(currentReportDataset.customerReport);
+
+  // 2. Worksheet 2: Customer-Wise Product Details (essential detailed line items)
+  const productDetailsData = core.formatCustomerProductDetailsForExport({
+    orders: raw.orders || [],
+    orderItems: raw.orderItems || [],
+    dispatches: raw.dispatches || [],
+    dispatchItems: raw.dispatchItems || [],
+    clients: cachedClients || [],
+    reversals: raw.reversals || [],
+    filters
+  });
+
+  // 3. Worksheet 3: Sales Transactions (chronological order & dispatch fulfillment ledger)
+  const transactionsData = core.formatSalesTransactionsForExport({
+    orders: raw.orders || [],
+    orderItems: raw.orderItems || [],
+    dispatches: raw.dispatches || [],
+    dispatchItems: raw.dispatchItems || [],
+    clients: cachedClients || [],
+    reversals: raw.reversals || [],
+    filters
+  });
+
+  // 4. Worksheet 4: Product & SKU Sales Breakdown
+  const productSkuData = currentReportDataset.productReport
+    ? core.formatProductSalesForExport(currentReportDataset.productReport)
+    : [];
 
   if (window.XLSX) {
-    const ws = XLSX.utils.json_to_sheet(data);
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, label.slice(0, 31));
-    const filename = `${label}_${UTILS.todayStr()}.xlsx`;
+
+    // Sheet 1: Customer Summary
+    if (summaryData && summaryData.length) {
+      const wsSummary = XLSX.utils.json_to_sheet(summaryData);
+      core.applySheetFormatting(wsSummary, summaryData, window.XLSX);
+      XLSX.utils.book_append_sheet(wb, wsSummary, 'Customer Summary');
+    }
+
+    // Sheet 2: Customer-Wise Product Details
+    if (productDetailsData && productDetailsData.length) {
+      const wsDetails = XLSX.utils.json_to_sheet(productDetailsData);
+      core.applySheetFormatting(wsDetails, productDetailsData, window.XLSX);
+      XLSX.utils.book_append_sheet(wb, wsDetails, 'Customer-Wise Product Details');
+    }
+
+    // Sheet 3: Sales Transactions
+    if (transactionsData && transactionsData.length) {
+      const wsTx = XLSX.utils.json_to_sheet(transactionsData);
+      core.applySheetFormatting(wsTx, transactionsData, window.XLSX);
+      XLSX.utils.book_append_sheet(wb, wsTx, 'Sales Transactions');
+    }
+
+    // Sheet 4: Product & SKU Sales
+    if (productSkuData && productSkuData.length) {
+      const wsProd = XLSX.utils.json_to_sheet(productSkuData);
+      core.applySheetFormatting(wsProd, productSkuData, window.XLSX);
+      XLSX.utils.book_append_sheet(wb, wsProd, 'Product & SKU Sales');
+    }
+
+    const filename = `Afield_Crop_Care_Business_Report_${UTILS.todayStr()}.xlsx`;
     XLSX.writeFile(wb, filename);
-    APP.showToast('Excel report generated and downloaded successfully!', 'success');
+    APP.showToast('Comprehensive multi-sheet Excel report downloaded successfully!', 'success');
   } else {
-    UTILS.exportToCSV(data, label);
+    // Graceful CSV fallback for systems without XLSX
+    UTILS.exportToCSV(productDetailsData, `Customer_Product_Sales_${UTILS.todayStr()}`);
   }
 }
 
 function exportCurrentReportToCSV() {
-  const exportPayload = getActiveReportExportData();
-  if (!exportPayload || !exportPayload.data || !exportPayload.data.length) {
+  if (!currentReportDataset) {
     APP.showToast('No report data to export', 'warning');
     return;
   }
 
-  const { data, label } = exportPayload;
-  const csvContent = window.REPORTS_CORE
-    ? window.REPORTS_CORE.Service.generateCsvString(data, label.replace(/_/g, ' '))
+  const core = window.REPORTS_CORE ? window.REPORTS_CORE.Service : null;
+  const filters = currentReportDataset.customerReport?.filters || {};
+  const raw = currentReportDataset.raw || {};
+
+  // For CSV, export detailed customer product sales
+  const exportData = (activeReportTab === 'ProductSales')
+    ? (core ? core.formatProductSalesForExport(currentReportDataset.productReport) : [])
+    : (core ? core.formatCustomerProductDetailsForExport({
+        orders: raw.orders || [],
+        orderItems: raw.orderItems || [],
+        dispatches: raw.dispatches || [],
+        dispatchItems: raw.dispatchItems || [],
+        clients: cachedClients || [],
+        reversals: raw.reversals || [],
+        filters
+      }) : []);
+
+  const label = (activeReportTab === 'ProductSales') ? 'Product_SKU_Sales_Report' : 'Customer_Product_Sales_Details';
+  const csvContent = core
+    ? core.generateCsvString(exportData, label.replace(/_/g, ' '))
     : null;
 
   if (csvContent) {

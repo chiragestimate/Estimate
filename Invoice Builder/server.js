@@ -886,7 +886,7 @@ app.get('*', (req, res, next) => {
 // Start Server
 app.listen(PORT, async () => {
   console.log(`\n========================================================================`);
-  console.log(`Afield Crop Care Invoice Server listening on http://localhost:${PORT}`);
+  console.log(`Estimate Invoice Server listening on http://localhost:${PORT}`);
   console.log(`Serving static files from: ${path.resolve(__dirname)}`);
   console.log(`========================================================================\n`);
   

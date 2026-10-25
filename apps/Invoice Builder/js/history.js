@@ -1,7 +1,7 @@
 /**
  * ==============================================================================
  * js/history.js — Premium Invoice History Logic
- * Afield Crop Care ERP
+ * Estimate ERP
  * 
  * Fetches invoices, categorizes Regular vs Dispatch, renders metric cards,
  * segmented category tabs, desktop table, and responsive mobile cards.

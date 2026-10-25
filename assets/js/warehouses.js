@@ -351,35 +351,138 @@ async function viewWarehouseDetails(id) {
   APP.openModal('warehouse-view-modal');
 
   try {
-    const [bRes, pRes, iRes, mRes] = await Promise.all([
+    const [bRes, pRes, iRes, mRes, ppRes] = await Promise.all([
       window.dbClient.from('stock_batches').select('*').eq('warehouse_id', id).order('current_qty', { ascending: false }),
       window.dbClient.from('products').select('id, name, category, packaging, item_size, purchase_price, unit, reorder_level'),
       window.dbClient.from('inventory_items').select('id, name, category, item_size, item_subtype, unit, reorder_level'),
-      window.dbClient.from('stock_movements').select('*').eq('warehouse_id', id).order('created_at', { ascending: false }).limit(100)
+      window.dbClient.from('stock_movements').select('*').eq('warehouse_id', id).order('created_at', { ascending: false }).limit(100),
+      window.dbClient.from('product_packaging').select('*')
     ]);
 
     const pMap = new Map((pRes.data || []).map(p => [p.id, p]));
     const iMap = new Map((iRes.data || []).map(i => [i.id, i]));
+    const ppList = ppRes.data || [];
 
-    const batches = (bRes.data || []).map(b => {
+    // Query order_items & orders for batches linked to dispatches or sales orders
+    const rawBatchesData = bRes.data || [];
+    const relatedOrderIds = [...new Set(rawBatchesData.map(b => b.purchase_id).filter(pid => pid && typeof pid === 'number' && pid < 2147483647))];
+    let oiList = [];
+    let ordersList = [];
+    if (relatedOrderIds.length > 0) {
+      try {
+        const [oiFetch, ordFetch] = await Promise.all([
+          window.dbClient.from('order_items').select('*').in('order_id', relatedOrderIds),
+          window.dbClient.from('orders').select('id, order_no, notes').in('id', relatedOrderIds)
+        ]);
+        oiList = oiFetch.data || [];
+        ordersList = ordFetch.data || [];
+      } catch (err) {
+        console.warn('[Warehouses] Failed to load related order items for packaging resolution:', err);
+      }
+    }
+    const ordersMap = new Map(ordersList.map(o => [o.id, o]));
+
+    function resolveBatchPackaging(b) {
+      // 1. Order Items (for batches created from sales or godown dispatch)
+      if (b.purchase_id && oiList.length > 0) {
+        const matchingOIs = oiList.filter(oi => 
+          oi.order_id === b.purchase_id && 
+          (oi.product_id === b.item_id || (oi.product_name && b.item_name && oi.product_name.toLowerCase() === b.item_name.toLowerCase()))
+        );
+
+        if (matchingOIs.length === 1 && matchingOIs[0].packing_size) {
+          return matchingOIs[0].packing_size;
+        }
+
+        if (matchingOIs.length > 1) {
+          const priceMatch = matchingOIs.find(oi => parseFloat(oi.unit_price) === parseFloat(b.purchase_price));
+          if (priceMatch && priceMatch.packing_size) return priceMatch.packing_size;
+          const qtyMatch = matchingOIs.find(oi => parseFloat(oi.quantity) === parseFloat(b.initial_qty));
+          if (qtyMatch && qtyMatch.packing_size) return qtyMatch.packing_size;
+        }
+
+        const ord = ordersMap.get(b.purchase_id);
+        if (ord && ord.notes && ord.notes.includes('DISPATCH_META:')) {
+          try {
+            const raw = ord.notes.replace(/^DISPATCH_META:\s*/, '').trim();
+            const meta = JSON.parse(raw);
+            const metaItems = meta.items_meta || (meta.dispatches && meta.dispatches.flatMap(d => d.items)) || [];
+            const matchedMeta = metaItems.find(it => 
+              (it.product_id == b.item_id || it.product_name === b.item_name) &&
+              (parseFloat(it.unit_price) === parseFloat(b.purchase_price) || parseFloat(it.total_units) === parseFloat(b.initial_qty))
+            );
+            if (matchedMeta && (matchedMeta.packaging_size || matchedMeta.packing_size)) {
+              return matchedMeta.packaging_size || matchedMeta.packing_size;
+            }
+          } catch (_) {}
+        }
+      }
+
+      // 2. Product Packaging Table (Variants Catalog)
+      if (b.item_type === 'Product' || pMap.has(b.item_id)) {
+        const variants = ppList.filter(v => v.product_id === b.item_id);
+        if (variants.length > 0) {
+          if (b.purchase_price) {
+            const pMatch = variants.find(v => 
+              parseFloat(v.sell_price) === parseFloat(b.purchase_price) || 
+              parseFloat(v.purchase_price) === parseFloat(b.purchase_price)
+            );
+            if (pMatch && pMatch.packaging_size) return pMatch.packaging_size;
+          }
+          if (variants.length === 1 && variants[0].packaging_size) {
+            return variants[0].packaging_size;
+          }
+          const baseVar = variants.find(v => parseFloat(v.purchase_price) > 0);
+          if (baseVar && baseVar.packaging_size) return baseVar.packaging_size;
+          if (variants[0].packaging_size) return variants[0].packaging_size;
+        }
+
+        const p = pMap.get(b.item_id);
+        if (p && (p.item_size || p.packaging)) {
+          return p.item_size || p.packaging;
+        }
+      }
+
+      // 3. Inventory Items (Raw Materials, Packaging Items: Bottles, Boxes, Labels)
+      const it = iMap.get(b.item_id) || iMap.get(b.inventory_item_id);
+      if (it) {
+        if (it.item_size) return it.item_size;
+        if (it.item_subtype && !['Insecticide', 'Technical'].includes(it.item_subtype)) {
+          return it.item_subtype;
+        }
+      }
+
+      // 4. Extraction from Item Name (e.g. "Regular Box 1 Ltr", "Imida Bottle 1 Ltr", "Color Box 500 Ml")
+      if (b.item_name) {
+        const sizeMatch = b.item_name.match(/\b(\d+(?:\.\d+)?\s*(?:Litre|Ltr|L|Ml|Kg|Gram|Gm|G))\b/i);
+        if (sizeMatch) return sizeMatch[1];
+      }
+
+      // 5. Bulk Technical Stock
+      if (b.unit === 'Litre' || b.unit === 'Kg') {
+        return 'Bulk';
+      }
+
+      return '—';
+    }
+
+    const batches = rawBatchesData.map(b => {
       let category = 'Technical';
-      let packaging = '—';
       let reorderLevel = 0;
       let unitCost = parseFloat(b.purchase_price) || 0;
 
       if (b.item_type === 'Product') {
         const p = pMap.get(b.item_id);
         category = (p && p.category) ? p.category : 'Finished Good';
-        packaging = (p && (p.item_size || p.packaging)) ? (p.item_size || p.packaging) : '—';
         reorderLevel = p ? (parseFloat(p.reorder_level) || 0) : 0;
         if (!unitCost && p && p.purchase_price) unitCost = parseFloat(p.purchase_price) || 0;
       } else {
         const it = iMap.get(b.item_id) || iMap.get(b.inventory_item_id);
         category = (it && it.category) ? it.category : 'Raw Material';
-        packaging = (it && (it.item_size || it.item_subtype)) ? (it.item_size || it.item_subtype) : '—';
         reorderLevel = it ? (parseFloat(it.reorder_level) || 0) : 0;
       }
 
+      const packaging = resolveBatchPackaging(b);
       const currentQty = parseFloat(b.current_qty) || 0;
       const totalVal = currentQty * unitCost;
 
@@ -405,14 +508,105 @@ async function viewWarehouseDetails(id) {
       };
     });
 
-    const batchLookup = new Map(batches.map(b => [b.id, b]));
-    const movements = (mRes.data || []).map(m => {
-      const b = batchLookup.get(m.batch_id);
+    const rawBatches = bRes.data || [];
+    const rawMovements = mRes.data || [];
+    const directBatchIds = new Set(rawBatches.map(b => b.id));
+    const missingBatchIds = [...new Set(rawMovements.map(m => m.batch_id).filter(id => id && !directBatchIds.has(id)))];
+    let allBatchRecords = [...rawBatches];
+    if (missingBatchIds.length > 0) {
+      try {
+        const { data: extraBatches } = await window.dbClient.from('stock_batches').select('*').in('id', missingBatchIds);
+        if (extraBatches && extraBatches.length) {
+          allBatchRecords = allBatchRecords.concat(extraBatches);
+        }
+      } catch (_) {}
+    }
+
+    const batchLookup = new Map(allBatchRecords.map(b => [b.id, b]));
+
+    function resolveMovementItemName(m) {
+      // 1. Direct batch lookup
+      if (m.batch_id && batchLookup.has(m.batch_id)) {
+        const b = batchLookup.get(m.batch_id);
+        if (b.item_name && b.item_name.trim() && b.item_name !== 'Inventory Item') {
+          return b.item_name;
+        }
+        if (b.item_type === 'Product' && pMap.has(b.item_id)) {
+          return pMap.get(b.item_id).name;
+        }
+        if (iMap.has(b.item_id)) {
+          return iMap.get(b.item_id).name;
+        }
+      }
+
+      // 2. Correlate with batches in the same warehouse by purchase_id / txn_id
+      if (m.txn_id && m.warehouse_id) {
+        const matchedBatches = allBatchRecords.filter(b => 
+          b.warehouse_id === m.warehouse_id && 
+          b.purchase_id === m.txn_id
+        );
+        if (matchedBatches.length > 0) {
+          const qtyMatch = matchedBatches.find(b => parseFloat(b.initial_qty) === Math.abs(parseFloat(m.qty)));
+          if (qtyMatch && qtyMatch.item_name) return qtyMatch.item_name;
+          if (matchedBatches[0].item_name) return matchedBatches[0].item_name;
+        }
+      }
+
+      // 3. Notes analysis (JSON or plain text)
+      if (m.notes && typeof m.notes === 'string') {
+        if (m.notes.startsWith('{') && m.notes.endsWith('}')) {
+          try {
+            const parsed = JSON.parse(m.notes);
+            if (parsed.item_name) return parsed.item_name;
+            if (parsed.product_name) return parsed.product_name;
+          } catch (_) {}
+        }
+        const ofMatch = m.notes.match(/\bof\s+([A-Za-z0-9\s\-]+?)\s+(?:into|from|via)\b/i);
+        if (ofMatch && ofMatch[1].trim()) {
+          return ofMatch[1].trim();
+        }
+        for (const p of (pRes.data || [])) {
+          if (m.notes.toLowerCase().includes(p.name.toLowerCase())) {
+            return p.name;
+          }
+        }
+        for (const it of (iRes.data || [])) {
+          if (m.notes.toLowerCase().includes(it.name.toLowerCase())) {
+            return it.name;
+          }
+        }
+      }
+
+      // 4. Component dispatch transaction type fallbacks
+      if (m.txn_type) {
+        if (m.txn_type.includes('DISPATCH_BOTTLES')) return 'Packaging Bottle';
+        if (m.txn_type.includes('DISPATCH_BOXES')) return 'Packaging Box';
+        if (m.txn_type.includes('DISPATCH_LABELS')) return 'Product Label';
+      }
+
+      if (m.item_name && m.item_name !== 'Inventory Item') return m.item_name;
+      return 'Stock Item';
+    }
+
+    function resolveMovementUnit(m) {
+      if (m.batch_id && batchLookup.has(m.batch_id)) {
+        const b = batchLookup.get(m.batch_id);
+        if (b.unit) return b.unit;
+      }
+      if (m.txn_type) {
+        if (m.txn_type.includes('BOXES')) return 'Boxes';
+        if (m.txn_type.includes('BOTTLES') || m.txn_type.includes('LABELS')) return 'Nos';
+      }
+      return 'Nos';
+    }
+
+    const movements = rawMovements.map(m => {
+      const resolvedName = resolveMovementItemName(m);
+      const unit = resolveMovementUnit(m);
       return {
         ...m,
-        item_name: b ? b.item_name : (m.item_name || 'Inventory Item'),
-        batch_no: b ? b.batch_no : '—',
-        unit: b ? b.unit : '',
+        item_name: resolvedName,
+        unit: unit,
         qty: parseFloat(m.qty) || 0
       };
     });
@@ -582,7 +776,7 @@ function renderWhStockTab(bodyEl) {
       <div class="wh-toolbar-left">
         <div class="wh-search-box">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          <input type="text" id="wh-stock-search-input" placeholder="Search product, material, or batch…" value="${escapeHtml(filters.search)}" oninput="onWhStockSearchInput(this.value)">
+          <input type="text" id="wh-stock-search-input" placeholder="Search product or material…" value="${escapeHtml(filters.search)}" oninput="onWhStockSearchInput(this.value)">
         </div>
         <select class="wh-filter-select" id="wh-stock-cat-filter" onchange="onWhStockCategoryChange(this.value)">
           <option value="ALL" ${filters.category === 'ALL' ? 'selected' : ''}>All Categories (${batches.length})</option>
@@ -622,19 +816,18 @@ function renderWhStockTab(bodyEl) {
       </div>
     ` : `
       <!-- Desktop Table -->
-      <div class="table-wrap" id="wh-stock-table-wrap" style="box-shadow:none;border:1px solid var(--border,#e2e8f0);border-radius:8px;overflow:hidden;">
+      <div class="table-wrap" id="wh-stock-table-wrap" style="box-shadow:none;border:1px solid var(--border,#e2e8f0);border-radius:8px;overflow-x:auto;max-width:100%;">
         <table class="wh-stock-table">
           <thead>
             <tr>
-              <th style="width:23%;">Item Name</th>
+              <th style="width:26%;">Item Name</th>
               <th style="width:13%;">Category</th>
-              <th style="width:12%;">Batch No</th>
-              <th style="width:11%;">Packaging</th>
+              <th style="width:13%;">Packaging</th>
               <th style="width:12%;text-align:right;">Available Qty</th>
               <th style="width:7%;">Unit</th>
-              <th style="width:10%;text-align:right;">Unit Cost</th>
+              <th style="width:11%;text-align:right;">Unit Cost</th>
               <th style="width:11%;text-align:right;">Total Value</th>
-              <th style="width:11%;text-align:center;">Status</th>
+              <th style="width:7%;text-align:center;">Status</th>
             </tr>
           </thead>
           <tbody>
@@ -648,7 +841,6 @@ function renderWhStockTab(bodyEl) {
                     <div style="font-weight:600;color:var(--text-primary);line-height:1.35;">${escapeHtml(b.item_name)}</div>
                   </td>
                   <td><span class="badge badge-info" style="font-size:10.5px;">${escapeHtml(b.category)}</span></td>
-                  <td><span class="wh-batch-pill">${escapeHtml(b.batch_no || '—')}</span></td>
                   <td style="color:var(--text-muted);font-size:12px;">${escapeHtml(b.packaging || '—')}</td>
                   <td style="text-align:right;">
                     <span class="wh-qty-val ${currentQty <= 0 ? 'is-zero' : ''}">${currentQty.toLocaleString()}</span>
@@ -678,7 +870,6 @@ function renderWhStockTab(bodyEl) {
               </div>
               <div class="wh-card-badge-row">
                 <span class="badge badge-info" style="font-size:10.5px;">${escapeHtml(b.category)}</span>
-                <span class="wh-batch-pill">Batch: ${escapeHtml(b.batch_no || '—')}</span>
               </div>
               <div class="wh-card-grid-2col">
                 <div>
@@ -729,15 +920,15 @@ function renderWhMovementsTab(bodyEl) {
     </div>
 
     <!-- Desktop Table -->
-    <div class="table-wrap" id="wh-movements-table-wrap" style="box-shadow:none;border:1px solid var(--border,#e2e8f0);border-radius:8px;overflow:hidden;">
+    <div class="table-wrap" id="wh-movements-table-wrap" style="box-shadow:none;border:1px solid var(--border,#e2e8f0);border-radius:8px;overflow-x:auto;max-width:100%;">
       <table class="wh-movements-table">
         <thead>
           <tr>
             <th style="width:18%;">Date & Time</th>
-            <th style="width:25%;">Item & Batch</th>
-            <th style="width:18%;">Transaction Type</th>
-            <th style="width:14%;text-align:right;">Quantity Delta</th>
-            <th style="width:25%;">Reference / Notes</th>
+            <th style="width:28%;">Item Name</th>
+            <th style="width:16%;">Transaction Type</th>
+            <th style="width:14%;text-align:right;">Quantity Change</th>
+            <th style="width:24%;">Reference / Notes</th>
           </tr>
         </thead>
         <tbody>
@@ -750,8 +941,7 @@ function renderWhMovementsTab(bodyEl) {
               <tr>
                 <td style="font-size:11.5px;color:var(--text-muted);">${escapeHtml(dateStr)}</td>
                 <td>
-                  <div style="font-weight:600;line-height:1.3;">${escapeHtml(m.item_name)}</div>
-                  <div style="font-size:11px;font-family:monospace;color:var(--text-muted);">Batch: ${escapeHtml(m.batch_no || '—')}</div>
+                  <div style="font-weight:600;line-height:1.35;color:var(--text-primary);">${escapeHtml(m.item_name)}</div>
                 </td>
                 <td>
                   <span class="badge ${isNegative ? 'badge-warning' : 'badge-success'}" style="font-size:10px;">${escapeHtml(m.txn_type || 'TRANSACTION')}</span>
@@ -782,8 +972,7 @@ function renderWhMovementsTab(bodyEl) {
               <span class="badge ${isNegative ? 'badge-warning' : 'badge-success'}" style="font-size:10px;">${escapeHtml(m.txn_type || 'TRANSACTION')}</span>
               <span style="font-size:11px;color:var(--text-muted);">${escapeHtml(dateStr)}</span>
             </div>
-            <div class="wh-card-item-title" style="margin-top:4px;">${escapeHtml(m.item_name)}</div>
-            <div style="font-size:11px;font-family:monospace;color:var(--text-muted);margin-bottom:8px;">Batch: ${escapeHtml(m.batch_no || '—')}</div>
+            <div class="wh-card-item-title" style="margin-top:4px;margin-bottom:8px;">${escapeHtml(m.item_name)}</div>
             <div style="display:flex;justify-content:space-between;align-items:center;padding-top:6px;border-top:1px solid #f1f5f9;">
               <span class="wh-grid-label" style="margin:0;">Quantity Change:</span>
               <span class="${deltaClass}" style="font-size:14px;">${deltaPrefix}${m.qty.toLocaleString()} ${escapeHtml(m.unit || '')}</span>

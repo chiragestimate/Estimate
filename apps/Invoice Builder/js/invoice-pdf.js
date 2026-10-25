@@ -124,7 +124,7 @@
       document.body.appendChild(wrap);
 
       new window.QRCode(wrap, {
-        text: `upi://pay?pa=${upi || '9427213943m@pnb'}&pn=${encodeURIComponent(companyName || 'Afield Crop Care')}`,
+        text: `upi://pay?pa=${upi || '9427213943m@pnb'}&pn=${encodeURIComponent(companyName || 'Estimate')}`,
         width: 90,
         height: 90,
         colorDark: '#000000',
@@ -163,7 +163,7 @@
       return getElementImageDataUrl(qrImg);
     }
     const upiVal = upi || document.getElementById('s-upi')?.value || '9427213943m@pnb';
-    const cName = companyName || document.getElementById('s-company')?.value || 'Afield Crop Care';
+    const cName = companyName || document.getElementById('s-company')?.value || 'Estimate';
     return buildQrDataUrl(upiVal, cName);
   }
 
@@ -316,7 +316,7 @@
     const isGst = payload.InvoiceType === 'GST' || (typeof document !== 'undefined' && document.body && document.body.classList.contains('gst-mode'));
 
     // Exact Brand & Preview Palette (Image 1 target design)
-    const C_DARK_GREEN = [8, 40, 26];     // #08281A (Afield Crop Care Primary Theme Green)
+    const C_DARK_GREEN = [8, 40, 26];     // #08281A (Estimate Primary Theme Green)
     const C_TEXT_MAIN  = [0, 0, 0];        // #000000 (Pure black headings/text as in Image 1)
     const C_TEXT_SLATE = [30, 41, 59];      // #1e293b
     const C_TEXT_MUTED = [100, 116, 139];   // #64748b (Slate 500)
@@ -331,7 +331,7 @@
     const $ = id => document.getElementById(id);
 
     // Business details
-    const companyName = payload.business?.company || $('s-company')?.value || $('p-company')?.textContent || 'Afield Crop Care';
+    const companyName = payload.business?.company || $('s-company')?.value || $('p-company')?.textContent || 'Estimate';
     const companyAddress = payload.business?.address || $('s-address')?.value || $('p-address')?.textContent || '';
     const companyPhone = payload.business?.phone || $('s-phone')?.value || ($('p-phone')?.textContent !== '-' ? $('p-phone')?.textContent : '') || '';
     const companyEmail = payload.business?.email || $('s-email')?.value || $('p-email')?.textContent || '';
@@ -600,7 +600,7 @@
     };
 
     // Company details
-    const compName = companyName || 'Afield Crop Care';
+    const compName = companyName || 'Estimate';
     const compState = (document.getElementById('s-company-state')?.value || 'Gujarat').trim();
     const compPin = (document.getElementById('s-company-pincode')?.value || '360024').trim();
     const compPhone = formatPhoneDisplay(companyPhone || '7878777727');

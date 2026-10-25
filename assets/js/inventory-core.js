@@ -305,8 +305,8 @@
     formatLabelName(productName, packagingSize, ownerCode) {
       const pName = String(productName || '').trim();
       const pSize = String(packagingSize || '').trim();
-      let owner = String(ownerCode || 'ACC').trim().toUpperCase();
-      if (owner === 'AAC') owner = 'ACC';
+      let owner = String(ownerCode || 'E').trim().toUpperCase();
+      if (owner === 'ACC' || owner === 'AAC') owner = 'E';
       return `${pName} ${pSize} Label [${owner}]`.replace(/\s{2,}/g, ' ');
     }
   };
@@ -500,7 +500,8 @@
         batch_id: batchId || null,
         txn_type: formattedType,
         txn_id: referenceId ? parseInt(referenceId, 10) : null,
-        qty: qty
+        qty: qty,
+        notes: notes || null
       };
       if (typeof window !== 'undefined' && window.TENANT_CONTEXT) {
         corePayload = window.TENANT_CONTEXT.stamp(corePayload);
@@ -869,15 +870,15 @@
      * Enforces that:
      * - Product must match (by product_id or exact product name)
      * - Packaging size must match (volume/weight equivalence, e.g. 1 Ltr != 500 Ml)
-     * - Label owner must match (ACC vs GAS)
+     * - Label owner must match (E vs GAS)
      * - Category must be 'Labels'
      */
-    async resolveLabelItem({ productId, productName = '', packagingSize, labelOwner = 'ACC', inventoryItems = null }) {
+    async resolveLabelItem({ productId, productName = '', packagingSize, labelOwner = 'E', inventoryItems = null }) {
       const db = this.getDb();
       if (!db && !inventoryItems) return null;
 
-      let targetOwner = String(labelOwner || 'ACC').trim().toUpperCase();
-      if (targetOwner === 'AAC') targetOwner = 'ACC';
+      let targetOwner = String(labelOwner || 'E').trim().toUpperCase();
+      if (targetOwner === 'ACC' || targetOwner === 'AAC') targetOwner = 'E';
       const targetSize = String(packagingSize || '').trim();
       const targetProdId = productId ? parseInt(productId, 10) : null;
       const targetProdName = String(productName || '').trim().toLowerCase();
@@ -918,19 +919,19 @@
         }
         if (!sizeMatches) continue;
 
-        // 3. Check Owner match (ACC vs GAS)
+        // 3. Check Owner match (E vs GAS, with backward compatibility for ACC and AAC)
         const itemOwner = String(item.item_subtype || '').trim().toUpperCase();
         const itemName = String(item.name || '').toUpperCase();
         let ownerMatches = false;
 
-        if (itemOwner === targetOwner || (targetOwner === 'ACC' && itemOwner === 'AAC')) {
+        if (itemOwner === targetOwner || (targetOwner === 'E' && (itemOwner === 'ACC' || itemOwner === 'AAC'))) {
           ownerMatches = true;
         } else if (itemName.includes(`[${targetOwner}]`) || itemName.includes(`(${targetOwner})`)) {
           ownerMatches = true;
-        } else if (targetOwner === 'ACC' && (itemName.includes('[AAC]') || itemName.includes('(AAC)'))) {
+        } else if (targetOwner === 'E' && (itemName.includes('[ACC]') || itemName.includes('(ACC)') || itemName.includes('[AAC]') || itemName.includes('(AAC)'))) {
           ownerMatches = true;
-        } else if (!itemOwner && (targetOwner === 'ACC' || targetOwner === 'AAC')) {
-          // Backward compatibility: unspecified owner defaults to ACC in-house
+        } else if (!itemOwner && (targetOwner === 'E' || targetOwner === 'ACC' || targetOwner === 'AAC')) {
+          // Backward compatibility: unspecified owner defaults to E in-house
           ownerMatches = true;
         }
 

@@ -18,20 +18,6 @@ window.hardReloadApp = async function() {
   window.location.replace(url.toString());
 };
 
-// Automatic SW/Cache purge on boot to ensure fresh assets
-(function() {
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.getRegistrations().then(regs => {
-      regs.forEach(reg => reg.unregister());
-    });
-  }
-  if ('caches' in window) {
-    caches.keys().then(names => {
-      names.forEach(name => caches.delete(name));
-    });
-  }
-})();
-
 /* Injects sidebar + topbar into every page dynamically   */
 (function() {
   localStorage.setItem('sidebar_pinned', 'true');
@@ -42,15 +28,6 @@ window.hardReloadApp = async function() {
     localStorage.setItem('theme', 'light');
   }
   document.documentElement.setAttribute('data-theme', 'light');
-
-  // Unregister old Service Workers if any
-  try {
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.getRegistrations().then(regs => {
-        regs.forEach(r => r.unregister());
-      });
-    }
-  } catch (_) {}
 })();
 
 function getLogoUrl() {
@@ -62,14 +39,14 @@ function getActiveCompanyName() {
   if (window.TENANT_CONTEXT && window.TENANT_CONTEXT.getActiveCompany) {
     const act = window.TENANT_CONTEXT.getActiveCompany();
     if (act && act.name) {
-      if (act.name === 'Afield Crop Care') act.name = 'Afield Crop Care';
+      if (act.name === 'Estimate' || act.name === 'Estimate') act.name = 'Estimate';
       return act.name;
     }
   }
   const stored = localStorage.getItem('erp_active_company_name');
-  if (stored === 'Afield Crop Care' || !stored) {
-    localStorage.setItem('erp_active_company_name', 'Afield Crop Care');
-    return 'Afield Crop Care';
+  if (stored === 'Estimate' || stored === 'Estimate' || !stored) {
+    localStorage.setItem('erp_active_company_name', 'Estimate');
+    return 'Estimate';
   }
   return stored;
 }
@@ -79,7 +56,7 @@ function getActiveCompanyCode() {
     const act = window.TENANT_CONTEXT.getActiveCompany();
     if (act && act.code) return act.code;
   }
-  return localStorage.getItem('erp_active_company_code') || 'ACC';
+  return localStorage.getItem('erp_active_company_code') || 'E';
 }
 
 function getActiveCompanyId() {
@@ -241,7 +218,7 @@ const TOPBAR_HTML = (title, breadcrumb, logoUrl = getLogoUrl()) => `
 
     <div class="dropdown">
       <button class="user-avatar-btn" id="user-avatar-btn" type="button" aria-haspopup="menu" aria-expanded="false">
-        <div class="user-avatar" id="topbar-user-avatar">ACC</div>
+        <div class="user-avatar" id="topbar-user-avatar">E</div>
         <span class="user-name" id="topbar-user-name">Admin</span>
         <span class="topbar-role-badge" id="topbar-role-badge" style="display:inline-block; margin-left:4px; font-size:10px; font-weight:700; padding:2px 7px; border-radius:12px; background:rgba(12,57,37,0.12); color:#0C3925; text-transform:uppercase;">Super Admin</span>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;color:var(--text-muted)"><polyline points="6 9 12 15 18 9"/></svg>
@@ -281,7 +258,7 @@ const PROFILE_MODAL = `
     </div>
     <div class="modal-body">
       <div style="display:flex;align-items:center;gap:14px;margin-bottom:18px">
-        <div class="user-avatar" style="width:52px;height:52px;font-size:16px">ACC</div>
+        <div class="user-avatar" style="width:52px;height:52px;font-size:16px">E</div>
         <div>
           <div style="font-size:18px;font-weight:800;color:var(--text-primary)">Admin</div>
           <div style="font-size:13px;color:var(--text-secondary)">System administrator</div>
@@ -290,7 +267,7 @@ const PROFILE_MODAL = `
       <div style="display:grid;gap:12px">
         <div style="padding:14px 16px;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg)">
           <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted);margin-bottom:4px">Workspace</div>
-          <div style="font-size:14px;font-weight:700;color:#0C3925">Afield Crop Care</div>
+          <div style="font-size:14px;font-weight:700;color:#0C3925">Estimate</div>
         </div>
         <div style="padding:14px 16px;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg)">
           <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted);margin-bottom:4px">Registered Address</div>
@@ -687,18 +664,16 @@ async function initCompanySwitcher() {
     let active = (window.TENANT_CONTEXT && window.TENANT_CONTEXT.getActiveCompany)
       ? window.TENANT_CONTEXT.getActiveCompany()
       : { id: getActiveCompanyId(), name: getActiveCompanyName(), code: getActiveCompanyCode(), is_manufacturing: true };
-    if (active && (active.name === 'Afield Crop Care' || !active.name)) {
-      active.name = 'Afield Crop Care';
-      if (localStorage.getItem('erp_active_company_name') === 'Afield Crop Care') {
-        localStorage.setItem('erp_active_company_name', 'Afield Crop Care');
-      }
+    if (active && (active.name === 'Estimate' || active.name === 'Estimate' || !active.name)) {
+      active.name = 'Estimate';
+      localStorage.setItem('erp_active_company_name', 'Estimate');
     }
     const companies = (window.TENANT_CONTEXT && window.TENANT_CONTEXT.getAuthorizedCompanies)
       ? window.TENANT_CONTEXT.getAuthorizedCompanies()
       : [active];
     if (companies && Array.isArray(companies)) {
       companies.forEach(c => {
-        if (c.name === 'Afield Crop Care') c.name = 'Afield Crop Care';
+        if (c.name === 'Estimate' || c.name === 'Estimate') c.name = 'Estimate';
       });
     }
 
@@ -714,13 +689,13 @@ async function initCompanySwitcher() {
     if (listContainer) {
       const renderItem = (c, isCurrent) => {
         const isMfg = c.is_manufacturing !== false;
-        const city = c.city || (c.code === 'ACC' || c.code === 'AAC' || (c.name && (c.name.toLowerCase().includes('afield') || c.name.toLowerCase().includes('anjani'))) ? 'Rajkot' : '');
-        const code = c.code || 'ACC';
+        const city = c.city || (c.code === 'E' || c.code === 'ACC' || c.code === 'AAC' || (c.name && (c.name.toLowerCase().includes('afield') || c.name.toLowerCase().includes('anjani') || c.name.toLowerCase().includes('estimate'))) ? 'Rajkot' : '');
+        const code = c.code || 'E';
         const badgeLabel = isMfg ? 'MANUFACTURER' : 'TRADING';
         return `
           <button class="company-dropdown-item ${isCurrent ? 'active' : ''}" type="button" onclick="window.TENANT_CONTEXT && window.TENANT_CONTEXT.switchCompany ? window.TENANT_CONTEXT.switchCompany(${c.id}) : null">
             <div class="company-card-header">
-              <span class="company-item-name">${c.name || 'Afield Crop Care'}</span>
+              <span class="company-item-name">${c.name || 'Estimate'}</span>
               <span class="company-badge-pill ${isMfg ? 'mfg' : 'dist'}">${badgeLabel}</span>
             </div>
             <div class="company-card-sub">
@@ -964,15 +939,21 @@ window.addEventListener('appinstalled', () => {
   deferredPwaPrompt = null;
 });
 
-// Service Worker registration disabled — app.js unregisters all SWs on load
-// to ensure users always get latest updates. Re-enable when ready for production PWA.
-// if ('serviceWorker' in navigator) {
-//   window.addEventListener('load', () => {
-//     const swPath = window.location.pathname.includes('/pages/') ? '../sw.js' : './sw.js';
-//     navigator.serviceWorker.register(swPath).catch(err => {
-//       console.warn('PWA ServiceWorker registration note:', err);
-//     });
-//   });
-// }
+// Register Service Worker for PWA
+if ('serviceWorker' in navigator) {
+  const registerSW = () => {
+    const isPagesDir = window.location.pathname.includes('/pages/');
+    const swPath = isPagesDir ? '../sw.js' : './sw.js';
+    navigator.serviceWorker.register(swPath).catch(err => {
+      console.warn('PWA ServiceWorker registration note:', err);
+    });
+  };
+
+  if (document.readyState === 'complete') {
+    registerSW();
+  } else {
+    window.addEventListener('load', registerSW);
+  }
+}
 
 window.LAYOUT = { injectLayout };

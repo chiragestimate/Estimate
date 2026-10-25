@@ -1053,7 +1053,9 @@ async function saveProduct() {
       sell_price: productSellPrice,
       gst: defaultGst,
       description: d.description || '',
-      inventory_item_id: matchedInvId
+      inventory_item_id: matchedInvId,
+      packaging: baseVariant?.packaging_size || '',
+      item_size: baseVariant?.packaging_size || ''
     };
     if (d.batch_no) {
       payload.batch_no = d.batch_no;

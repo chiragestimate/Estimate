@@ -62,7 +62,7 @@
     }
     let str = String(fallbackName || '').trim();
     if (!str || str.toLowerCase().includes('gas co-marketing')) {
-      return 'GAS (WH-ACC-GAS)';
+      return 'GAS (WH-E-GAS)';
     }
     return str;
   }
@@ -350,7 +350,7 @@
           const statusBadge = `<span class="badge ${badgeClass}">${st}</span>`;
 
           const sourceWhId = d.warehouse_id || 1;
-          const sourceWhDisplay = resolveGodownDisplayName(sourceWhId, 'Main Plant Warehouse (WH-ACC-01)');
+          const sourceWhDisplay = resolveGodownDisplayName(sourceWhId, 'Main Plant Warehouse (WH-E-01)');
           const isGodown = d.delivery_target === 'GODOWN';
 
           let destTitle = '';
@@ -358,7 +358,7 @@
           let destIconType = 'customer';
 
           if (isGodown) {
-            destTitle = resolveGodownDisplayName(d.target_warehouse_id, d.target_warehouse_name || 'Gas Godown (WH-ACC-GAS)');
+            destTitle = resolveGodownDisplayName(d.target_warehouse_id, d.target_warehouse_name || 'Gas Godown (WH-E-GAS)');
             destSub = 'Godown Stocking Point';
             destIconType = 'godown';
           } else if (d.intercompany_transfer_id || d.is_intercompany) {
@@ -573,7 +573,7 @@
           const statusBadge = `<span class="badge ${badgeClass}">${st}</span>`;
 
           const sourceWhId = d.warehouse_id || 1;
-          const sourceWhDisplay = resolveGodownDisplayName(sourceWhId, 'Main Plant Warehouse (WH-ACC-01)');
+          const sourceWhDisplay = resolveGodownDisplayName(sourceWhId, 'Main Plant Warehouse (WH-E-01)');
           const isGodown = d.delivery_target === 'GODOWN';
 
           let destTitle = '';
@@ -581,7 +581,7 @@
           let destIconType = 'customer';
 
           if (isGodown) {
-            destTitle = resolveGodownDisplayName(d.target_warehouse_id, d.target_warehouse_name || 'Gas Godown (WH-ACC-GAS)');
+            destTitle = resolveGodownDisplayName(d.target_warehouse_id, d.target_warehouse_name || 'Gas Godown (WH-E-GAS)');
             destSub = 'Godown Stocking Point';
             destIconType = 'godown';
           } else if (d.intercompany_transfer_id || d.is_intercompany) {
@@ -786,10 +786,10 @@
           const godowns = whs.filter(w => w.id !== 1 && (w.status || 'Active') === 'Active');
           if (godowns.length > 0) {
             targetWhSelect.innerHTML = godowns.map(w => 
-              `<option value="${w.id}" ${(w.code === 'WH-ACC-GAS' || w.code === 'WH-AAC-GAS') ? 'selected' : ''}>${w.name} (${w.code || 'WH'})</option>`
+              `<option value="${w.id}" ${(w.code === 'WH-E-GAS' || w.code === 'WH-ACC-GAS' || w.code === 'WH-AAC-GAS') ? 'selected' : ''}>${w.name} (${w.code || 'WH'})</option>`
             ).join('');
           } else {
-            targetWhSelect.innerHTML = '<option value="532" selected>GAS (WH-ACC-GAS)</option>';
+            targetWhSelect.innerHTML = '<option value="532" selected>GAS (WH-E-GAS)</option>';
           }
         }
 
@@ -1901,10 +1901,10 @@
         };
 
         const sourceWhId = d.warehouse_id || 1;
-        const sourceWhDisplay = resolveGodownDisplayName(sourceWhId, 'Main Plant Warehouse (WH-ACC-01)');
+        const sourceWhDisplay = resolveGodownDisplayName(sourceWhId, 'Main Plant Warehouse (WH-E-01)');
         const isGodown = d.delivery_target === 'GODOWN';
         const destDisplayName = isGodown 
-          ? resolveGodownDisplayName(d.target_warehouse_id, d.target_warehouse_name || 'Gas Godown (WH-ACC-GAS)')
+          ? resolveGodownDisplayName(d.target_warehouse_id, d.target_warehouse_name || 'Gas Godown (WH-E-GAS)')
           : `Direct Customer Delivery — ${safeEscape(d.client_name || 'Customer')}`;
 
         const content = document.getElementById('view-dispatch-content');
@@ -1916,7 +1916,7 @@
                 <img src="../assets/images/logo.jpg" alt="Logo" style="height:80px; width:80px; object-fit:contain; display:block;" onerror="this.onerror=null; this.src='../apps/Invoice Builder/logo.jpg';">
               </div>
               <div style="text-align:center;">
-                <h2 style="font-size:21px; font-weight:800; color:#0C3925; margin:0; letter-spacing:-0.4px;">Afield Crop Care</h2>
+                <h2 style="font-size:21px; font-weight:800; color:#0C3925; margin:0; letter-spacing:-0.4px;">Estimate</h2>
                 <div style="font-size:11px; color:#334155; margin:4px 0 0; line-height:1.5;">
                   <span>SURVEY NO. 255, PLOT NO. 14, NEAR BALKRISHNA STEEL FORGING, SHITALA MATA TEMPLE ROAD, SHAPAR (VERAVAL) 360024 DISTRICT - RAJKOT, GUJARAT, INDIA.</span><br>
                   <span>Phone: <strong>+91 78787 77727</strong></span><span> &nbsp;|&nbsp; </span><span>Email: <strong>afieldcropcare@gmail.com</strong></span><br>
@@ -2097,7 +2097,7 @@
       pdf.setFont('helvetica', 'bold');
       pdf.setFontSize(16.5);
       pdf.setTextColor(...C_DARK_GREEN);
-      pdf.text('Afield Crop Care', centerX, y + 6.5, { align: 'center' });
+      pdf.text('Estimate', centerX, y + 6.5, { align: 'center' });
 
       pdf.setFont('helvetica', 'normal');
       pdf.setFontSize(8.25);
@@ -2583,7 +2583,7 @@
           InvoiceNumber: invNo,
           InvoiceType: 'GST',
           business: {
-            company: 'Afield Crop Care',
+            company: 'Estimate',
             address: 'SURVEY NO. 255, PLOT NO. 14, NEAR BALKRISHNA STEEL FORGING, SHITALA MATA TEMPLE ROAD, SHAPAR (VERAVAL) 360024 DISTRICT - RAJKOT, GUJARAT, INDIA.',
             phone: '7878777727',
             email: 'afieldcropcare@gmail.com',
@@ -2622,7 +2622,7 @@
             const lineTotal = parseFloat(it.total_amount) || (qty * price);
             return {
               id: 'r_' + (idx + 1),
-              brand: 'Afield Crop Care',
+              brand: 'Estimate',
               name: it.product_name,
               desc: it.product_name,
               packaging: packaging,
@@ -2760,10 +2760,10 @@
             <!-- Header: Logo | Company Center | Invoice Box -->
             <div style="display:grid; grid-template-columns:130px 1fr 160px; align-items:center; gap:12px; margin-bottom:14px; padding-bottom:12px; border-bottom:3px solid #0C3925;">
               <div style="display:flex; align-items:center; justify-content:flex-start;">
-                <img src="../assets/images/logo.jpg" alt="Afield Crop Care" style="height:76px; width:76px; max-width:120px; object-fit:contain; border:none; display:block; background:transparent;" onerror="this.onerror=null; this.src='../apps/Invoice Builder/logo.jpg';" />
+                <img src="../assets/images/logo.jpg" alt="Estimate" style="height:76px; width:76px; max-width:120px; object-fit:contain; border:none; display:block; background:transparent;" onerror="this.onerror=null; this.src='../apps/Invoice Builder/logo.jpg';" />
               </div>
               <div style="text-align:center; display:flex; flex-direction:column; align-items:center;">
-                <div style="font-size:20px; font-weight:800; color:#0C3925 !important; letter-spacing:-0.4px;">Afield Crop Care</div>
+                <div style="font-size:20px; font-weight:800; color:#0C3925 !important; letter-spacing:-0.4px;">Estimate</div>
                 <div style="font-size:11px; color:#000; margin-top:2px; line-height:1.5;">
                   <span>SURVEY NO. 255, PLOT NO. 14, NEAR BALKRISHNA STEEL FORGING, SHITALA MATA TEMPLE ROAD, SHAPAR (VERAVAL) 360024 DISTRICT - RAJKOT, GUJARAT, INDIA.</span><br />
                   <span>78787 77727</span><span> &nbsp;|&nbsp; </span><span>afieldcropcare@gmail.com</span><br />
@@ -2792,7 +2792,7 @@
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-bottom:14px; padding:12px 14px; background:#f8fafc; border-radius:8px; border:1px solid #e2e8f0;">
               <div>
                 <div style="font-size:9.5px; font-weight:700; text-transform:uppercase; letter-spacing:1px; color:#0f766e; margin-bottom:4px;">BILL FROM</div>
-                <div style="font-size:13.5px; font-weight:700; color:#0f172a;">Afield Crop Care</div>
+                <div style="font-size:13.5px; font-weight:700; color:#0f172a;">Estimate</div>
                 <div style="font-size:11.5px; font-weight:500; color:#1e293b; margin-top:2px; line-height:1.4;">SURVEY NO. 255, PLOT NO. 14, NEAR BALKRISHNA STEEL FORGING, SHITALA MATA TEMPLE ROAD, SHAPAR (VERAVAL) 360024 DISTRICT - RAJKOT, GUJARAT, INDIA.</div>
                 <div style="display:grid; grid-template-columns:140px 1fr; gap:2px 16px; font-size:11.5px; line-line:1.4; margin-top:4px;">
                   <div><span style="color:#475569;">State:</span> <strong style="color:#0f172a; font-weight:600;">Gujarat</strong></div>
@@ -2889,7 +2889,7 @@
             try {
               qrCanvasContainer.innerHTML = '';
               new window.QRCode(qrCanvasContainer, {
-                text: `upi://pay?pa=9427213943m@pnb&pn=${encodeURIComponent('Afield Crop Care')}`,
+                text: `upi://pay?pa=9427213943m@pnb&pn=${encodeURIComponent('Estimate')}`,
                 width: 90,
                 height: 90,
                 colorDark: '#000000',

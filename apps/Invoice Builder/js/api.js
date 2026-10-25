@@ -751,7 +751,7 @@ async function apiGetInvoice(uniqueId) {
 
               return {
                 id: 'r_' + (idx + 1),
-                brand: 'Afield Crop Care',
+                brand: 'Estimate',
                 name: it.product_name || 'Product',
                 desc: it.product_name || '',
                 packaging: packaging,
@@ -795,7 +795,7 @@ async function apiGetInvoice(uniqueId) {
               InvoiceNumber: dInvNo,
               InvoiceType: 'GST',
               business: {
-                company: 'Afield Crop Care',
+                company: 'Estimate',
                 address: 'Sr. No. 67 and 68, Plot No. 33, Siddhi Vinayak Industrial Zone, At: Virva, Tal: Lodhika, Dist: Rajkot, Gujarat.',
                 phone: '7878777727',
                 email: 'afieldcropcare@gmail.com',
@@ -960,7 +960,7 @@ function _buildInvoiceDocFromRemote(invRow, dispatchRow, items = [], clientRow =
     InvoiceNumber: invNo,
     InvoiceType: 'GST',
     business: {
-      company: 'Afield Crop Care',
+      company: 'Estimate',
       address: 'Sr. No. 67 and 68, Plot No. 33, Siddhi Vinayak Industrial Zone, At: Virva, Tal: Lodhika, Dist: Rajkot',
       state: 'Gujarat',
       pincode: '360024',
@@ -1001,7 +1001,7 @@ function _buildInvoiceDocFromRemote(invRow, dispatchRow, items = [], clientRow =
       const lineTotal = parseFloat(it.total_amount) || (qty * price);
       return {
         id: 'r_' + (idx + 1),
-        brand: 'Afield Crop Care',
+        brand: 'Estimate',
         name: it.product_name || 'Product',
         desc: it.product_name || 'Product',
         packaging: packaging,

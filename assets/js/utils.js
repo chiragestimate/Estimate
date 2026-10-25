@@ -747,7 +747,7 @@ function formatPackagingItemDisplay(itemOrName, category = '') {
  * Preserves underlying database records and integrity.
  */
 function formatLabelItemDisplay(itemOrName) {
-  if (!itemOrName) return { displayName: '', productName: '', brand: 'ACC', packaging: '—', unit: '—' };
+  if (!itemOrName) return { displayName: '', productName: '', brand: 'E', packaging: '—', unit: '—' };
 
   let rawName = '';
   let rawSize = '';
@@ -791,8 +791,8 @@ function formatLabelItemDisplay(itemOrName) {
   if (!brand && brandMatch) {
     brand = brandMatch[1].toUpperCase();
   }
-  if (!brand) brand = 'ACC';
-  if (brand === 'AAC') brand = 'ACC';
+  if (!brand) brand = 'E';
+  if (brand === 'ACC' || brand === 'AAC') brand = 'E';
 
   // 3. Clean Product Name:
   // Remove brand brackets e.g. [AAC]

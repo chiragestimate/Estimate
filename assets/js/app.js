@@ -1,30 +1,16 @@
 // Immediate company branding normalization
 (function() {
   if (typeof localStorage !== 'undefined') {
-    if (localStorage.getItem('erp_active_company_name') === 'Afield Crop Care' || !localStorage.getItem('erp_active_company_name')) {
-      localStorage.setItem('erp_active_company_name', 'Afield Crop Care');
+    if (localStorage.getItem('erp_active_company_name') === 'Afield Crop Care' || localStorage.getItem('erp_active_company_name') === 'Estimate' || !localStorage.getItem('erp_active_company_name')) {
+      localStorage.setItem('erp_active_company_name', 'Estimate');
     }
-    if (localStorage.getItem('active_company_name') === 'Afield Crop Care') {
-      localStorage.setItem('active_company_name', 'Afield Crop Care');
+    if (localStorage.getItem('active_company_name') === 'Afield Crop Care' || localStorage.getItem('active_company_name') === 'Estimate') {
+      localStorage.setItem('active_company_name', 'Estimate');
     }
   }
 })();
 /* ─── app.js ──────────────────────────────────────────── */
 /* Sidebar, Topbar, Toast, Modal, Spinner, Navigation      */
-
-// Unregister stale service worker & clear cache to ensure user always gets the latest updates
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.getRegistrations().then(registrations => {
-    for (let reg of registrations) {
-      reg.unregister();
-    }
-  });
-}
-if ('caches' in window) {
-  caches.keys().then(names => {
-    for (let name of names) caches.delete(name);
-  });
-}
 
 // Clean-slate reset for testing from scratch: clear stale mock/buffered data keys from localStorage
 (function() {

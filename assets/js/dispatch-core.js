@@ -1223,8 +1223,9 @@
           const safeOrderId = (dispatch.order_id && parseInt(dispatch.order_id, 10) < 2147483647) ? parseInt(dispatch.order_id, 10) : null;
           const numItemId = item.product_id ? parseInt(item.product_id, 10) : null;
 
+          let insertedBatchId = null;
           try {
-            await client.from('stock_batches').insert([{
+            const { data: bData } = await client.from('stock_batches').insert([{
               batch_no: destBatchNo,
               item_id: numItemId,
               item_name: item.product_name,
@@ -1239,7 +1240,8 @@
               purchase_price: parseFloat(item.unit_price) || 0,
               warehouse: 'Main Warehouse',
               created_at: new Date().toISOString()
-            }]);
+            }]).select('id');
+            if (bData && bData[0]) insertedBatchId = bData[0].id;
           } catch (batchErr) {
             console.error('[Dispatch Core] Failed to credit godown stock batch:', batchErr);
           }
@@ -1248,10 +1250,11 @@
             await client.from('stock_movements').insert([{
               company_id: dispatch.company_id || 623,
               warehouse_id: destWhId,
+              batch_id: insertedBatchId,
               txn_type: 'RECEIPT',
               txn_id: safeOrderId,
               qty: unitsToCredit,
-              notes: `Stocked ${unitsToCredit} units (${recBoxes} boxes) into Godown #${destWhId} from Sales Order #${dispatch.order_no || dispatch.order_id}`
+              notes: `Stocked ${unitsToCredit} units (${recBoxes} boxes) of ${item.product_name || 'Product'}${item.packaging_size ? ` (${item.packaging_size})` : ''} into Godown #${destWhId} from Sales Order #${dispatch.order_no || dispatch.order_id}`
             }]);
           } catch (movErr) {
             console.error('[Dispatch Core] Failed to log godown stock movement:', movErr);

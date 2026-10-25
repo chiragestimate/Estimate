@@ -1,7 +1,7 @@
 {
   "name": "invoice-builder",
   "version": "1.1.0",
-  "description": "Invoice Builder Backend for Afield Crop Care",
+  "description": "Invoice Builder Backend for Estimate",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

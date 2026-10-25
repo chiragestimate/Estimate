@@ -64,7 +64,7 @@ function normalizeText(value) {
 }
 
 function normalizeBusinessName(value) {
-  if (!value || value === 'AgroChem' || value === 'Agro Chem') return 'Afield Crop Care';
+  if (!value || value === 'AgroChem' || value === 'Agro Chem' || value === 'Afield Crop Care') return 'Estimate';
   return value;
 }
 
@@ -487,7 +487,7 @@ function updateQR() {
   }
 
   const upi = ($('s-upi')?.value || '').trim() || '9427213943m@pnb';
-  const name = ($('s-company')?.value || '').trim() || 'Afield Crop Care';
+  const name = ($('s-company')?.value || '').trim() || 'Estimate';
 
   try {
     qrInstance = new QRCode(qrCanvas, {
@@ -955,7 +955,7 @@ const SYNC_MAP = {
 
 function updateBillFromPreview() {
   
-  const compName = $('s-company')?.value || 'Afield Crop Care';
+  const compName = $('s-company')?.value || 'Estimate';
   let addr = $('s-address')?.value || '';
   const state = $('s-company-state')?.value || 'Gujarat';
   const pin = $('s-company-pincode')?.value || '360024';

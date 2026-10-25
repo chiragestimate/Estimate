@@ -248,7 +248,7 @@ function renderInventorySlice(slice) {
       if (isItemLabel) {
         const labelInfo = (typeof UTILS !== 'undefined' && UTILS.formatLabelItemDisplay)
           ? UTILS.formatLabelItemDisplay(it)
-          : { displayName: it.name, brand: it.item_subtype || 'ACC', unit: it.item_size || 'Nos' };
+          : { displayName: it.name, brand: it.item_subtype || 'E', unit: it.item_size || 'Nos' };
         displayName = labelInfo.displayName;
         categoryText = labelInfo.brand;
         displayUnit = labelInfo.unit;
@@ -326,7 +326,7 @@ function renderInventorySlice(slice) {
       if (isItemLabel) {
         const labelInfo = (typeof UTILS !== 'undefined' && UTILS.formatLabelItemDisplay)
           ? UTILS.formatLabelItemDisplay(it)
-          : { displayName: it.name, brand: it.item_subtype || 'ACC', unit: it.item_size || 'Nos' };
+          : { displayName: it.name, brand: it.item_subtype || 'E', unit: it.item_size || 'Nos' };
         cardTitle = labelInfo.displayName;
         cardSubtitle = 'PRODUCT PACKAGING LABEL';
         displayUnit = labelInfo.unit;
@@ -960,17 +960,18 @@ async function populateLabelFormSelects(selectedProdId = null, selectedSize = nu
       } catch (_) {}
 
       // Fallback defaults
-      if (!companies.some(c => c.code === 'ACC' || c.code === 'AAC')) companies.unshift({ id: 1, name: 'Afield Crop Care', code: 'ACC' });
+      if (!companies.some(c => c.code === 'E' || c.code === 'ACC' || c.code === 'AAC')) companies.unshift({ id: 1, name: 'Estimate', code: 'E' });
       if (!companies.some(c => c.code === 'GAS')) companies.push({ id: 2, name: 'Greenfield Agro Solutions', code: 'GAS' });
 
       const activeCode = (window.TENANT_CONTEXT && window.TENANT_CONTEXT.getActiveCompany) 
-        ? (window.TENANT_CONTEXT.getActiveCompany().code || 'ACC')
-        : 'ACC';
-      let targetOwner = (selectedOwner || activeCode || 'ACC').toUpperCase();
-      if (targetOwner === 'AAC') targetOwner = 'ACC';
+        ? (window.TENANT_CONTEXT.getActiveCompany().code || 'E')
+        : 'E';
+      let targetOwner = (selectedOwner || activeCode || 'E').toUpperCase();
+      if (targetOwner === 'ACC' || targetOwner === 'AAC') targetOwner = 'E';
 
       ownerSelect.innerHTML = companies.map(c => {
-        const normCode = (c.code || '').toUpperCase() === 'AAC' ? 'ACC' : (c.code || '').toUpperCase();
+        let normCode = (c.code || '').toUpperCase();
+        if (normCode === 'ACC' || normCode === 'AAC') normCode = 'E';
         const isSel = normCode === targetOwner;
         const roleDesc = c.is_manufacturing ? 'In-House Mfg' : 'Co-Marketing Partner';
         return `<option value="${normCode}" ${isSel ? 'selected' : ''}>${normCode} (${c.name} - ${roleDesc})</option>`;
@@ -1408,8 +1409,8 @@ async function saveLabelItem() {
   const d = UTILS.getFormData('label-form');
   const productId = d.label_product_id;
   const size = d.label_size;
-  let owner = (d.label_owner || 'ACC').trim().toUpperCase();
-  if (owner === 'AAC') owner = 'ACC';
+  let owner = (d.label_owner || 'E').trim().toUpperCase();
+  if (owner === 'ACC' || owner === 'AAC') owner = 'E';
 
   if (!productId) {
     APP.showToast('Please select a target product for this label.', 'error');
@@ -1420,7 +1421,7 @@ async function saveLabelItem() {
     return;
   }
   if (!owner) {
-    APP.showToast('Please select label owner (ACC or GAS).', 'error');
+    APP.showToast('Please select label owner (E or GAS).', 'error');
     return;
   }
 

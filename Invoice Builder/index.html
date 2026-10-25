@@ -7,7 +7,7 @@
   <meta http-equiv="Expires" content="0">
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Afield ERP - Invoice Builder</title>
+  <title>Estimate ERP - Invoice Builder</title>
   <meta name="description" content="Professional invoice generator." />
   <meta name="keywords" content="invoice, invoice builder, professional invoice, GST invoice" />
   <meta name="author" content="Invoice Builder" />
@@ -30,12 +30,12 @@
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js"></script>
   <!-- App Scripts -->
-  <script src="js/api.js?v=1792676000000"></script>
-  <script src="js/tax-utils.js?v=1792676000000"></script>
-  <script src="js/storage.js?v=1792676000000"></script>
+  <script src="js/api.js?v=1792916877412"></script>
+  <script src="js/tax-utils.js?v=1792916877412"></script>
+  <script src="js/storage.js?v=1792916877412"></script>
   <!-- Styles -->
-  <link rel="stylesheet" href="css/main.css?v=1792676000000" />
-  <link rel="stylesheet" href="css/override.css?v=1792676000000" />
+  <link rel="stylesheet" href="css/main.css?v=1792916877412" />
+  <link rel="stylesheet" href="css/override.css?v=1792916877412" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="../assets/js/database.js"></script>
     <link rel="icon" type="image/png" href="../assets/images/logo-rounded.png?v=1791036879151">
@@ -64,10 +64,10 @@
   <!-- ── TOOLBAR ────────────────────────────────────────── -->
   <div id="toolbar">
     <!-- Brand -->
-    <a href="index.html" class="toolbar-brand" id="brand-home-link" title="Afield Crop Care - Start Fresh Invoice" style="display:flex;align-items:center;gap:12px;text-decoration:none;cursor:pointer;">
-      <img src="../assets/images/logo.jpg" alt="Afield Crop Care" id="navbar-logo" style="height:48px;width:48px;object-fit:contain;border-radius:10px;border:1px solid var(--border);flex-shrink:0;background:#ffffff;padding:2px;" onerror="this.onerror=null; this.src='logo.jpg';" />
+    <a href="index.html" class="toolbar-brand" id="brand-home-link" title="Estimate - Start Fresh Invoice" style="display:flex;align-items:center;gap:12px;text-decoration:none;cursor:pointer;">
+      <img src="../assets/images/logo.jpg" alt="Estimate" id="navbar-logo" style="height:48px;width:48px;object-fit:contain;border-radius:10px;border:1px solid var(--border);flex-shrink:0;background:#ffffff;padding:2px;" onerror="this.onerror=null; this.src='logo.jpg';" />
       <div class="brand-text">
-        <span class="brand-name" style="font-weight:800;font-size:19px;letter-spacing:-0.3px;color:#08281A;">Afield Crop Care</span>
+        <span class="brand-name" style="font-weight:800;font-size:19px;letter-spacing:-0.3px;color:#08281A;">Estimate</span>
       </div>
     </a>
 
@@ -193,11 +193,11 @@
 
           <!-- Logo Display -->
           <div class="logo-upload-area" id="logo-upload-area" style="cursor:default; border:none; background:transparent; display:flex; align-items:center; justify-content:center; padding:4px 0 16px 0; margin-bottom:12px;">
-            <img id="logo-preview-sb" src="../assets/images/logo.jpg" alt="Afield Crop Care" style="height:100px;width:100px;max-width:140px;object-fit:contain;border-radius:14px;border:1.5px solid var(--border);box-shadow:var(--shadow-sm);background:#ffffff;padding:4px;display:block;" onerror="this.onerror=null; this.src='logo.jpg';" />
+            <img id="logo-preview-sb" src="../assets/images/logo.jpg" alt="Estimate" style="height:100px;width:100px;max-width:140px;object-fit:contain;border-radius:14px;border:1.5px solid var(--border);box-shadow:var(--shadow-sm);background:#ffffff;padding:4px;display:block;" onerror="this.onerror=null; this.src='logo.jpg';" />
           </div>
 
           <span class="sb-label">Company Name</span>
-          <input class="sb-input" id="s-company" placeholder="Company Name" maxlength="60" value="Afield Crop Care" />
+          <input class="sb-input" id="s-company" placeholder="Company Name" maxlength="60" value="Estimate" />
           <span class="sb-label">Address</span>
           <input class="sb-input" id="s-address" placeholder="Street, City, State - PIN"
             value="SURVEY NO. 255, PLOT NO. 14, NEAR BALKRISHNA STEEL FORGING, SHITALA MATA TEMPLE ROAD, SHAPAR (VERAVAL) 360024 DISTRICT - RAJKOT, GUJARAT, INDIA." />
@@ -439,10 +439,10 @@ Thank you for your valuable inquiry. We are pleased to quote as below:</textarea
         <!-- HEADER: Logo | Company (center) | Invoice Box -->
         <div class="paper-header">
           <div class="paper-logo-section" style="display:flex;align-items:center;justify-content:flex-start;">
-            <img id="paper-logo" src="../assets/images/logo.jpg" alt="Afield Crop Care" style="height:96px;width:96px;max-width:140px;max-height:105px;object-fit:contain;border:none;display:block;background:transparent;padding:0;box-shadow:none;" onerror="this.onerror=null; this.src='logo.jpg';" />
+            <img id="paper-logo" src="../assets/images/logo.jpg" alt="Estimate" style="height:96px;width:96px;max-width:140px;max-height:105px;object-fit:contain;border:none;display:block;background:transparent;padding:0;box-shadow:none;" onerror="this.onerror=null; this.src='logo.jpg';" />
           </div>
           <div class="paper-company-center">
-            <div class="paper-company-name" id="p-company" style="color:#08281A !important;">Afield Crop Care</div>
+            <div class="paper-company-name" id="p-company" style="color:#08281A !important;">Estimate</div>
             <div class="paper-company-sub">
               <span id="p-address">SURVEY NO. 255, PLOT NO. 14, NEAR BALKRISHNA STEEL FORGING, SHITALA MATA TEMPLE ROAD, SHAPAR (VERAVAL) 360024 DISTRICT - RAJKOT, GUJARAT, INDIA.</span><br />
               <span id="p-phone">—</span><span id="p-email-phone-sep"> &nbsp;|&nbsp; </span><span id="p-email">afieldcropcare@gmail.com</span><br />
@@ -470,7 +470,7 @@ Thank you for your valuable inquiry. We are pleased to quote as below:</textarea
         <div class="paper-to">
           <div>
             <div class="to-label">BILL FROM</div>
-            <div class="to-main" id="p-from-name">Afield Crop Care</div>
+            <div class="to-main" id="p-from-name">Estimate</div>
             <div class="to-address" id="p-from-addr" style="font-size:11.5px; font-weight:500; color:#1e293b; margin-top:2px; line-height:1.4;">SURVEY NO. 255, PLOT NO. 14, NEAR BALKRISHNA STEEL FORGING, SHITALA MATA TEMPLE ROAD, SHAPAR (VERAVAL) 360024 DISTRICT - RAJKOT, GUJARAT, INDIA.</div>
             <div class="to-grid" id="p-from-grid" style="display:grid; grid-template-columns:140px 1fr; gap:2px 16px; font-size:11.5px; line-height:1.4; margin-top:3px;">
               <div><span style="color:#475569;">State:</span> <strong id="p-from-state" style="color:#0f172a; font-weight:600;">Gujarat</strong></div>
@@ -615,8 +615,8 @@ Thank you for your valuable inquiry. We are pleased to quote as below:</textarea
   </div>
 
   <!-- Main App Script (last, so DOM is ready) -->
-  <script src="js/invoice-pdf.js?v=1792759800000"></script>
-  <script src="js/main.js?v=1792759800000"></script>
+  <script src="js/invoice-pdf.js?v=1792916877412"></script>
+  <script src="js/main.js?v=1792916877412"></script>
 
 </body>
 

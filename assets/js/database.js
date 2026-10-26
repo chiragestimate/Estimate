@@ -1,7 +1,7 @@
 /* assets/js/database.js - Supabase Bridge Config */
 
-const supabaseUrl = 'https://quxcvoywufjjynluntvg.supabase.co';
-const supabaseKey = 'sb_publishable_XickYJH_8m0FTaJaT2k8TA_X2MEJSDr';
+const supabaseUrl = 'https://galqhecdkeskvgnxjsax.supabase.co';
+const supabaseKey = 'sb_publishable_bSLDWrI4YHYCshblzkiKHw_04XepecY';
 
 // Resilient fetch wrapper to transparently recover from clock skew, expired JWTs, or auth failures
 async function resilientFetch(input, init) {

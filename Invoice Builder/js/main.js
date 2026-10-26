@@ -572,8 +572,8 @@ function savePdfBlob(pdf, filename) {
 window.savePdfBlob = savePdfBlob;
 
 async function fetchDirectPublic(endpoint) {
-  const supabaseUrl = 'https://quxcvoywufjjynluntvg.supabase.co';
-  const supabaseKey = 'sb_publishable_XickYJH_8m0FTaJaT2k8TA_X2MEJSDr';
+  const supabaseUrl = 'https://galqhecdkeskvgnxjsax.supabase.co';
+  const supabaseKey = 'sb_publishable_bSLDWrI4YHYCshblzkiKHw_04XepecY';
   const sep = endpoint.includes('?') ? '&' : '?';
   const res = await fetch(`${supabaseUrl}/rest/v1/${endpoint}${sep}apikey=${supabaseKey}`, {
     headers: {
@@ -589,8 +589,8 @@ window.fetchDirectPublic = fetchDirectPublic;
 function getSupabaseClient() {
   if (window.dbClient) return window.dbClient;
   if (typeof window.supabase !== 'undefined' && window.supabase?.createClient) {
-    const supabaseUrl = 'https://quxcvoywufjjynluntvg.supabase.co';
-    const supabaseKey = 'sb_publishable_XickYJH_8m0FTaJaT2k8TA_X2MEJSDr';
+    const supabaseUrl = 'https://galqhecdkeskvgnxjsax.supabase.co';
+    const supabaseKey = 'sb_publishable_bSLDWrI4YHYCshblzkiKHw_04XepecY';
     try {
       const fetchFn = (typeof resilientFetch === 'function') ? resilientFetch : (typeof window.resilientFetch === 'function' ? window.resilientFetch : undefined);
       const opts = {
